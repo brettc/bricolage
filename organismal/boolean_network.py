@@ -32,7 +32,7 @@ class Defaults:
         obj.__dict__.update(self.__dict__)
 
 _defaults = Defaults(
-    reg_gene_count=5,
+    # reg_gene_count=5,
     cis_count=3,
     cue_shapes=2,
     reg_shapes=3,
@@ -58,7 +58,8 @@ class Parameters(object):
         return randomizer.randint(*self.sub_range)
 
     def random_pub(self):
-        return randomizer.randint(*self.pub_range)
+        # Only randomize the regulatory outputs
+        return randomizer.randint(*self.reg_range)
 
     def random_op(self):
         i = randomizer.randint(0, self.ops_size)
@@ -88,6 +89,7 @@ class Parameters(object):
         # out_range             [ 6 7 8 9 10 ]
         #
         # reg_range         [ 4 5 ] 
+        self.reg_gene_count = self.reg_shapes
 
         self.sub_shapes = self.cue_shapes + self.reg_shapes
 
@@ -125,13 +127,32 @@ class CisModule(object):
             return True
         return False
 
+    def mutate(self, params):
+        # Decide what to do...
+        q = randomizer.uniform(0, 100)
+        if q > 80:
+            self.description, self.operation = params.random_op()
+        elif q > 40:
+            self.x = params.random_sub()
+        else:
+            self.y = params.random_sub()
+
+    def describe(self):
+        return self.description.format(self.x, self.y)
+
 
 class Gene(object):
     def __init__(self, network, i):
         self.index = i
         p = network.params
         self.cis_modules = [CisModule(p) for _ in range(p.cis_count)]
-        self.publish = p.random_pub()
+        
+        # out_index = i - p.reg_gene_count
+        # if out_index < 0:
+        #     self.publish = p.random_pub()
+        # else:
+            # self.publish = p.out_signals[out_index]
+        self.publish = p.pub_range[0] + i
 
     def bind(self, cell):
         for m in self.cis_modules:
@@ -144,12 +165,28 @@ class Gene(object):
         if cell.activation[self.index]:
             cell.products[self.publish] = 1
 
+    def describe(self):
+        ds = [m.describe() for m in self.cis_modules]
+        return '(' + ') OR ('.join(ds) + ') => {}'.format(self.publish)
+
 
 class Network(object):
     def __init__(self, params):
         self.params = params
         gc = self.params.gene_count
         self.genes = [Gene(self, i) for i in range(gc)]
+
+
+    def mutate(self, number):
+        """
+        We need gene / cis, then what to mutate? 
+        """
+        positions = self.params.gene_count * self.params.cis_count
+        mutations = randomizer.randint(0, positions, number)
+        for m in mutations:
+            gene_pos, cis_pos = divmod(m, self.params.cis_count)
+            cis = self.genes[gene_pos].cis_modules[cis_pos]
+            cis.mutate(self.params)
 
     def cycle(self, cell):
         """Run a cycle through the network, updating the elements
@@ -159,8 +196,8 @@ class Network(object):
         that this method and the cython method give the same results.
         """
 
-        # This binds 
-        cell.reset_activation()
+        # This binds and activates
+        cell.deactivate()
         for g in self.genes:
             g.bind(cell)
 
@@ -180,27 +217,17 @@ class Network(object):
             for i, s in enumerate(seen):
                 if np.all(s == cell_state):
                     return seen[i:]
+                    # transient = seen[:i]
             seen.append(cell_state)
 
         raise RuntimeError
 
-    def transient_and_attractor_info(self, elements):
-        # This gives much more info, but is much slower
-        # Put starter position into transient
-        seen = []
+    def expression_rate(self, cell):
+        a = np.array(self.attractor(cell))
+        return a.mean(axis=0)[-self.params.out_shapes:]
 
-        while True:
-            active = self.cycle(elements)
 
-            state = elements.copy()
-            for i, (s, a) in enumerate(seen):
-                if numpy.all(s == state):
-                    transient = seen[:i]
-                    attr = seen[i:]
-                    return transient, attr
-            seen.append((state, active))
 
-        raise RuntimeError
 
 class Cell(object):
     def __init__(self, params):
@@ -209,7 +236,7 @@ class Cell(object):
         self.products = params.product_array()
         self.activation = params.activation_array()
 
-    def reset_activation(self):
+    def deactivate(self):
         self.activation[:] = 0
 
     def set_environment(self, env):
@@ -219,27 +246,32 @@ class Cell(object):
     def decay(self):
         self.products[self.env_size:] = 0
 
+    def expose(self, n):
+        for e in self.params.all_environments():
+            c.set_environment(e)
+            print e, n.expression_rate(c)
+            # print '--'
+            # # a = n.attractor(c)
+            # # for s in a:
+            # #     print s
+            # print '-----'
 
 if __name__ == '__main__':
     p = Parameters(
-        reg_gene_count=12,
-        cis_count=2,
-        out_shapes=5,
+        reg_gene_count=5,
+        cis_count=4,
+        out_shapes=3,
         reg_shapes=5,
-        cue_shapes=3,
-        ops='and or not_x not_y xor nand'.split(),
+        cue_shapes=2,
+        ops='and not_x not_y x_and_not_y y_and_not_x'.split(),
     )
     n = Network(p)
     c = Cell(p)
-    for e in p.all_environments():
-        print e
-        print '--'
-        c.set_environment(e)
-        a = n.attractor(c)
-        for s in a:
-            print s
-        print '-----'
-
+    # print n.expression_rate(c)
+    c.expose(n)
+    n.mutate(8)
+    print '---------'
+    c.expose(n)
 
 
 
