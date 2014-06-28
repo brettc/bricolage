@@ -116,15 +116,17 @@ class Parameters(object):
 
 class CisModule(object):
     def __init__(self, params):
+        self.active = randomizer.uniform(0, 1) > .5
         self.x = params.random_sub()
         self.y = params.random_sub()
         self.description, self.operation = params.random_op()
 
     def bind(self, cell):
-        a = cell.products[self.x]
-        b = cell.products[self.y]
-        if self.operation(a, b):
-            return True
+        if self.active:
+            a = cell.products[self.x]
+            b = cell.products[self.y]
+            if self.operation(a, b):
+                return True
         return False
 
     def mutate(self, params):
@@ -136,6 +138,10 @@ class CisModule(object):
             self.x = params.random_sub()
         else:
             self.y = params.random_sub()
+
+        # Flip
+        if randomizer.uniform(0, 1) > .5:
+            self.active = not self.active
 
     def describe(self):
         return self.description.format(self.x, self.y)
@@ -166,7 +172,7 @@ class Gene(object):
             cell.products[self.publish] = 1
 
     def describe(self):
-        ds = [m.describe() for m in self.cis_modules]
+        ds = [m.describe() for m in self.cis_modules if m.active]
         return '(' + ') OR ('.join(ds) + ') => {}'.format(self.publish)
 
 
@@ -226,8 +232,10 @@ class Network(object):
         a = np.array(self.attractor(cell))
         return a.mean(axis=0)[-self.params.out_shapes:]
 
-
-
+    def describe(self):
+        gs = [g.describe() for g in self.genes]
+        print '\n'.join(gs)
+            
 
 class Cell(object):
     def __init__(self, params):
@@ -258,7 +266,6 @@ class Cell(object):
 
 if __name__ == '__main__':
     p = Parameters(
-        reg_gene_count=5,
         cis_count=4,
         out_shapes=3,
         reg_shapes=5,
@@ -267,10 +274,11 @@ if __name__ == '__main__':
     )
     n = Network(p)
     c = Cell(p)
-    # print n.expression_rate(c)
+    print n.describe()
     c.expose(n)
-    n.mutate(8)
+    n.mutate(2)
     print '---------'
+    print n.describe()
     c.expose(n)
 
 
