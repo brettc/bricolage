@@ -5,6 +5,7 @@ log = logging.getLogger("")
 import numpy as np
 randomizer = np.random
 import itertools
+import copy
 
 def func_xor(x, y):
     return int((x or y) and not (x and y))
@@ -24,35 +25,31 @@ boolean_ops = {
     'y_or_not_x'  : ("~{0} OR {1}" , lambda x, y : int(y or not x))   ,
 }
 
-class Defaults:
-    def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)
-
-    def apply(self, obj):
-        obj.__dict__.update(self.__dict__)
-
-_defaults = Defaults(
-    # reg_gene_count=5,
-    cis_count=3,
-    cue_shapes=2,
-    reg_shapes=3,
-    out_shapes=1,
-    ops='and or not_x not_y'.split(),
-)
 
 class Parameters(object):
     def __init__(self, **kwargs):
-        _defaults.apply(self)
+        # Defaults are provided here
+        self.population_size = 20
+        self.cis_count = 3
+        self.cue_shapes = 2
+        self.reg_shapes = 3
+        self.out_shapes = 1
+        self.ops = 'and or not_x not_y'.split()
+
+        self._override(kwargs)
+        self._init()
+
+    def _override(self, kwargs):
         for k, v in kwargs.items():
             if hasattr(self, k):
                 setattr(self, k, v)
             else:
                 log.warning("'%s' is not a valid setting", k)
-        self._init()
 
     def _init(self):
         self._calc_sizes()
         self._init_ops()
+        self._init_envs()
 
     def random_sub(self):
         return randomizer.randint(*self.sub_range)
@@ -65,8 +62,8 @@ class Parameters(object):
         i = randomizer.randint(0, self.ops_size)
         return self.ops_list[i]
 
-    def all_environments(self):
-        return np.array([
+    def _init_envs(self):
+        self.environments = np.array([
             x for x in itertools.product(
                 range(2), repeat=self.cue_shapes)])
 
@@ -112,6 +109,7 @@ class Parameters(object):
 
         # Total gene count requires 
         self.gene_count = self.reg_gene_count + self.out_shapes
+        self.env_count = pow(2, self.cue_shapes)
 
 
 class CisModule(object):
@@ -130,7 +128,7 @@ class CisModule(object):
         return False
 
     def mutate(self, params):
-        # Decide what to do...
+        # TODO: Something sane here
         q = randomizer.uniform(0, 100)
         if q > 80:
             self.description, self.operation = params.random_op()
@@ -150,15 +148,8 @@ class CisModule(object):
 class Gene(object):
     def __init__(self, network, i):
         self.index = i
-        p = network.params
-        self.cis_modules = [CisModule(p) for _ in range(p.cis_count)]
-        
-        # out_index = i - p.reg_gene_count
-        # if out_index < 0:
-        #     self.publish = p.random_pub()
-        # else:
-            # self.publish = p.out_signals[out_index]
         self.publish = p.pub_range[0] + i
+        self.cis_modules = [CisModule(p) for _ in range(p.cis_count)]
 
     def bind(self, cell):
         for m in self.cis_modules:
@@ -175,17 +166,52 @@ class Gene(object):
         ds = [m.describe() for m in self.cis_modules if m.active]
         return '(' + ') OR ('.join(ds) + ') => {}'.format(self.publish)
 
+# TODO: This needs a factory, to control the caching, mutation etc
 
 class Network(object):
-    def __init__(self, params):
+    def __init__(self, parent_or_params, generation=0, identifier=0):
+        self.generation = generation
+        self.identifier = identifier
+
+        if isinstance(parent_or_params, Network):
+            # This should only be called
+            self._copy(parent_or_params)
+            return
+        
+        params = parent_or_params
         self.params = params
         gc = self.params.gene_count
         self.genes = [Gene(self, i) for i in range(gc)]
+        self.attractors = []
+        self.rates = np.zeros((len(params.environments), params.out_shapes))
+        self._init_states()
 
+    def _copy(self, parent):
+        # TODO: Move to factory -- 
+        # Duplicate, but copy the Genes, rather than reference them
+        self.params = parent.params
+        self.genes = [copy.deepcopy(g) for g in parent.genes]
+
+        # Don't update, this, as we'll be mutating
+        self.attractors = []
+        self.rates = np.zeros((len(self.params.environments), self.params.out_shapes))
+
+    def mutated(self, number, generation=0, identifier=0):
+        child = Network(self, generation, identifier)
+        child.mutate(number)
+        child._init_states()
+        return child
+
+    def _init_states(self):
+        c = Cell(self.params)
+        for i, e in enumerate(self.params.environments):
+            c.set_environment(e)
+            a = np.array(self.attractor(c))
+            self.attractors.append(a)
+            self.rates[i] = a.mean(axis=0)[-self.params.out_shapes:]
 
     def mutate(self, number):
-        """
-        We need gene / cis, then what to mutate? 
+        """We need gene / cis, then what to mutate? 
         """
         positions = self.params.gene_count * self.params.cis_count
         mutations = randomizer.randint(0, positions, number)
@@ -239,8 +265,7 @@ class Network(object):
 
 class Cell(object):
     def __init__(self, params):
-        self.params = params
-        self.env_size = self.params.cue_shapes
+        self.env_size = params.cue_shapes
         self.products = params.product_array()
         self.activation = params.activation_array()
 
@@ -248,38 +273,145 @@ class Cell(object):
         self.activation[:] = 0
 
     def set_environment(self, env):
-        self.env = env
         self.products[:self.env_size] = env
 
     def decay(self):
         self.products[self.env_size:] = 0
 
-    def expose(self, n):
-        for e in self.params.all_environments():
-            c.set_environment(e)
-            print e, n.expression_rate(c)
-            # print '--'
-            # # a = n.attractor(c)
-            # # for s in a:
-            # #     print s
-            # print '-----'
+
+class Target(object):
+    def __init__(self, params, fn):
+        self.params = params
+        envs = self.params.environments
+        self.opts = np.zeros((len(envs), params.out_shapes), dtype=float)
+        for i, e in enumerate(envs):
+            t = tuple(e)
+            opt = fn(*t)
+            self.opts[i] = opt
+
+
+class Population(object):
+    def __init__(self, params):
+        self.params = params
+        self.generation = 0
+        self.networks = [Network(params, self.generation, i*self.generation) 
+                         for i in range(params.population_size)]
+        self.fitnesses = np.zeros(len(self.networks), dtype=float)
+
+    def calc_fitness(self, target):
+        for i, n in enumerate(self.networks):
+            # Get the differences between desired and achieved
+            diffs = abs(n.rates - target.opts)
+            # Make them into fitness scores and normalise
+            scores = (1 - diffs) / self.params.env_count
+
+            # Sum across all challenges and scale by fitness contribution
+            # summed = scores.sum(axis=1) * ch.fitness_contribution
+            # summed = scores.sum(axis=1)
+
+            fitness = scores.sum()
+            self.fitnesses[i] = fitness
+
+    def roulette_selection(self):
+        fit = self.fitnesses
+        if np.any(fit < 0.0):
+            log.error("Negative fitness in generation %s", self.generation)
+            return 
+
+        # Check there are some non-zero. Otherwise try again
+        if np.all(fit == 0):
+            log.warning("Generation %d: All fitnesses are zero, "
+                        "so no selection", self.generation)
+            # We do nothing, just let everything get mutated next time
+            return
+
+        # We calculate relative fitness by normalising the differences across
+        # the population, with those that are alive (> 0.0)
+        select_alive = np.where(fit > 0.0)
+        alive = fit[select_alive]
+        mn = min(alive)
+        mx = max(alive)
+
+        if mn == mx:
+            log.warning("Generation %d: No variation in fitness "
+                        "and no selection", self.generation)
+            return
+
+        # TODO: Maybe add a base amount (otherwise the very lowest get ejected
+        relfit = (alive - mn) * 1.0 / (mx - mn)
+
+        # We're pumping up the differences here. This makes it more likely that
+        # small differences will be enough to get something into the next
+        # generation. Should pbly make this into a parameter
+        # TODO: Reinstate
+        # relfit = np.exp(relfit * 2.0) - 1.0
+
+        fit[select_alive] = relfit
+
+        # We'll fill them up by selecting from the parent population
+        # Generate a list of increasing values to select from ...
+        cumsum = fit.cumsum()
+        # ... a list of random values to pick in the list
+        sel_values = randomizer.uniform(0.0, cumsum[-1], len(self.networks))
+
+        # Now return the corresponding indexes
+        sel_indexes = np.searchsorted(cumsum, sel_values)
+
+        # We keep these around things like attractors can do an update too
+        self.selection_indexes = sel_indexes
+
+        # Now use numpy indexing to simply grab them (this should do a copy)
+        # We now have a new set of networks descended from the previous
+        # population, occuring with a probability proportionate to their
+        # relative fitness
+        # new_nets = self.networks[sel_indexes]
+        # new_nets['parent'] = self.networks['id'][sel_indexes]
+
+        # Reassign
+        # self.networks = new_nets
+
+    def new_generation(self):
+        """Using the selection indexes, create a new generation"""
+        new_networks = [self.networks[i] for i in self.selection_indexes]
+        self.networks = new_networks
+
+
 
 if __name__ == '__main__':
     p = Parameters(
         cis_count=4,
-        out_shapes=3,
+        out_shapes=1,
         reg_shapes=5,
         cue_shapes=2,
         ops='and not_x not_y x_and_not_y y_and_not_x'.split(),
     )
+
+    def ff(a, b):
+        # return a and b, b and not a, a or b
+        return a and b
+
+    # t = Target(p, ff)
+    # pop = Population(p)
+    # for i in range(10):
+    #     pop.calc_fitness(t)
+    #     print pop.fitnesses
+    #     pop.roulette_selection()
+    #     pop.new_generation()
+
     n = Network(p)
-    c = Cell(p)
+    c = n.mutated(5)
+    
     print n.describe()
-    c.expose(n)
-    n.mutate(2)
-    print '---------'
-    print n.describe()
-    c.expose(n)
+    print c.describe()
+    # print n.attractors
+    # print n.rates
+    # c = Cell(p)
+    # print n.describe()
+    # c.expose(n)
+    # n.mutate(2)
+    # print '---------'
+    # print n.describe()
+    # c.expose(n)
 
 
 
