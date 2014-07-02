@@ -2,10 +2,15 @@ import logging
 logging.basicConfig()
 log = logging.getLogger("")
 
-import numpy as np
-randomizer = np.random
+
 import itertools
 import copy
+import networkx as nx
+import matplotlib.pyplot as plt
+
+import numpy as np
+randomizer = np.random
+
 
 def func_xor(x, y):
     return int((x or y) and not (x and y))
@@ -35,6 +40,7 @@ class Parameters(object):
         self.reg_shapes = 3
         self.out_shapes = 1
         self.ops = 'and or not_x not_y'.split()
+        self.mutation_rate = .01
 
         self._override(kwargs)
         self._init()
@@ -111,6 +117,26 @@ class Parameters(object):
         self.gene_count = self.reg_gene_count + self.out_shapes
         self.env_count = pow(2, self.cue_shapes)
 
+        # This is per CIS module, rather than per site
+        self.individual_mutation_rate = self.gene_count * self.cis_count * self.mutation_rate
+
+        # Lastly, work out our char_size
+        # Should never need more than 2, as 99 is really big
+        if len(self.cue_signals) <= 10 and \
+                len(self.reg_signals) <= 10 and \
+                len(self.out_signals) <= 10:
+            self.char_size = 2
+        else:
+            self.char_size = 3
+
+    def name_for_signal(self, s):
+        sz = self.char_size-1
+        # We use "mathematical" number, starting at 1.0
+        if s in self.cue_signals:
+            return "E{0:0{1:}d}".format(s+1 - self.cue_range[0], sz)
+        if s in self.reg_signals:
+            return "T{0:0{1:}d}".format(s+1 - self.reg_range[0], sz)
+        return "P{0:0{1:}d}".format(s+1 - self.out_range[0], sz)
 
 class CisModule(object):
     def __init__(self, params):
@@ -310,6 +336,7 @@ class Population(object):
             # summed = scores.sum(axis=1)
 
             fitness = scores.sum()
+            fitness /= float(self.params.out_shapes)
             self.fitnesses[i] = fitness
 
     def roulette_selection(self):
@@ -344,7 +371,7 @@ class Population(object):
         # small differences will be enough to get something into the next
         # generation. Should pbly make this into a parameter
         # TODO: Reinstate
-        # relfit = np.exp(relfit * 2.0) - 1.0
+        relfit = np.exp(relfit * 2.0) - 1.0
 
         fit[select_alive] = relfit
 
@@ -360,49 +387,123 @@ class Population(object):
         # We keep these around things like attractors can do an update too
         self.selection_indexes = sel_indexes
 
-        # Now use numpy indexing to simply grab them (this should do a copy)
-        # We now have a new set of networks descended from the previous
-        # population, occuring with a probability proportionate to their
-        # relative fitness
-        # new_nets = self.networks[sel_indexes]
-        # new_nets['parent'] = self.networks['id'][sel_indexes]
-
-        # Reassign
-        # self.networks = new_nets
 
     def new_generation(self):
         """Using the selection indexes, create a new generation"""
         new_networks = [self.networks[i] for i in self.selection_indexes]
         self.networks = new_networks
 
+    def mutate(self):
+        nmutations = randomizer.poisson(
+            self.params.individual_mutation_rate, 
+            self.params.population_size
+        )
 
+        for i in range(self.params.population_size):
+            m = nmutations[i]
+            if m:
+                self.networks[i] = self.networks[i].mutated(m)
+
+
+class SignalGraph(object):
+
+    def signal_to_node(self, s):
+        p = self.network.params
+        if s in p.cue_signals:
+            return 'E', s + 1 - p.cue_range[0]
+        if s in p.reg_signals:
+            return 'T', s+ 1 - p.reg_range[0]
+        return 'P', s + 1 - p.out_range[0]
+
+    def __init__(self, network):
+        """Make a graph that shows signals connecting graphs"""
+        self.network = network
+        self.nx_graph = nx.DiGraph()
+
+        for gene in self.network.genes:
+            # node_name = gene.id_string
+            print gene
+            gene_node = 'G', gene.index
+
+            out_node = self.signal_to_node(gene.publish)
+            self.nx_graph.add_edge(gene_node, out_node)
+
+            for c in gene.cis_modules:
+                if c.active:
+                    x_node = self.signal_to_node(c.x)
+                    y_node = self.signal_to_node(c.y)
+                    self.nx_graph.add_edge(x_node, gene_node)
+                    self.nx_graph.add_edge(y_node, gene_node)
+
+    def draw(self):
+        # plt.ioff()
+        fig = plt.figure(figsize=(8,8))
+        ax = fig.add_subplot(111)
+
+        # Relabeling
+        labels = {}
+        for n in self.nx_graph.nodes_iter():
+            if isinstance(n, tuple):
+                labels[n] = n[0]+str(n[1])
+            else:
+                labels[n] = n
+    
+        # Draw the graph using graphvis layout
+        pos = nx.graphviz_layout(self.nx_graph, prog='dot')
+        nx.draw(self.nx_graph, pos=pos, ax=ax, node_size=500, font_size=6, node_color='w',
+                with_labels=False)
+        nx.draw_networkx_labels(self.nx_graph, pos, labels, font_size=8)
+        # nx.draw_networkx_nodes(g,pos,nodelist=[largest_hub],node_size=300,node_color='r')
+        #nx.draw_graphviz(g, ax=ax, fontsize=8, nodesize=100)
+
+        # Stream it back as SVG
+        output = open('x.png', 'wb')
+        fig.savefig(output, format='png')
+        # plt.clear() # This is the BUG I think
+        # plt.ion() # turn interactive mode back on
 
 if __name__ == '__main__':
+    randomizer.seed(5)
     p = Parameters(
         cis_count=4,
         out_shapes=1,
-        reg_shapes=5,
-        cue_shapes=2,
-        ops='and not_x not_y x_and_not_y y_and_not_x'.split(),
+        reg_shapes=3,
+        cue_shapes=3,
+        mutation_rate=.01,
+        population_size=1000,
+        ops='and or not_x not_y x_and_not_y y_and_not_x'.split(),
     )
 
-    def ff(a, b):
+    def ff(a, b, c):
         # return a and b, b and not a, a or b
-        return a and b
+        if a and b or c:
+            return .5
+        return 1.0
 
-    # t = Target(p, ff)
-    # pop = Population(p)
-    # for i in range(10):
-    #     pop.calc_fitness(t)
-    #     print pop.fitnesses
-    #     pop.roulette_selection()
-    #     pop.new_generation()
+    t = Target(p, ff)
+    pop = Population(p)
+    n = pop.networks[0]
+    g = SignalGraph(n)
+    g.draw()
+    for i in range(50):
+        pop.calc_fitness(t)
+        print max(pop.fitnesses)
+        if max(pop.fitnesses) == 1.0:
+            break
+        pop.roulette_selection()
+        pop.new_generation()
+        pop.mutate()
 
-    n = Network(p)
-    c = n.mutated(5)
+    n = pop.networks[0]
+    g = SignalGraph(n)
+    g.draw()
+
+
+    # n = Network(p)
+    # c = n.mutated(5)
     
-    print n.describe()
-    print c.describe()
+    # print n.describe()
+    # print c.describe()
     # print n.attractors
     # print n.rates
     # c = Cell(p)
