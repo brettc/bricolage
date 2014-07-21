@@ -1,6 +1,4 @@
-from pubsub2_ext import (
-    Network, NetworkFactory
-)
+from pubsub2_ext import *
 
 class Parameters(object):
     def __init__(self, **kwargs):

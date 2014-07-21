@@ -3,7 +3,7 @@
 
 #include <vector>
 // #include <tr1/memory>
-// #include <boost/shared_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 
 // #include "pyconfig.h"
 // #include "Python.h"
@@ -14,40 +14,44 @@ namespace pubsub2
 
 typedef unsigned char uint8;
 typedef unsigned int uint32;
+typedef long int32;
 
-struct Gene
+struct cGene
 {
-    Gene();
+    cGene();
     uint8 sub1, sub2, pub;
 };
 
-typedef std::vector<Gene> GeneVector;
+typedef std::vector<cGene> cGeneVector;
 
-struct Genome
+struct cNetwork
 {
-    GeneVector genes;
+    int32 identifier;
+    cGeneVector genes;
+    // void *object_ptr; // Back ptr to python object
 
-    Genome();
-    void init(size_t size);
+    cNetwork();
+    ~cNetwork();
+    void init(int32 ident, size_t size);
     // void fill(int i);
 };
 
+typedef boost::shared_ptr<cNetwork> cNetwork_ptr;
 
-// typedef boost::shared_ptr<boop> bpp;
-//     
-// struct tester 
-// {
-//     tester();
-//     int i, j, k;
-//     // std::shared_ptr<boop> bp;
-//     // std::tr1::shared_ptr<boop> bp;
-//     // boost::shared_ptr<boop> bp;
-//     bpp bp;
-//     int bob();
-//
-// };
-//
-// typedef std::vector<tester> tester_vec;
+struct cNetworkSharedPtr 
+{
+    cNetwork_ptr ptr;
+    cNetworkSharedPtr(cNetwork *n=0) : ptr(n) {}
+    cNetwork *get() { return this->ptr.get(); }
+};
+
+typedef std::vector<cNetworkSharedPtr> cNetworkVector;
+
+struct cPopulation
+{
+    cNetworkVector networks;
+};
+
 
 } 
 
