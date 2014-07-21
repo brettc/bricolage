@@ -3,19 +3,21 @@ from distutils.extension import Extension
 from Cython.Build import cythonize
 import numpy
 import sys
-# HACK for now
-# ext_modules = [Extension(..., include_path=[numpy.get_include()])]
 
+# HACK for now
 sys.argv = ['setup.py', 'build_ext', '--inplace']
 
 # CFLAGS
 # -Wno-unused-function
 extensions = [
     Extension(
-        "organismal/test", 
-        ["organismal/test.pyx"],
-        extra_compile_args = ['-Wno-unused-function', '-std=c++11'],
-        depends = ['organismal/func.h'],
+        "organismal/pubsub2_ext", 
+        ["organismal/pubsub2_ext.pyx"],
+        extra_compile_args = [
+            '-Wno-unused-function', 
+            '-std=c++11',
+        ],
+        depends = ['organismal/pubsub2_c.h'],
         # include_path = [numpy.get_include()],
         # include_dirs = ['./organismal'],
         # libraries = [...],
