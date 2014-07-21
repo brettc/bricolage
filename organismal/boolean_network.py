@@ -466,8 +466,8 @@ if __name__ == '__main__':
     randomizer.seed(5)
     p = Parameters(
         cis_count=4,
-        out_shapes=1,
-        reg_shapes=3,
+        out_shapes=2,
+        reg_shapes=5,
         cue_shapes=3,
         mutation_rate=.01,
         population_size=1000,
@@ -476,16 +476,16 @@ if __name__ == '__main__':
 
     def ff(a, b, c):
         # return a and b, b and not a, a or b
-        if a and b or c:
-            return .5
-        return 1.0
+        if a and b or (not b and c):
+            return 0, 1
+        return 1, 0
 
     t = Target(p, ff)
     pop = Population(p)
     n = pop.networks[0]
     g = SignalGraph(n)
     g.draw()
-    for i in range(50):
+    for i in range(200):
         pop.calc_fitness(t)
         print max(pop.fitnesses)
         if max(pop.fitnesses) == 1.0:
