@@ -5,32 +5,37 @@
 # cython: wraparound=False
 # cython: cdivision=True
 
-# from cpython cimport PyObject, Py_DECREF, Py_INCREF
 import numpy
 cimport numpy as np
 from cython.operator import dereference as deref, preincrement as preinc
-
 from libcpp.vector cimport vector
-# from libc.math cimport log2, fabs
-# ctypedef np.int_t int_type
-ctypedef np.int_t int_type
-ctypedef np.uint8_t np_uint8
-# ctypedef np.float64_t float_type
-# ctypedef int bitset_type
-# ctypedef vector[int_type] attractor_type
-# ctypedef vector[int_type].iterator attractor_iterator_type
-# ctypedef vector[attractor_type] attractor_individual_type
+
+# from numpy.pxd
+# ctypedef signed char      npy_byte
+# ctypedef signed int       npy_int
+# ctypedef signed long      npy_long
+# ctypedef signed long long npy_longlong
 #
-# ctypedef vector[cGene] GeneVector
+# ctypedef unsigned char      npy_ubyte
+# ctypedef unsigned long      npy_ulong
+# ctypedef unsigned long long npy_ulonglong
+#
+# ctypedef float        npy_float
+# ctypedef double       npy_double
+# ctypedef long double  npy_longdouble
+# ctypedef Py_intptr_t npy_intp
+# ctypedef size_t npy_uintp
+
 
 cdef extern from "pubsub2_c.h" namespace "pubsub2":
     cdef cppclass cGene:
-        np_uint8 sub1, sub2, pub
+        np.npy_ubyte sub1, sub2, pub
 
     cdef cppclass cNetwork:
         cNetwork()
-        void init(int_type ident, size_t size)
+        void init(np.npy_int, size_t size)
         vector[cGene] genes
+        np.npy_int identifier
 
     cdef cppclass cNetworkSharedPtr:
         cNetworkSharedPtr()
@@ -47,7 +52,7 @@ cdef class Factory:
             object params
             size_t gene_count
 
-        int_type next_identifier
+        np.npy_int next_identifier
 
     def __cinit__(self, params):
         self.params = params
@@ -83,7 +88,11 @@ cdef class Network:
         self.factory = factory
         self.ready = False
 
-    cdef create(self, int_type ident):
+    property identifier:
+        def __get__(self):
+            return self.cnetwork.identifier
+
+    cdef create(self, np.npy_int ident):
         self.cnetwork_ptr = cNetworkSharedPtr(new cNetwork())
         self.cnetwork = self.cnetwork_ptr.get()
         self.cnetwork.init(ident, self.factory.gene_count)
@@ -95,11 +104,11 @@ cdef class Network:
         self.ready = True
 
     def export_genes(self):
-        output = numpy.zeros((self.factory.gene_count, 3), dtype=numpy.uint8)
+        charoutput = numpy.zeros((self.factory.gene_count, 3), dtype=numpy.uint8)
 
         cdef:
             cGene *g
-            np_uint8[:,:] output_c = output
+            np.npy_ubyte[:,:] output_c = output
             size_t i = 0
             vector[cGene].iterator gene_i = self.cnetwork.genes.begin()
 
@@ -113,7 +122,7 @@ cdef class Network:
 
         return output
 
-    def import_genes(self, np_uint8[:, :] input_c):
+    def import_genes(self, np.npy_ubyte[:, :] input_c):
 
         cdef:
             vector[cGene].iterator gene_i
@@ -131,8 +140,13 @@ cdef class Network:
             i += 1
 
     def __getitem__(self, i):
-        cdef int_type index = i
+        cdef np.npy_int index = i
         return Gene(self, index)
+
+    def __iter__(self):
+        count = self.factory.gene_count
+        for i in range(count):
+            yield Gene(self, i)
 
 
 cdef class Gene:
@@ -141,16 +155,16 @@ cdef class Gene:
     cdef:
         readonly:
             Network network
-            int_type gene_number
+            np.npy_int gene_number
 
-    def __cinit__(self, Network n, int_type g):
+    def __cinit__(self, Network n, np.npy_int g):
         self.network = n
         self.gene_number = g
 
     property pub:
         def __get__(self):
             return self.network.cnetwork.genes[self.gene_number].pub
-        def __set__(self, np_uint8 val):
+        def __set__(self, np.npy_ubyte val):
             self.network.cnetwork.genes[self.gene_number].pub = val
 
 

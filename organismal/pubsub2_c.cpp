@@ -1,5 +1,5 @@
 #include "pubsub2_c.h"
-#include <iostream>
+// #include <iostream>
 // #include "Python.h"
 
 using namespace pubsub2;
@@ -19,7 +19,7 @@ cGene::cGene()
 cNetwork::cNetwork()
     : identifier(-1)
 {
-    std::cout << "CREATED!" << std::endl;
+    // std::cout << "CREATED!" << std::endl;
 }
 
 cNetwork::~cNetwork()
@@ -27,10 +27,10 @@ cNetwork::~cNetwork()
     // if (this->object_ptr != 0)
     //     Py_XDECREF(this->object_ptr);
 
-    std::cout << "DYING!!" << std::endl;
+    // std::cout << "DYING!!" << std::endl;
 }
 
-void cNetwork::init(int32 ident, size_t size)
+void cNetwork::init(npy_long ident, size_t size)
 {
     this->identifier = ident;
     for (size_t i=0; i < size; ++i)

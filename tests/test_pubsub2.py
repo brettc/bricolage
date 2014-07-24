@@ -1,22 +1,22 @@
 # import sys
 # from pathlib import Path
 # sys.path.append(str(Path('.')))
+import pytest
 from organismal import pubsub2 as T
 
-def test_1():
-    n = T.Network(1)
-    print n
-    print n.params
-    print n.ready
-
-def test_2():
+@pytest.fixture
+def defaults():
     p = T.Parameters()
-    q = T.Factory(p)
-    nok = q.create_network()
-    assert nok.ready == True
+    f = T.Factory(p)
+    return p, f
 
-    nbad = T.Network(p)
-    assert nbad.ready == False
+def test_1(defaults):
+    p, f = defaults
+    n = T.Network(f)
+    assert n.ready == False
+
+    n = f.create_network()
+    assert n.ready == True
 
 def test_3():
     p = T.Parameters()
@@ -47,6 +47,7 @@ def test_4():
     nets = [f.create_network() for _ in range(10)]
     pop = f.create_population()
     for n in nets:
+        print n, n.identifier
         pop.add(n)
 
     n2 = pop.get(2)
@@ -61,3 +62,9 @@ def test_4():
     # # nok.test()
     # # print nok.export_genes()
 
+def test_5(defaults):
+    p, f = defaults
+    n = f.create_network()
+    for i, g in enumerate(n):
+        g.pub = i
+    print n.export_genes()

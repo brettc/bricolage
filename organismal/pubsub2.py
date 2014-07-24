@@ -1,9 +1,11 @@
-from pubsub2_ext import *
+from pubsub2_ext import Factory, Network, Gene, Population
+
+# __all__ = 
 
 class Parameters(object):
     def __init__(self, **kwargs):
         # Defaults are provided here
-        self.gene_count = 5
+        self.gene_count = 10
 
         # self.population_size = 20
         # self.cis_count = 3
@@ -29,3 +31,6 @@ class Parameters(object):
         # self._init_ops()
         # self._init_envs()
         pass
+
+
+
