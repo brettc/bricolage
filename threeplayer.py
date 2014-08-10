@@ -9,11 +9,11 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 import numpy as np
+randomizer = np.random
 import pandas as pd
 int_type = np.int
 tiny_type = np.int8
 
-randomizer = np.random
 
 class Parameters(object):
     def __init__(self, **kwargs):
@@ -23,6 +23,10 @@ class Parameters(object):
 
         self.cue_shapes = 1
         self.out_shapes = 1
+
+        self.population_size = 1000
+        self.mutation_rate = .01
+        self.generations = 100
 
         self._override(kwargs)
         self._init()
@@ -37,6 +41,7 @@ class Parameters(object):
     def _init(self):
         self._calc_sizes()
         self._init_envs()
+        self._calc_mutator()
 
     def _init_envs(self):
         self.environments = np.array([
@@ -82,6 +87,9 @@ class Parameters(object):
         self.sub_signals = range(*self.sub_range)
         self.pub_signals = range(*self.pub_range)
 
+        self.reg_set = set(self.reg_signals)
+        self.sub_set = set(self.sub_signals)
+
         # Total gene count requires 
         self.gene_count = self.reg_gene_count + self.out_shapes
         self.env_count = pow(2, self.cue_shapes)
@@ -95,7 +103,30 @@ class Parameters(object):
         else:
             self.char_size = 3
 
-        self.dna_size = self.reg_gene_count * 4 + self.struct_gene_count * 3
+        self.dna_size = self.reg_gene_count * 3 + self.struct_gene_count * 2
+
+    def _calc_mutator(self):
+        # A rough but simple way to generate mutations in the dna. We just
+        # select from this list, it gives us all the info
+        mutate_info = []
+        codon = 0
+        strat_size = len(Gene.strategies)
+        for i in range(self.reg_gene_count):
+            mutate_info.append((codon, set(range(strat_size))))
+            codon +=1 
+            mutate_info.append((codon, self.sub_set))
+            codon +=1 
+            mutate_info.append((codon, self.reg_set))
+            codon +=1 
+        for i in range(self.struct_gene_count):
+            mutate_info.append((codon, set(range(strat_size))))
+            codon +=1 
+            mutate_info.append((codon, self.sub_set))
+            codon +=1 
+
+        self.mutate_info = mutate_info
+        self.mutate_size = len(mutate_info)
+        print self.mutate_info
 
     def name_for_signal(self, s):
         sz = self.char_size-1
@@ -108,13 +139,17 @@ class Parameters(object):
 
 
 class Gene(object):
+    strategies = [(0, 1), (1, 0)]
+    # strategies = [(0, 0), (0, 1), (1, 0), (1, 1)]
+
     def __init__(self, network, i, dna):
         self.index = i
-        self.on = dna[0]
-        self.off = dna[1]
-        self.subscribe = dna[2]
+        self.dna = dna
+        strat = dna[0]
+        self.on, self.off = self.strategies[strat]
+        self.subscribe = dna[1]
         if len(dna) > 3:
-            self.publish = dna[3]
+            self.publish = dna[2]
         else:
             p = network.params
             # Publish the 
@@ -267,8 +302,8 @@ class AllPossible(object):
     def _gene_poss(self, use_pub=True):
         all_pub = self.params.reg_signals
         all_sub = self.params.sub_signals
-        on_off = [0, 1]
-        generate_params = [on_off, on_off, all_sub]
+        on_off = range(len(Gene.strategies))
+        generate_params = [on_off, all_sub]
         if use_pub:
             generate_params.append(all_pub)
         return [_ for _ in itertools.product(*generate_params)]
@@ -306,12 +341,26 @@ class AllPossible(object):
         return plen
 
     def get_dataframe(self):
-        return pd.DataFrame(dict(
+        df = pd.DataFrame(dict(
             network=self.networks, 
             fitness=self.fitnesses,
             pathlen=self.pathlen,
             ))
+
+        _add_strategy_cols(df)
+        return df
         
+def _add_strategy_cols(df):
+    nets = df['network']
+    cols = {}
+    for n in nets:
+        for i, g in enumerate(n.genes):
+            cols.setdefault('g%d-pub' % i, []).append(g.publish)
+            cols.setdefault('g%d-sub' % i, []).append(g.subscribe)
+            cols.setdefault('g%d-strat' % i, []).append(g.dna[0])
+
+    for k, v in cols.items():
+        df[k] = v
 
 class Neighbourhood(object):
     def __init__(self, networks):
@@ -341,13 +390,16 @@ class Neighbourhood(object):
 
     def get_dataframe(self):
         nets = self.networks
-        return pd.DataFrame(dict(
+        df = pd.DataFrame(dict(
             network=self.networks, 
             fitness=[n.fitness for n in nets],
             pathlen=[n.pathlen for n in nets],
-            subg=[n.subgraph for n in nets],
+            component=[n.subgraph for n in nets],
             edges=[len(self.G.edges(n)) for n in nets],
             ))
+
+        _add_strategy_cols(df)
+        return df
 
 
 class SignalGraph(object):
@@ -403,6 +455,69 @@ class SignalGraph(object):
         # plt.clear() # This is the BUG I think
         plt.ion() # turn interactive mode back on
         # return output.getvalue()
+        #
+        
+class Simulation(object):
+    def __init__(self, params, allposs):
+        self.params = params
+        self.allposs = allposs
+        self.networks_by_dna = {}
+        for n in allposs.networks:
+            self.networks_by_dna[tuple(n.dna)] = n
+        self.population = []
+
+    def run(self, seedn):
+        self.population = [seedn] * self.params.population_size
+        for g in range(self.params.generations):
+            self.mutate()
+            self.select()
+
+    def select(self):
+        fit = np.array([n.fitness for n in self.population])
+        cumsum = fit.cumsum()
+        # ... a list of random values to pick in the list
+        sel_values = randomizer.uniform(0.0, cumsum[-1], self.params.population_size)
+
+        # Now return the corresponding indexes
+        sel_indexes = np.searchsorted(cumsum, sel_values)
+
+        new_pop = [self.population[i] for i in sel_indexes]
+        self.population = new_pop
+
+    def mutate(self):
+        mrate = self.params.mutation_rate
+        nmutations = randomizer.poisson(
+            mrate * self.params.population_size * self.params.mutate_size)
+        indivs = randomizer.randint(0, self.params.population_size, nmutations)
+        for i in indivs:
+            n = self.population[i]
+            new_n = self.mutated(n)
+            self.population[i] = new_n
+
+    def mutated(self, n):
+        mi = self.params.mutate_info
+        assert len(mi) == len(n.dna)
+        pos = randomizer.randint(0, len(mi))
+        codon, poss_vals = mi[pos]
+
+        # Ignore the current value
+        current_val = n.dna[codon]
+        new_vals = poss_vals.copy()
+        new_vals.remove(current_val)
+        new_vals = list(new_vals)
+
+        # Might be only one other choice
+        if len(new_vals) == 1:
+            new_val = new_vals[0]
+        else:
+            idx = randomizer.randint(len(new_vals))
+            new_val = new_vals[idx]
+
+        new_dna = n.dna.copy()
+        new_dna[codon] = new_val
+
+        return self.networks_by_dna[tuple(new_dna)]
+
 
 if __name__ == '__main__':
     # randomizer.seed(5)
@@ -410,25 +525,20 @@ if __name__ == '__main__':
         out_shapes=1,
         reg_shapes=2,
         cue_shapes=1,
-        mutation_rate=.01,
-        population_size=1000,
+        mutation_rate=.0005,
     )
-    print p.environments
 
     def ff(a):
         # return a and b, b and not a, a or b
         return a
 
-    # n = Network(p)
-    # n.describe()
-    # print n.attractors
-
-    # t = Target(p, ff)
-    # pop = Population(p)
-    # print pop.fitnesses
-    #
-    x = AllPossible(p)
-    print len(x.networks)
+    t = Target(p, ff)
+    x = AllPossible(p, t)
+    print x.networks[0].dna
+    s = Simulation(p, x)
+    s.run(x.networks[3])
+    for n in s.population:
+        print n.pathlen,
 
     # n = pop.networks[0]
     # g = SignalGraph(n)
