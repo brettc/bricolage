@@ -23,6 +23,7 @@ class Parameters(object):
 
         self.cue_shapes = 1
         self.out_shapes = 1
+        self.ps1 = .5
 
         self.population_size = 1000
         self.mutation_rate = .01
@@ -109,6 +110,8 @@ class Parameters(object):
         self.dna_size = self.reg_gene_count * self.reg_gene_size \
             + self.struct_gene_count * self.struct_gene_size
 
+        self.fitness_contribution = np.array([[self.ps1], [1.0-self.ps1]])
+
     def _calc_mutator(self):
         # A rough but simple way to generate mutations in the dna. We just
         # select from this list, it gives us all the info
@@ -125,7 +128,7 @@ class Parameters(object):
         for i in range(self.struct_gene_count):
             mutate_info.append((codon, set(range(strat_size))))
             codon +=1 
-            mutate_info.append((codon, self.sub_set))
+            mutate_info.append((codon, self.reg_set))
             codon +=1 
 
         self.mutate_info = mutate_info
@@ -142,8 +145,8 @@ class Parameters(object):
 
 
 class Gene(object):
-    strategies = [(0, 1), (1, 0)]
-    # strategies = [(0, 0), (0, 1), (1, 0), (1, 1)]
+    # strategies = [(0, 1), (1, 0)]
+    strategies = [(0, 0), (0, 1), (1, 0), (1, 1)]
 
     def __init__(self, network, i, dna):
         self.index = i
@@ -296,20 +299,21 @@ class AllPossible(object):
 
     def _generate(self):
         reg_genes = [self._gene_poss()] * (self.params.reg_gene_count)
-        struct_genes = [self._gene_poss(use_pub=False)] * (
+        struct_genes = [self._gene_poss(reg=False)] * (
             self.params.gene_count - self.params.reg_gene_count)
         genes = reg_genes + struct_genes
         for dna in itertools.product(*genes):
             n = Network(self.params, dna)
             self.networks.append(n)
 
-    def _gene_poss(self, use_pub=True):
+    def _gene_poss(self, reg=True):
         all_pub = self.params.reg_signals
         all_sub = self.params.sub_signals
         on_off = range(len(Gene.strategies))
-        generate_params = [on_off, all_sub]
-        if use_pub:
-            generate_params.append(all_pub)
+        if reg:
+            generate_params = [on_off, all_sub, all_pub]
+        else:
+            generate_params = [on_off, all_pub]
         return [_ for _ in itertools.product(*generate_params)]
 
     def _calc_fitness(self):
@@ -319,12 +323,16 @@ class AllPossible(object):
             # Get the differences between desired and achieved
             diffs = abs(n.rates - t.opts)
             # Make them into fitness scores and normalise
-            scores = (1 - diffs) / self.params.env_count
+            # scores = (1 - diffs) / self.params.env_count
+            scores = (1 - diffs) * self.params.fitness_contribution
 
-            # summed = scores.sum(axis=1) * ch.fitness_contribution
-            # summed = scores.sum(axis=1)
-
+            # print diffs
+            # print scores
+            # print scores2
+            # print '--'
             fitness = scores.sum()
+
+            # fitness = scores.sum()
             fitness /= float(self.params.out_shapes)
             self.fitnesses.append(fitness)
 
@@ -529,10 +537,12 @@ class Simulation(object):
 if __name__ == '__main__':
     # randomizer.seed(5)
     p = Parameters(
+        reg_gene_count=2,
         out_shapes=1,
         reg_shapes=2,
         cue_shapes=1,
-        mutation_rate=.0005,
+        ps1=.1,
+        generations=200,
     )
 
     def ff(a):
@@ -542,9 +552,9 @@ if __name__ == '__main__':
     t = Target(p, ff)
     x = AllPossible(p, t)
     s = Simulation(p, x)
-    s.run(x.networks[2])
+    s.run(x.networks[0])
     for n in s.population:
-        print n.pathlen,
+        print n.pathlen, n.fitness,
 
     # n = pop.networks[0]
     # g = SignalGraph(n)
