@@ -1,9 +1,9 @@
-#ifndef FUNC_H_SK3NECRB
-#define FUNC_H_SK3NECRB
+#pragma once
 
 #include <vector>
 // #include <tr1/memory>
 #include <boost/shared_ptr.hpp>
+#include <boost/multi_array.hpp>
 
 // #include "Python.h"
 // #include "numpy/npy_common.h"
@@ -20,6 +20,8 @@ typedef unsigned int npy_uint;
 typedef signed long npy_long;
 typedef unsigned long npy_ulong;
 
+typedef boost::multi_array<npy_byte, 2> garray_type;
+
 struct cGene
 {
     cGene();
@@ -30,26 +32,22 @@ typedef std::vector<cGene> cGeneVector;
 
 struct cNetwork
 {
-    npy_long identifier;
+    npy_int identifier;
+    npy_int gene_count;
     cGeneVector genes;
+    garray_type *garray;
+
     // void *object_ptr; // Back ptr to python object
 
     cNetwork();
     ~cNetwork();
     void init(npy_long ident, size_t size);
-    // void fill(int i);
+    void test();
+    npy_byte *gene_data(); 
 };
 
 typedef boost::shared_ptr<cNetwork> cNetwork_ptr;
-
-struct cNetworkSharedPtr 
-{
-    cNetwork_ptr ptr;
-    cNetworkSharedPtr(cNetwork *n=0) : ptr(n) {}
-    cNetwork *get() { return this->ptr.get(); }
-};
-
-typedef std::vector<cNetworkSharedPtr> cNetworkVector;
+typedef std::vector<cNetwork_ptr> cNetworkVector;
 
 struct cPopulation
 {
@@ -57,7 +55,4 @@ struct cPopulation
 };
 
 
-} 
-
-#endif /* end of include guard: FUNC_H_SK3NECRB */
-
+} // end namespace pubsub2

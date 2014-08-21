@@ -1,4 +1,4 @@
-from pubsub2_ext import Factory, Network, Gene, Population
+from pubsub2_ext import Factory, Network # Gene, Population
 
 # __all__ = 
 
@@ -16,6 +16,8 @@ class Parameters(object):
         # self.mutation_rate = .01
 
         self._override(kwargs)
+
+        # Below here are internal calculated values
         self._init()
 
     def _override(self, kwargs):
@@ -27,10 +29,25 @@ class Parameters(object):
                 # log.warning("'%s' is not a valid setting", k)
 
     def _init(self):
+        self.blarg = None
+        self.boodle = 10
         # self._calc_sizes()
         # self._init_ops()
         # self._init_envs()
         pass
 
 
+p = Parameters()
+f = Factory(p)
+n = f.create_network()
+for g in n:
+    g.pub = 99
+    g.sub1 = 4
 
+k = n.export_genes()
+print k.shape
+
+print n.export_genes()
+n.test()
+print n.export_genes()
+print n.gene_array()
