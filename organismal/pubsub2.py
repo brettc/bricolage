@@ -1,4 +1,4 @@
-from pubsub2_ext import Factory, Network # Gene, Population
+from pubsub2_ext import Factory
 
 # __all__ = 
 
@@ -51,3 +51,8 @@ print n.export_genes()
 n.test()
 print n.export_genes()
 print n.gene_array()
+n.test()
+print n.gene_array()
+
+f.test_random()
+f.test_states()

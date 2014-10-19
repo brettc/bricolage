@@ -421,9 +421,7 @@ class SignalGraph(object):
         self.nx_graph = nx.DiGraph()
 
         for gene in self.network.genes:
-            # node_name = gene.id_string
-            print gene
-            gene_node = 'G', gene.index
+            gene_node = 'G', gene.index + 1
 
             out_node = self.signal_to_node(gene.publish)
             self.nx_graph.add_edge(gene_node, out_node)
@@ -435,8 +433,8 @@ class SignalGraph(object):
                     self.nx_graph.add_edge(x_node, gene_node)
                     self.nx_graph.add_edge(y_node, gene_node)
 
-    def draw(self):
-        # plt.ioff()
+    def draw(self, name):
+        plt.ioff()
         fig = plt.figure(figsize=(8,8))
         ax = fig.add_subplot(111)
 
@@ -457,17 +455,17 @@ class SignalGraph(object):
         #nx.draw_graphviz(g, ax=ax, fontsize=8, nodesize=100)
 
         # Stream it back as SVG
-        output = open('x.png', 'wb')
+        output = open('{}.png'.format(name), 'wb')
         fig.savefig(output, format='png')
         # plt.clear() # This is the BUG I think
         # plt.ion() # turn interactive mode back on
 
 if __name__ == '__main__':
-    randomizer.seed(5)
+    randomizer.seed(22)
     p = Parameters(
-        cis_count=4,
-        out_shapes=2,
-        reg_shapes=5,
+        cis_count=3,
+        out_shapes=3,
+        reg_shapes=3,
         cue_shapes=3,
         mutation_rate=.01,
         population_size=1000,
@@ -476,27 +474,36 @@ if __name__ == '__main__':
 
     def ff(a, b, c):
         # return a and b, b and not a, a or b
-        if a and b or (not b and c):
-            return 0, 1
-        return 1, 0
+        if a and b or (not b and not c):
+            return 0, 0, .5
+        return 1, .5, 0
 
     t = Target(p, ff)
     pop = Population(p)
     n = pop.networks[0]
     g = SignalGraph(n)
-    g.draw()
-    for i in range(200):
+    g.draw('first')
+
+    good_for = 0
+    while 1:
         pop.calc_fitness(t)
         print max(pop.fitnesses)
         if max(pop.fitnesses) == 1.0:
-            break
+            good_for += 1
+            if good_for == 50:
+                break
+        else:
+            good_for = 0
         pop.roulette_selection()
         pop.new_generation()
         pop.mutate()
-
-    n = pop.networks[0]
+    #
+    for i in range(len(pop.fitnesses)):
+        if pop.fitnesses[i] == 1.0:
+            break
+    n = pop.networks[i]
     g = SignalGraph(n)
-    g.draw()
+    g.draw('final')
 
 
     # n = Network(p)
