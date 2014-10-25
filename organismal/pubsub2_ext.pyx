@@ -10,6 +10,8 @@ cimport numpy as np
 from cython.operator import dereference as deref, preincrement as preinc
 from libcpp.vector cimport vector
 
+ctypedef np.npy_byte byte_t
+ctypedef np.npy_int int_t
 
 cdef extern from "<boost/shared_ptr.hpp>" namespace "boost":
     cdef cppclass shared_ptr[T]:
@@ -18,19 +20,31 @@ cdef extern from "<boost/shared_ptr.hpp>" namespace "boost":
         shared_ptr(shared_ptr& r)
         T* get()
 
-
 cdef extern from "pubsub2_c.h" namespace "pubsub2":
+    cdef cppclass cProductStates:
+        ProductStates()
+        void init(size_t np)
+        void push_back()
+        size_t size() 
+        size_t products_size() 
+        bint get(size_t i, size_t j)
+        void set(size_t i, size_t j, bint b)
+
+    cdef cppclass cRandom:
+        double get_uniform()
+        void reseed(int seed)
+
     cdef cppclass cGene:
         np.npy_ubyte sub1, sub2, pub
 
     cdef cppclass cNetwork:
-        cNetwork()
+        cNetwork(int_t size)
         void init(np.npy_int, size_t size)
         void test()
         vector[cGene] genes
-        np.npy_int identifier
-        np.npy_int gene_count
-        np.npy_byte *gene_data()
+        int_t identifier
+        int_t gene_count
+        byte_t *gene_data()
 
     ctypedef shared_ptr[cNetwork] cNetwork_ptr
 
@@ -45,6 +59,8 @@ cdef class Factory:
             size_t gene_count
 
         np.npy_int next_identifier
+        cRandom random
+        cProductStates states
 
     def __cinit__(self, params):
         self.params = params
@@ -62,6 +78,29 @@ cdef class Factory:
     def create_population(self):
         p = Population(self)
         return p
+
+    def test_random(self):
+        print 'seeding'
+        self.random.reseed(1)
+        for i in range(10):
+            print self.random.get_uniform()
+        print 'seeding'
+        self.random.reseed(1)
+        for i in range(10):
+            print self.random.get_uniform()
+
+    def test_states(self):
+        self.states.init(5)
+        self.states.push_back()
+        self.states.push_back()
+        self.states.push_back()
+        self.states.set(0, 3, True)
+        self.states.set(1, 1, True)
+        cdef size_t i, j
+        for i in range(self.states.size()):
+            print '--'
+            for j in range(self.states.products_size()):
+                print self.states.get(i, j)
 
 
 cdef class Network:
@@ -84,7 +123,7 @@ cdef class Network:
         self.ready = False
 
     cdef create_new(self, np.npy_int ident):
-        self.ptr = cNetwork_ptr(new cNetwork())
+        self.ptr = cNetwork_ptr(new cNetwork(self.factory.gene_count))
         self.cnetwork = self.ptr.get()
         self.cnetwork.init(ident, self.factory.gene_count)
         self.ready = True
@@ -211,6 +250,8 @@ cdef class Population:
         # Note that we add the c++ shared pointer, rather than the python
         # object. The original python Network holding this can go out of
         # scope, and that is fine.
+        #
+        # TODO: should check the factory is the same.
         self.cpop.networks.push_back(n.ptr)
 
     def get(self, size_t i):
@@ -226,13 +267,6 @@ cdef class Population:
         # overhead and the pointer fandangling required is not worth it.
         n.create_copy(ptr)
         return n
-
-
-# cdef class NetworkRepr
-
-
-# cdef class Networks:
-#     pass
 
 
 # from numpy.pxd

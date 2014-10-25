@@ -7,6 +7,8 @@ import sys
 # HACK for now
 sys.argv = ['setup.py', 'build_ext', '--inplace']
 
+# export LDFLAGS=-lc++
+
 # CFLAGS
 # -Wno-unused-function
 extensions = [
@@ -14,8 +16,11 @@ extensions = [
         "organismal/pubsub2_ext", 
         ["organismal/pubsub2_ext.pyx"],
         extra_compile_args = [
+            # '-ffast-math',
             '-Wno-unused-function', 
-            '-std=c++11',
+            '-stdlib=libc++',
+            '-std=c++11', 
+            '-mmacosx-version-min=10.8',
         ],
         depends = ['organismal/pubsub2_c.h'],
         # include_path = [numpy.get_include()],
