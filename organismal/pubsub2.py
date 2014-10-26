@@ -1,4 +1,4 @@
-from pubsub2_ext import Factory
+from pubsub2_ext import Factory, Products
 
 # __all__ = 
 
@@ -37,22 +37,5 @@ class Parameters(object):
         pass
 
 
-p = Parameters()
-f = Factory(p)
-n = f.create_network()
-for g in n:
-    g.pub = 99
-    g.sub1 = 4
-
-k = n.export_genes()
-print k.shape
-
-print n.export_genes()
-n.test()
-print n.export_genes()
-print n.gene_array()
-n.test()
-print n.gene_array()
-
-f.test_random()
-f.test_states()
+# f.test_random()
+# f.test_states()

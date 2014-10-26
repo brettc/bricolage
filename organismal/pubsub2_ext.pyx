@@ -5,10 +5,12 @@
 # cython: wraparound=False
 # cython: cdivision=True
 
+import cython
 import numpy
 cimport numpy as np
 from cython.operator import dereference as deref, preincrement as preinc
 from libcpp.vector cimport vector
+from libcpp.string cimport string
 
 ctypedef np.npy_byte byte_t
 ctypedef np.npy_int int_t
@@ -20,7 +22,24 @@ cdef extern from "<boost/shared_ptr.hpp>" namespace "boost":
         shared_ptr(shared_ptr& r)
         T* get()
 
+cdef extern from "<boost/dynamic_bitset.hpp>" namespace "boost":
+    cdef cppclass dynamic_bitset[T]:
+        dynamic_bitset()
+        void resize(size_t)
+        size_t size()
+        bint test(size_t)
+        void set(size_t)
+        void reset(size_t)
+        void flip(size_t)
+
+    cdef void to_string(dynamic_bitset[size_t], string s)
+
 cdef extern from "pubsub2_c.h" namespace "pubsub2":
+    cdef cppclass cBinaryOps:
+        cBinaryOps()
+        byte_t add_op(string name, 
+                      bint offoff, bint offon, bint onoff, bint onon)
+
     cdef cppclass cProductStates:
         ProductStates()
         void init(size_t np)
@@ -35,21 +54,50 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
         void reseed(int seed)
 
     cdef cppclass cGene:
-        np.npy_ubyte sub1, sub2, pub
+        bint test(byte_t a, byte_t b)
+        bint active(dynamic_bitset[size_t] s)
+
+        np.npy_ubyte op, sub1, sub2, pub
 
     cdef cppclass cNetwork:
         cNetwork(int_t size)
         void init(np.npy_int, size_t size)
-        void test()
         vector[cGene] genes
         int_t identifier
         int_t gene_count
-        byte_t *gene_data()
 
     ctypedef shared_ptr[cNetwork] cNetwork_ptr
 
     cdef cppclass cPopulation:
         vector[cNetwork_ptr] networks
+
+
+cdef class Products:
+    cdef dynamic_bitset[size_t] cproducts;
+
+    def __cinit__(self, size_t size):
+        self.cproducts.resize(size)
+
+    def set(self, size_t i):
+        self.cproducts.set(i)
+
+    def reset(self, size_t i):
+        self.cproducts.reset(i)
+
+    def flip(self, size_t i):
+        self.cproducts.flip(i)
+
+    def test(self, size_t i):
+        return self.cproducts.test(i)
+
+    def __str__(self):
+        cdef string s
+        to_string(self.cproducts, s)
+        return s
+
+    property size:
+        def __get__(self):
+            return self.cproducts.size()
 
 
 cdef class Factory:
@@ -138,13 +186,6 @@ cdef class Network:
         def __get__(self):
             return self.cnetwork.identifier
 
-    def gene_array(self):
-        cdef:
-            np.npy_byte[:,:] copied
-
-        copied = <np.npy_byte[:self.cnetwork.gene_count, :3]>self.cnetwork.gene_data()
-        return numpy.asarray(copied)
-
     def export_genes(self):
         output = numpy.zeros((self.factory.gene_count, 3), dtype=numpy.uint8)
 
@@ -181,9 +222,6 @@ cdef class Network:
             preinc(gene_i)
             i += 1
 
-    def test(self):
-        self.cnetwork.test()
-
     def __getitem__(self, i):
         cdef np.npy_int index = i
         return Gene(self, index)
@@ -198,6 +236,9 @@ cdef class Gene:
     """A proxy to a gene. Clumsy but useful.
     """
     cdef:
+        # Assumption: Networks don't change their gene size
+        cGene *cgene
+
         readonly:
             Network network
             np.npy_int gene_number
@@ -205,20 +246,38 @@ cdef class Gene:
     def __cinit__(self, Network n, np.npy_int g):
         self.network = n
         self.gene_number = g
+        self.cgene = &self.network.cnetwork.genes[g]
 
     property pub:
         def __get__(self):
-            return self.network.cnetwork.genes[self.gene_number].pub
+            return self.cgene.pub
         def __set__(self, np.npy_ubyte val):
-            self.network.cnetwork.genes[self.gene_number].pub = val
+            self.cgene.pub = val
 
     property sub1:
         def __get__(self):
-            return self.network.cnetwork.genes[self.gene_number].sub1
+            return self.cgene.sub1
         def __set__(self, np.npy_ubyte val):
-            self.network.cnetwork.genes[self.gene_number].sub1 = val
+            self.cgene.sub1 = val
 
+    property sub2:
+        def __get__(self):
+            return self.cgene.sub2
+        def __set__(self, np.npy_ubyte val):
+            self.cgene.sub2 = val
 
+    property op:
+        def __get__(self):
+            return self.cgene.op
+        def __set__(self, np.npy_ubyte val):
+            self.cgene.op = val
+
+    def test(self, np.npy_ubyte a, np.npy_ubyte b):
+        return self.cgene.test(a, b)
+
+    def active(self, Products p):
+        return self.cgene.active(p.cproducts)
+        
 
 # cdef class GeneSub:
 #     cdef:
