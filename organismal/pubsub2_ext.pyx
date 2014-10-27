@@ -9,6 +9,7 @@ import cython
 import numpy
 cimport numpy as np
 from cython.operator import dereference as deref, preincrement as preinc
+from cpython cimport Py_DECREF, Py_INCREF
 from libcpp.vector cimport vector
 from libcpp.string cimport string
 
@@ -87,6 +88,7 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
 
     cdef cppclass cNetwork:
         cNetwork(cFactory_ptr)
+        void *pyobject
         vector[cGene] genes
         sequence_t identifier
         size_t gene_count
@@ -147,19 +149,17 @@ cdef class Factory:
         self.cfactory_ptr = cFactory_ptr(new cFactory(1))
         self.cfactory = self.cfactory_ptr.get()
 
-        # self.random_signal = new uniform_int_distribution[int](0, 5)
-        # for i in range(10):
-        #     print deref(self.random_signal)(self.random_engine)
-
         # Now translate everything to C
         self.cfactory.gene_count = params.gene_count
 
-    # def __dealloc__(self):
-    #     del self.random_signal
+    # property gene_count:
+    #     def __get__(self):
+    #         return self.cfactory.gene_count
 
     def create_network(self):
+        cdef cNetwork_ptr ptr = cNetwork_ptr(new cNetwork(self.cfactory_ptr))
         n = Network(self)
-        n.create_new()
+        n.bind_to(ptr)
         return n
 
     def create_population(self):
@@ -191,25 +191,24 @@ cdef class Network:
         # it makes our life easier. The cost is a tiny bit of space.
         cNetwork_ptr ptr
         cNetwork *cnetwork
+        object _genes
 
-    # Networks should only be created by Factory. They have a two-stage
-    # creation. Depending on what we're doing, either `create_new` or
-    # `create_copy` needs to be called
+    # Networks take two stages. You need to create the python object and then
+    # bind it to a cNetwork_ptr.
     def __cinit__(self, Factory factory):
         self.factory = factory
         self.ready = False
+        self._genes = None
 
-    cdef create_new(self):
-        self.ptr = cNetwork_ptr(new cNetwork(self.factory.cfactory_ptr))
+    cdef bind_to(self, cNetwork_ptr &ptr):
+        self.ptr = ptr
         self.cnetwork = self.ptr.get()
+        self.cnetwork.pyobject = <void *>(self)
         self.ready = True
 
-    cdef create_copy(self, cNetwork_ptr w):
-        self.ptr = w
-        self.cnetwork = self.ptr.get()
-        self.ready = True
+    def __dealloc__(self):
+        self.cnetwork.pyobject = <void *>0
 
-    # Will this crash?
     property identifier:
         def __get__(self):
             return self.cnetwork.identifier
@@ -218,6 +217,14 @@ cdef class Network:
         def __get__(self):
             return self.cnetwork.genes.size()
 
+    property genes:
+        def __get__(self):
+            cdef size_t i
+            if self._genes is None:
+                self._genes = []
+                for i in range(self.cnetwork.genes.size()):
+                    self._genes.append(Gene(self, i))
+            return self._genes
 
     # def export_genes(self):
     #     output = numpy.zeros((self.factory.gene_count, 3), dtype=numpy.uint8)
@@ -254,14 +261,6 @@ cdef class Network:
     #         g.pub = input_c[i, 2]
     #         preinc(gene_i)
     #         i += 1
-
-    def __getitem__(self, size_t i):
-        return Gene(self, i)
-
-    def __iter__(self):
-        cdef size_t i
-        for i in range(self.cnetwork.genes.size()):
-            yield Gene(self, i)
 
 
 cdef class Gene:
@@ -353,6 +352,12 @@ cdef class Population:
         self.factory = factory
         self.ready = False
 
+        cdef size_t i
+        for i in range(factory.params.population_size):
+            self.cpop.networks.push_back(
+                cNetwork_ptr(new cNetwork(factory.cfactory_ptr)))
+
+
     def add(self, Network n):
         # Note that we add the c++ shared pointer, rather than the python
         # object. The original python Network holding this can go out of
@@ -364,30 +369,16 @@ cdef class Population:
     def get(self, size_t i):
         cdef:
             cNetwork_ptr ptr = self.cpop.networks[i]
-            Network n = Network(self.factory)
+            cNetwork *net = ptr.get()
 
-        # We need to construct a new python Network to wrap the existing
-        # cNetwork. 
-      
-        # NOTE: We could get clever here, and find a way to see if there is
-        # already an existing python object for this cNetwork. But the
-        # overhead and the pointer fandangling required is not worth it.
-        n.create_copy(ptr)
+        # Is there an existing python object?
+        if net.pyobject:
+            print 'already have an object, returning it'
+            return <object>(net.pyobject)
+
+        # Ok, so we need to create a python wrapper object
+        print 'creating a new object'
+        n = Network(self.factory)
+        n.bind_to(ptr)
         return n
 
-
-# from numpy.pxd
-# ctypedef signed char      npy_byte
-# ctypedef signed int       npy_int
-# ctypedef signed long      npy_long
-# ctypedef signed long long npy_longlong
-#
-# ctypedef unsigned char      npy_ubyte
-# ctypedef unsigned long      npy_ulong
-# ctypedef unsigned long long npy_ulonglong
-#
-# ctypedef float        npy_float
-# ctypedef double       npy_double
-# ctypedef long double  npy_longdouble
-# ctypedef Py_intptr_t npy_intp
-# ctypedef size_t npy_uintp

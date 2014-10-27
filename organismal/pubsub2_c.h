@@ -1,4 +1,4 @@
-// vim: path=.,/usr/include/c++/4.2.1,/usr/include/c++/4.2.1/tr1
+// vim: path=.,/usr/include/c++/4.2.1,/usr/include/c++/4.2.1/tr1,/usr/local/include
 #pragma once
 
 #include <cstdint>
@@ -78,8 +78,8 @@ struct cFactory
     cFactory(size_t seed);
     sequence_t get_next_ident() { return next_identifier++; }
 
+    void *pyobject;
     std::mt19937 random_engine;
-
     sequence_t next_identifier;
     size_t pop_count, gene_count, cis_count;
 
@@ -92,11 +92,11 @@ struct cNetwork
     cNetwork(cFactory_ptr &f);
     ~cNetwork();
 
+    void *pyobject;
     cFactory_ptr factory;
     sequence_t identifier;
     size_t gene_count;
     cGeneVector genes;
-    // void *object_ptr; // Back ptr to python object
 
 };
 

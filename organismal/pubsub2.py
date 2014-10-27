@@ -7,7 +7,7 @@ class Parameters(object):
         # Defaults are provided here
         self.gene_count = 10
 
-        # self.population_size = 20
+        self.population_size = 20
         # self.cis_count = 3
         # self.cue_shapes = 2
         # self.reg_shapes = 3
@@ -36,12 +36,3 @@ class Parameters(object):
         # self._init_envs()
         pass
 
-f = Factory(Parameters())
-print f
-n = f.create_network()
-print n.identifier
-print n.gene_count
-for g in n:
-    print g.sequence, g.pub
-    # for c in g:
-    #     print c
