@@ -10,57 +10,40 @@ def defaults():
     f = T.Factory(p)
     return p, f
 
-def test_1(defaults):
+def test_factory(defaults):
     p, f = defaults
-    n = T.Network(f)
-    assert n.ready == False
 
+    # Make sure we can stuff from the Factory
+    assert p == f.params
+
+def test_network_construction(defaults):
+    p, f = defaults
     n = f.create_network()
-    assert n.ready == True
+    assert n.ready
+    assert len(n.genes) == p.gene_count
 
-def test_3():
-    p = T.Parameters()
-    q = T.Factory(p)
-    nok = q.create_network()
-    x = nok.export_genes()
-    print x
-    x[0,0] = 10
-    nok.import_genes(x)
-    x = nok.export_genes()
-    print x
-    # print q.cparams
-    # nok.test()
-    # print nok.export_genes()
-
-def test_35():
-    p = T.Parameters()
-    f = T.Factory(p)
+def test_cismodules(defaults):
+    p, f = defaults
     n = f.create_network()
-    n[4].pub = 4
-    n[2].pub = 2
+    print 
+    g = n[0]
+    print g
+    print "modules", g.module_count
+    cm = g[1]
+    print cm.gene
+    # print n.export_genes()
 
-    print n.export_genes()
-
-def test_4():
-    p = T.Parameters()
-    f = T.Factory(p)
-    nets = [f.create_network() for _ in range(10)]
+def test_referencing(defaults):
+    p, f = defaults
     pop = f.create_population()
-    for n in nets:
-        print n, n.identifier
-        pop.add(n)
 
-    n2 = pop.get(2)
-    print n2.export_genes()
+    # These should be the same
+    a = pop.get(0)
+    b = pop.get(0)
 
-    # knok = pop.get(0)
-    # print knok
-    # print knok.export_genes()
-    #
-    # del newnok
-    # del knok
-    # # nok.test()
-    # # print nok.export_genes()
+    assert a is b
+    assert a.factory is b.factory
+    assert a.factory.params is b.factory.params
 
 def test_5(defaults):
     p, f = defaults
@@ -68,3 +51,25 @@ def test_5(defaults):
     for i, g in enumerate(n):
         g.pub = i
     print n.export_genes()
+
+def test_genes(defaults):
+    p, f = defaults
+    n = f.create_network()
+    g = n[1]
+    g.pub = 2
+    g.sub1 = 1
+    g.sub2 = 2
+    g.op = 8 + 4 + 2
+    print
+    p = T.Products(5)
+    p.set(4)
+    p.set(3)
+    print g.active(p)
+
+def test_products():
+    p = T.Products(5)
+    p.set(1)
+    print str(p)
+
+
+
