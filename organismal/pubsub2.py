@@ -36,6 +36,12 @@ class Parameters(object):
         # self._init_envs()
         pass
 
-
-# f.test_random()
-# f.test_states()
+f = Factory(Parameters())
+print f
+n = f.create_network()
+print n.identifier
+print n.gene_count
+for g in n:
+    print g.sequence, g.pub
+    # for c in g:
+    #     print c

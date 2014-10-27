@@ -1,45 +1,29 @@
+// vim: path=.,/usr/include/c++/4.2.1,/usr/include/c++/4.2.1/tr1
 #pragma once
 
+#include <cstdint>
 #include <vector>
-// #include <tr1/memory>
+// #include <tr1/memory> Another shared_ptr?
 #include <boost/shared_ptr.hpp>
 #include <boost/dynamic_bitset.hpp>
 #include <random>
 
-// #include "Python.h"
-// #include "numpy/npy_common.h"
 namespace pubsub2
 {
 
 // I'm simply copying these here from npy_common to avoid including them from
 // npy_common
-typedef signed char byte_t;
-typedef unsigned char npy_ubyte;
+typedef int_fast8_t signal_t;
+typedef int_fast16_t operand_t;
 typedef signed int int_t;
-typedef unsigned int uint_t;
-
-typedef unsigned int npy_uint;
-typedef signed long npy_long;
-typedef unsigned long npy_ulong;
-
-
-struct cRandom
-{
-    cRandom(int seed=0);
-    void reseed(int seed) { engine.seed(seed); }
-    double get_uniform() { return uniform(engine); }
-
-    std::mt19937 engine;
-    std::uniform_real_distribution<double> uniform;
-    std::uniform_int_distribution<double> uniform;
-};
+typedef unsigned int sequence_t;
 
 typedef boost::dynamic_bitset<size_t> cProducts;
 typedef std::vector<cProducts> cProductsVector;
 
-struct cProductStates
+struct cProductsSequence
 {
-    cProductStates() { num_products = 0; }
+    cProductsSequence() { num_products = 0; }
 
     size_t num_products;
     cProductsVector products;
@@ -55,53 +39,66 @@ struct cProductStates
 };
 
 typedef std::vector<std::string> cNames;
-typedef std::vector<uint_t> cResults;
 
-struct cBinaryOps
+struct cCisModule
 {
-    cBinaryOps() { num_ops = 0; }
-
-    uint_t add_op(std::string name, bool offoff, bool offon, bool onoff, bool onon);
-    bool result_from_op(size_t opn, bool a, bool b);
-    size_t num_ops;
-    cNames names;
-    cResults results;
-};
-
-struct cGene
-{
-    cGene();
-    byte_t op, sub1, sub2, pub;
+    cCisModule();
+    operand_t op;
+    signal_t sub1, sub2;
 
     // Inline this stuff. It won't change.
-    inline bool test(byte_t a, byte_t b) const 
+    inline bool test(operand_t a, operand_t b) const 
     { 
         return op & (1 << ((a << 1) | b)); 
     }
 
     inline bool active(cProducts const &products) const 
     {
-        byte_t a = products[sub1] ? 1: 0;
-        byte_t b = products[sub2] ? 1: 0;
+        operand_t a = products[sub1] ? 1: 0;
+        operand_t b = products[sub2] ? 1: 0;
         return test(a, b);
     }
+};
 
+typedef std::vector<cCisModule> cCisModules;
+
+struct cGene
+{
+    cGene(sequence_t sequence, signal_t p);
+
+    sequence_t sequence;
+    cCisModules modules;
+    signal_t pub;
 };
 
 typedef std::vector<cGene> cGeneVector;
 
+struct cFactory
+{
+    cFactory(size_t seed);
+    sequence_t get_next_ident() { return next_identifier++; }
+
+    std::mt19937 random_engine;
+
+    sequence_t next_identifier;
+    size_t pop_count, gene_count, cis_count;
+
+};
+
+typedef boost::shared_ptr<cFactory> cFactory_ptr;
+
 struct cNetwork
 {
-    int_t identifier;
-    int_t gene_count;
+    cNetwork(cFactory_ptr &f);
+    ~cNetwork();
+
+    cFactory_ptr factory;
+    sequence_t identifier;
+    size_t gene_count;
     cGeneVector genes;
     // void *object_ptr; // Back ptr to python object
 
-    cNetwork(int_t gene_count);
-    ~cNetwork();
-    void init(npy_long ident, size_t size);
 };
-
 
 typedef boost::shared_ptr<cNetwork> cNetwork_ptr;
 typedef std::vector<cNetwork_ptr> cNetworkVector;
@@ -110,6 +107,7 @@ struct cPopulation
 {
     cNetworkVector networks;
 };
+
 
 
 
