@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <vector>
+
 // #include <tr1/memory> Another shared_ptr?
 #include <boost/shared_ptr.hpp>
 #include <boost/dynamic_bitset.hpp>
@@ -42,20 +43,20 @@ typedef std::vector<std::string> cNames;
 
 struct cCisModule
 {
-    cCisModule();
+    cCisModule(operand_t op_, signal_t sub1_, signal_t sub2_);
     operand_t op;
     signal_t sub1, sub2;
 
     // Inline this stuff. It won't change.
-    inline bool test(operand_t a, operand_t b) const 
+    inline bool test(unsigned int a, unsigned int b) const 
     { 
-        return op & (1 << ((a << 1) | b)); 
+        return op & (8 >> ((a << 1) | b)); 
     }
 
     inline bool active(cProducts const &products) const 
     {
-        operand_t a = products[sub1] ? 1: 0;
-        operand_t b = products[sub2] ? 1: 0;
+        unsigned int a = products[sub1] ? 1: 0;
+        unsigned int b = products[sub2] ? 1: 0;
         return test(a, b);
     }
 };
@@ -72,6 +73,7 @@ struct cGene
 };
 
 typedef std::vector<cGene> cGeneVector;
+typedef std::vector<operand_t> cOperands;
 
 struct cFactory
 {
@@ -82,6 +84,12 @@ struct cFactory
     std::mt19937 random_engine;
     sequence_t next_identifier;
     size_t pop_count, gene_count, cis_count;
+    size_t reg_gene_count;
+    size_t cue_channels, reg_channels, out_channels;
+    std::pair<size_t, size_t> sub_range;
+    std::pair<size_t, size_t> pub_range;
+
+    cOperands operands;
 
 };
 
@@ -90,7 +98,6 @@ typedef boost::shared_ptr<cFactory> cFactory_ptr;
 struct cNetwork
 {
     cNetwork(cFactory_ptr &f);
-    ~cNetwork();
 
     void *pyobject;
     cFactory_ptr factory;
@@ -103,12 +110,14 @@ struct cNetwork
 typedef boost::shared_ptr<cNetwork> cNetwork_ptr;
 typedef std::vector<cNetwork_ptr> cNetworkVector;
 
-struct cPopulation
-{
-    cNetworkVector networks;
-};
-
-
+// struct cNetworks
+// {
+//     cNetworks(cFactory_ptr &ptr)
+//         : factory(ptr) {}
+//     cFactory_ptr factory;
+//     cNetworkVector networks;
+// };
+//
 
 
 } // end namespace pubsub2

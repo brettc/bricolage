@@ -14,7 +14,7 @@ sys.argv = ['setup.py', 'build_ext', '--inplace']
 extensions = [
     Extension(
         "organismal/pubsub2_ext", 
-        ["organismal/pubsub2_ext.pyx"],
+        ["organismal/pubsub2_ext.pyx", "organismal/pubsub2_c.cpp"],
         extra_compile_args = [
             # '-ffast-math',
             '-Wno-unused-function', 
@@ -23,6 +23,7 @@ extensions = [
             '-mmacosx-version-min=10.8',
         ],
         depends = ['organismal/pubsub2_c.h'],
+        language = 'c++',
         # include_path = [numpy.get_include()],
         # include_dirs = ['./organismal'],
         # libraries = [...],

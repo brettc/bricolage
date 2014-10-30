@@ -28,6 +28,9 @@ class Parameters(object):
         self.mutation_rate = .01
         self.generations = 100
 
+        self.use_structural_genes = True
+        self.structural_can_see_env = True
+
         self._override(kwargs)
         self._init()
 
@@ -64,8 +67,8 @@ class Parameters(object):
         #
         # reg_range         [ 4 5 ] 
         #
-
-        self.struct_gene_count = self.out_shapes
+        
+        self.struct_gene_count = self.out_shapes if self.use_structural_genes else 0
         self.gene_count = self.reg_gene_count + self.out_shapes
 
         self.sub_shapes = self.cue_shapes + self.reg_shapes
@@ -89,9 +92,10 @@ class Parameters(object):
 
         self.reg_set = set(self.reg_signals)
         self.sub_set = set(self.sub_signals)
+        self.pub_set = set(self.pub_signals)
 
         # Total gene count requires 
-        self.gene_count = self.reg_gene_count + self.out_shapes
+        self.gene_count = self.reg_gene_count + self.struct_gene_count
         self.env_count = pow(2, self.cue_shapes)
 
         # Lastly, work out our char_size
@@ -120,12 +124,20 @@ class Parameters(object):
             codon +=1 
             mutate_info.append((codon, self.sub_set))
             codon +=1 
-            mutate_info.append((codon, self.reg_set))
+            if self.use_structural_genes:
+                mutate_info.append((codon, self.reg_set))
+            else:
+                # Regulatory genes must produce structure
+                mutate_info.append((codon, self.pub_set))
             codon +=1 
         for i in range(self.struct_gene_count):
             mutate_info.append((codon, set(range(strat_size))))
             codon +=1 
-            mutate_info.append((codon, self.sub_set))
+            if self.structural_can_see_env:
+                mutate_info.append((codon, self.sub_set))
+            else:
+                # Structural genes can only see regulatory (not environment)
+                mutate_info.append((codon, self.reg_set))
             codon +=1 
 
         self.mutate_info = mutate_info
@@ -254,7 +266,10 @@ class Network(object):
 
     def describe(self):
         gs = [g.describe() for g in self.genes]
-        print '\n'.join(gs)
+        return '\n'.join(gs)
+
+    def __repr__(self):
+        return self.describe()
             
 
 class Cell(object):
@@ -296,21 +311,30 @@ class AllPossible(object):
 
     def _generate(self):
         reg_genes = [self._gene_poss()] * (self.params.reg_gene_count)
-        struct_genes = [self._gene_poss(use_pub=False)] * (
+        struct_genes = [self._gene_poss(reg=False)] * (
             self.params.gene_count - self.params.reg_gene_count)
         genes = reg_genes + struct_genes
         for dna in itertools.product(*genes):
             n = Network(self.params, dna)
             self.networks.append(n)
 
-    def _gene_poss(self, use_pub=True):
-        all_pub = self.params.reg_signals
+    def _gene_poss(self, reg=True):
+        all_reg = self.params.reg_signals
         all_sub = self.params.sub_signals
+        all_pub = self.params.pub_signals
         on_off = range(len(Gene.strategies))
-        generate_params = [on_off, all_sub]
-        if use_pub:
-            generate_params.append(all_pub)
-        return [_ for _ in itertools.product(*generate_params)]
+        if reg:
+            if self.params.use_structural_genes:
+                gp = [on_off, all_sub, all_reg]
+            else:
+                gp = [on_off, all_sub, all_pub]
+        else:
+            if self.params.structural_can_see_env:
+                gp = [on_off, all_sub]
+            else:
+                gp = [on_off, all_reg]
+
+        return [_ for _ in itertools.product(*gp)]
 
     def _calc_fitness(self):
         t = self.target

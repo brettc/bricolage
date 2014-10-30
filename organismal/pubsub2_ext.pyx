@@ -1,6 +1,4 @@
 # distutils: include_dirs = NUMPY_PATH
-# distutils: language = c++
-# distutils: sources = organismal/pubsub2_c.cpp
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: cdivision=True
@@ -9,13 +7,11 @@ import cython
 import numpy
 cimport numpy as np
 from cython.operator import dereference as deref, preincrement as preinc
-from cpython cimport Py_DECREF, Py_INCREF
 from libcpp.vector cimport vector
 from libcpp.string cimport string
+from libcpp.utility cimport pair
 
-ctypedef np.npy_byte byte_t
-ctypedef np.npy_int int_t
-
+from operand import Operand
 
 cdef extern from "<random>" namespace "std":
     cdef cppclass mt19937:
@@ -54,10 +50,16 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
     ctypedef unsigned int operand_t
     ctypedef unsigned int sequence_t
 
+    ctypedef vector[operand_t] cOperands
+
     cdef cppclass cFactory:
         cFactory(size_t seed)
         mt19937 random_engine
+        sequence_t next_identifier
         size_t pop_count, gene_count, cis_count
+        cOperands operands
+        pair[size_t, size_t] sub_range
+        pair[size_t, size_t] pub_range
 
     ctypedef shared_ptr[cFactory] cFactory_ptr
 
@@ -75,7 +77,7 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
         void set(size_t i, size_t j, bint b)
 
     cdef cppclass cCisModule:
-        bint test(byte_t a, byte_t b)
+        bint test(unsigned int a, unsigned int b)
         bint active(dynamic_bitset[size_t] s)
         signal_t op, sub1, sub2
 
@@ -94,9 +96,7 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
         size_t gene_count
 
     ctypedef shared_ptr[cNetwork] cNetwork_ptr
-
-    cdef cppclass cPopulation:
-        vector[cNetwork_ptr] networks
+    ctypedef vector[cNetwork_ptr] cNetworkVector
 
 
 cdef class Products:
@@ -146,25 +146,22 @@ cdef class Factory:
 
     def __cinit__(self, params):
         self.params = params
-        self.cfactory_ptr = cFactory_ptr(new cFactory(1))
+        self.cfactory_ptr = cFactory_ptr(new cFactory(params.seed))
         self.cfactory = self.cfactory_ptr.get()
 
-        # Now translate everything to C
+        # Now translate everything to cpp 
+        # There is automatic conversion for most of this (stl::vector etc)
         self.cfactory.gene_count = params.gene_count
-
-    # property gene_count:
-    #     def __get__(self):
-    #         return self.cfactory.gene_count
+        self.cfactory.cis_count = params.cis_count
+        self.cfactory.operands = params.operands
+        self.cfactory.sub_range = params.sub_range
+        self.cfactory.pub_range = params.pub_range
 
     def create_network(self):
         cdef cNetwork_ptr ptr = cNetwork_ptr(new cNetwork(self.cfactory_ptr))
         n = Network(self)
         n.bind_to(ptr)
         return n
-
-    def create_population(self):
-        p = Population(self)
-        return p
 
     def test_states(self):
         self.states.init(5)
@@ -219,11 +216,8 @@ cdef class Network:
 
     property genes:
         def __get__(self):
-            cdef size_t i
             if self._genes is None:
-                self._genes = []
-                for i in range(self.cnetwork.genes.size()):
-                    self._genes.append(Gene(self, i))
+                self._genes = tuple(Gene(self, i) for i in range(self.gene_count))
             return self._genes
 
     # def export_genes(self):
@@ -267,8 +261,10 @@ cdef class Gene:
     """A proxy to a gene.
     """
     cdef:
-        # Assumption: Networks don't change their gene size
+        # Assumption: Networks CANNOT mess with their genes once established
+        # (You must copy and mutate a network)
         cGene *cgene
+        object _modules
 
         readonly:
             Network network
@@ -291,13 +287,16 @@ cdef class Gene:
         def __get__(self):
             return self.cgene.modules.size()
 
-    def __getitem__(self, size_t i):
-        return CisModule(self, i)
+    property modules:
+        def __get__(self):
+            # Lazy construction
+            if self._modules is None:
+                self._modules = tuple(CisModule(self, i) for i in range(self.module_count))
+            return self._modules
 
-    def __iter__(self):
-        cdef size_t i
-        for i in range(self.cgene.modules.size()):
-            yield CisModule(self, i)
+    def __repr__(self):
+        p = self.network.factory.params
+        return "<Gene[{}]: {}>".format(self.sequence, p.name_for_channel(self.pub))
 
 
 cdef class CisModule:
@@ -314,71 +313,88 @@ cdef class CisModule:
         assert i < g.cgene.modules.size()
         self.ccismodule = &g.cgene.modules[i]
 
-
     property sub1:
         def __get__(self):
             return self.ccismodule.sub1
-        def __set__(self, np.npy_ubyte val):
+        def __set__(self, signal_t val):
             self.ccismodule.sub1 = val
 
     property sub2:
         def __get__(self):
             return self.ccismodule.sub2
-        def __set__(self, np.npy_ubyte val):
+        def __set__(self, signal_t val):
             self.ccismodule.sub2 = val
 
     property op:
         def __get__(self):
             return self.ccismodule.op
-        def __set__(self, np.npy_ubyte val):
+        def __set__(self, operand_t val):
             self.ccismodule.op = val
 
-    def test(self, np.npy_ubyte a, np.npy_ubyte b):
+    def test(self, unsigned int a, unsigned int b):
         return self.ccismodule.test(a, b)
 
     def active(self, Products p):
         return self.ccismodule.active(p.cproducts)
 
+    def __repr__(self):
+        p = self.gene.network.factory.params
+        return "<CisModule: {}, {}, {}>".format(
+            Operand(self.op).name,
+            p.name_for_channel(self.sub1),
+            p.name_for_channel(self.sub2),
+        )
+    
 
-cdef class Population:
+cdef class NetworkCollection:
     cdef:
         readonly: 
-            bint ready
-
-        Factory factory
-        cPopulation cpop
+            Factory factory
+        cNetworkVector cnetworks
 
     def __cinit__(self, Factory factory):
         self.factory = factory
-        self.ready = False
-
-        cdef size_t i
-        for i in range(factory.params.population_size):
-            self.cpop.networks.push_back(
-                cNetwork_ptr(new cNetwork(factory.cfactory_ptr)))
-
 
     def add(self, Network n):
-        # Note that we add the c++ shared pointer, rather than the python
-        # object. The original python Network holding this can go out of
-        # scope, and that is fine.
-        #
-        # TODO: should check the factory is the same.
-        self.cpop.networks.push_back(n.ptr)
+        assert n.factory is self.factory
+        self.cnetworks.push_back(n.ptr)
 
-    def get(self, size_t i):
+    cdef object get_at(self, size_t i):
+        if i >= self.cnetworks.size():
+            raise IndexError
+
         cdef:
-            cNetwork_ptr ptr = self.cpop.networks[i]
+            cNetwork_ptr ptr = self.cnetworks[i]
             cNetwork *net = ptr.get()
 
         # Is there an existing python object?
+        # Note: cython automatically increments the reference count when we do
+        # this (which is what we want)
         if net.pyobject:
-            print 'already have an object, returning it'
             return <object>(net.pyobject)
 
         # Ok, so we need to create a python wrapper object
-        print 'creating a new object'
         n = Network(self.factory)
         n.bind_to(ptr)
         return n
+
+    property size:
+        def __get__(self):
+            return self.cnetworks.size()
+
+    def __getitem__(self, size_t i):
+        return self.get_at(i)
+
+    def __iter__(self):
+        for i in range(self.size):
+            yield self.get_at(i)
+
+    def __repr__(self):
+        return "<NetworkCollection: {}>".format(self.size)
+
+def make_population(NetworkCollection nc):
+    cdef size_t i
+    for i in range(nc.factory.params.population_size):
+        nc.cnetworks.push_back(
+            cNetwork_ptr(new cNetwork(nc.factory.cfactory_ptr)))
 

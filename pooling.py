@@ -14,7 +14,6 @@ import pandas as pd
 int_type = np.int
 tiny_type = np.int8
 
-
 class Parameters(object):
     def __init__(self, **kwargs):
         # Defaults are provided here
@@ -258,7 +257,6 @@ class Network(object):
     def describe(self):
         gs = [g.describe() for g in self.genes]
         print '\n'.join(gs)
-            
 
 class Cell(object):
     def __init__(self, params):
