@@ -50,12 +50,44 @@ cNetwork::cNetwork(cFactory_ptr &f)
     }
 }
 
+void cNetwork::cycle(cChannelState &c)
+{
+    cChannelState next(c.size());
+    
+    for (auto &g: genes)
+    {
+        for (auto &cis: g.modules)
+        {
+            if (cis.active(c))
+            {
+                next.set(g.pub);
+                // just one is sufficient
+                break;
+            }
+        }
+    }
+    // "return" this value
+    c.swap(next);
+}
+
 cFactory::cFactory(size_t seed)
-    : pyobject(0)
-    , random_engine(seed)
+    : random_engine(seed)
     , next_identifier(0)
     , pop_count(1)
     , gene_count(4)
     , cis_count(3)
 {
 }
+
+void cFactory::init_environments()
+{
+    total_channels = cue_channels + reg_channels + out_channels;
+    // Environments
+    size_t env_count = 1 << cue_channels;
+    for (size_t i = 0; i < env_count; ++i)
+    {
+        cChannelState c = cChannelState(total_channels, i);
+        environments.push_back(c);
+    }
+}
+

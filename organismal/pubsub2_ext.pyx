@@ -52,29 +52,36 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
 
     ctypedef vector[operand_t] cOperands
 
-    cdef cppclass cFactory:
-        cFactory(size_t seed)
-        mt19937 random_engine
-        sequence_t next_identifier
-        size_t pop_count, gene_count, cis_count
-        cOperands operands
-        pair[size_t, size_t] sub_range
-        pair[size_t, size_t] pub_range
+    ctypedef dynamic_bitset[size_t] cChannelState
+    ctypedef vector[cChannelState] cChannelStateVector
 
-    ctypedef shared_ptr[cFactory] cFactory_ptr
-
-    ctypedef vector[cCisModule] cCisModules
-
-    ctypedef dynamic_bitset[size_t] cProducts
-
-    cdef cppclass cProductsSequence:
-        ProductStates()
+    cdef cppclass cChannelStates:
         void init(size_t np)
         void push_back(dynamic_bitset[size_t] p)
         size_t size() 
         size_t products_size() 
         bint get(size_t i, size_t j)
         void set(size_t i, size_t j, bint b)
+        cChannelStateVector products
+
+    cdef cppclass cFactory:
+        cFactory(size_t seed)
+        mt19937 random_engine
+        sequence_t next_identifier
+        size_t pop_count, gene_count, cis_count
+        size_t cue_channels, reg_channels, out_channels
+        size_t total_channels
+        cOperands operands
+        pair[size_t, size_t] sub_range
+        pair[size_t, size_t] pub_range
+
+        void init_environments()
+        cChannelStateVector environments
+
+    ctypedef shared_ptr[cFactory] cFactory_ptr
+
+    ctypedef vector[cCisModule] cCisModules
+
 
     cdef cppclass cCisModule:
         bint test(unsigned int a, unsigned int b)
@@ -94,46 +101,71 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
         vector[cGene] genes
         sequence_t identifier
         size_t gene_count
+        void cycle(cChannelState c)
 
     ctypedef shared_ptr[cNetwork] cNetwork_ptr
     ctypedef vector[cNetwork_ptr] cNetworkVector
 
 
-cdef class Products:
-    cdef cProducts cproducts;
+cdef class ChannelState:
+    cdef cChannelState cchannel_state;
 
-    def __cinit__(self, size_t size):
-        self.cproducts.resize(size)
+    def __cinit__(self, size_t size=0):
+        self.cchannel_state.resize(size)
+
+    cdef init(self, cChannelState &p):
+        self.cchannel_state = p
 
     def set(self, size_t i):
-        self.cproducts.set(i)
+        self.cchannel_state.set(i)
 
     def reset(self, size_t i):
-        self.cproducts.reset(i)
+        self.cchannel_state.reset(i)
 
     def flip(self, size_t i):
-        self.cproducts.flip(i)
+        self.cchannel_state.flip(i)
 
     def test(self, size_t i):
-        return self.cproducts.test(i)
+        return self.cchannel_state.test(i)
+
+    def __getitem__(self, size_t i):
+        return self.cchannel_state.test(i)
+
+    def __setitem__(self, size_t i, bint b):
+        if b:
+            self.cchannel_state.set(i)
+        else:
+            self.cchannel_state.reset(i)
+
+    def __copy__(self):
+        other = ChannelState()
+        other.init(self.cchannel_state)
+        return other
+
+    def merge(self, ChannelState other):
+        self.cchannel_state |= other.cchannel_state
 
     def __str__(self):
         cdef string s
-        to_string(self.cproducts, s)
-        return s
+        to_string(self.cchannel_state, s)
+        # I think it is much easier to understand if we reverse it??
+        return s[::-1]
 
     property size:
         def __get__(self):
-            return self.cproducts.size()
+            return self.cchannel_state.size()
+
+    def __repr__(self):
+        return "<ChannelState: {}>".format(self.__str__())
 
 
-cdef class ProductStates:
-    cdef cProductsSequence cstates
+cdef class ChannelStates:
+    cdef cChannelStates cstates
 
     def __cinit__(self):
         pass
 
-    cdef init_from(self, cProductsSequence *s):
+    cdef init_from(self, cChannelStates *s):
         self.cstates = deref(s)
 
 
@@ -156,12 +188,29 @@ cdef class Factory:
         self.cfactory.operands = params.operands
         self.cfactory.sub_range = params.sub_range
         self.cfactory.pub_range = params.pub_range
+        self.cfactory.cue_channels = params.cue_channels
+        self.cfactory.reg_channels = params.reg_channels
+        self.cfactory.out_channels = params.out_channels
+        self.cfactory.out_channels = params.out_channels
+
+        self.cfactory.init_environments()
 
     def create_network(self):
         cdef cNetwork_ptr ptr = cNetwork_ptr(new cNetwork(self.cfactory_ptr))
         n = Network(self)
         n.bind_to(ptr)
         return n
+
+    property environments:
+        def __get__(self):
+            cdef vector[cChannelState].iterator i =  self.cfactory.environments.begin()
+            envs = []
+            while i != self.cfactory.environments.end():
+                p = ChannelState()
+                p.init(deref(i))
+                envs.append(p)
+                preinc(i)
+            return envs
 
     def test_states(self):
         self.states.init(5)
@@ -220,41 +269,8 @@ cdef class Network:
                 self._genes = tuple(Gene(self, i) for i in range(self.gene_count))
             return self._genes
 
-    # def export_genes(self):
-    #     output = numpy.zeros((self.factory.gene_count, 3), dtype=numpy.uint8)
-    #
-    #     cdef:
-    #         cGene *g
-    #         np.npy_ubyte[:,:] output_c = output
-    #         size_t i = 0
-    #         vector[cGene].iterator gene_i = self.cnetwork.genes.begin()
-    #
-    #     while gene_i != self.cnetwork.genes.end():
-    #         g = &deref(gene_i)
-    #         output_c[i, 0] = g.sub1
-    #         output_c[i, 1] = g.sub2
-    #         output_c[i, 2] = g.pub
-    #         preinc(gene_i)
-    #         i += 1
-    #
-    #     return output
-    #
-    # def import_genes(self, np.npy_ubyte[:, :] input_c):
-    #
-    #     cdef:
-    #         vector[cGene].iterator gene_i
-    #         cGene *g
-    #         size_t i = 0
-    #     
-    #     gene_i = self.cnetwork.genes.begin()
-    #
-    #     while gene_i != self.cnetwork.genes.end():
-    #         g = &deref(gene_i)
-    #         g.sub1 = input_c[i, 0]
-    #         g.sub2 = input_c[i, 1]
-    #         g.pub = input_c[i, 2]
-    #         preinc(gene_i)
-    #         i += 1
+    def cycle(self, ChannelState c):
+        self.cnetwork.cycle(c.cchannel_state)
 
 
 cdef class Gene:
@@ -334,8 +350,8 @@ cdef class CisModule:
     def test(self, unsigned int a, unsigned int b):
         return self.ccismodule.test(a, b)
 
-    def active(self, Products p):
-        return self.ccismodule.active(p.cproducts)
+    def active(self, ChannelState p):
+        return self.ccismodule.active(p.cchannel_state)
 
     def __repr__(self):
         p = self.gene.network.factory.params
@@ -398,3 +414,39 @@ def make_population(NetworkCollection nc):
         nc.cnetworks.push_back(
             cNetwork_ptr(new cNetwork(nc.factory.cfactory_ptr)))
 
+
+    # def export_genes(self):
+    #     output = numpy.zeros((self.factory.gene_count, 3), dtype=numpy.uint8)
+    #
+    #     cdef:
+    #         cGene *g
+    #         np.npy_ubyte[:,:] output_c = output
+    #         size_t i = 0
+    #         vector[cGene].iterator gene_i = self.cnetwork.genes.begin()
+    #
+    #     while gene_i != self.cnetwork.genes.end():
+    #         g = &deref(gene_i)
+    #         output_c[i, 0] = g.sub1
+    #         output_c[i, 1] = g.sub2
+    #         output_c[i, 2] = g.pub
+    #         preinc(gene_i)
+    #         i += 1
+    #
+    #     return output
+    #
+    # def import_genes(self, np.npy_ubyte[:, :] input_c):
+    #
+    #     cdef:
+    #         vector[cGene].iterator gene_i
+    #         cGene *g
+    #         size_t i = 0
+    #     
+    #     gene_i = self.cnetwork.genes.begin()
+    #
+    #     while gene_i != self.cnetwork.genes.end():
+    #         g = &deref(gene_i)
+    #         g.sub1 = input_c[i, 0]
+    #         g.sub2 = input_c[i, 1]
+    #         g.pub = input_c[i, 2]
+    #         preinc(gene_i)
+    #         i += 1

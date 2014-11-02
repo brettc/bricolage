@@ -11,10 +11,15 @@ def defaults():
     return p, f
 
 def test_factory(defaults):
-    p, f = defaults
+    p = T.Parameters(cue_channels=3, reg_channels=5)
+    f = T.Factory(p)
 
     # Make sure we can stuff from the Factory
     assert p == f.params
+    e = f.environments
+    print
+    for i in e:
+        print repr(i)
 
 def test_network_ids(defaults):
     p, f = defaults
@@ -72,10 +77,44 @@ def test_bad_access(defaults):
 
     assert a is b
 
-def test_products():
-    p = T.Products(5)
-    p.set(1)
-    print str(p)
+
+def test_network():
+    p = T.Parameters(
+        seed=3,
+        operands = [
+            T.Operand.NOT_A_AND_B,
+            T.Operand.A_AND_NOT_B,
+            T.Operand.NOR,
+            T.Operand.AND,
+            T.Operand.FALSE,
+
+        ],
+        cis_count=2,
+        reg_channels=5,
+        out_channels=2,
+        cue_channels=3,
+    )
+    f = T.Factory(p)
+    net = f.create_network()
+    envs = f.environments
+    print 
+    for g in net.genes:
+        print g,
+        for m in g.modules:
+            print m,
+        print
+    for e in envs:
+        cur = e.__copy__()
+        for i in range(4):
+            print cur
+            net.cycle(cur)
+            cur.merge(e)
+        print '--'
+
+
+
+
+
 
 
 
