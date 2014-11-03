@@ -1,12 +1,11 @@
 from operand import Operand
-from pubsub2_ext import Factory, NetworkCollection, ChannelState, ChannelStates
+from pubsub2_ext import Factory, NetworkCollection
 
 class Parameters(object):
     def __init__(self, **kwargs):
         # Defaults are provided here
         self.seed = 1
         self.population_size = 20
-        # self.gene_count = 10
         self.cis_count = 3
         self.cue_channels = 2
         self.reg_channels = 3
@@ -25,8 +24,7 @@ class Parameters(object):
             if hasattr(self, k):
                 setattr(self, k, v)
             else:
-                pass
-                # log.warning("'%s' is not a valid setting", k)
+                raise RuntimeError("Invalid Operations")
 
     def _init(self):
         # Calculate the total number of elements given the overlap

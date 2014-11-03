@@ -19,25 +19,15 @@ typedef unsigned int sequence_t;
 
 typedef boost::dynamic_bitset<size_t> cChannelState;
 typedef std::vector<cChannelState> cChannelStateVector;
+typedef std::vector<cChannelStateVector> cAttractors;
 
-struct cChannelStates
+inline int bitset_cmp(cChannelState &a, cChannelState &b)
 {
-    cChannelStates() { num_products = 0; }
+    if (a < b) return -1;
+    if (a == b) return 0;
+    return 1;
+}
 
-    size_t num_products;
-    cChannelStateVector states;
-
-    void init(size_t np) { num_products = np; }
-    void push_back(cChannelState &p) { states.push_back(p); }
-
-    size_t size() const { return states.size(); }
-    size_t products_size() const { return num_products; }
-
-    bool get(size_t i, size_t j) { return states[i][j]; }
-    void set(size_t i, size_t j, bool b) { states[i][j] = b; }
-};
-
-typedef std::vector<std::string> cNames;
 
 struct cCisModule
 {
@@ -72,11 +62,13 @@ struct cGene
 
 typedef std::vector<cGene> cGeneVector;
 typedef std::vector<operand_t> cOperands;
+struct cNetwork;
 
 struct cFactory
 {
     cFactory(size_t seed);
     sequence_t get_next_ident() { return next_identifier++; }
+    void construct_random(cNetwork &network);
 
     std::mt19937 random_engine;
     sequence_t next_identifier;
@@ -108,9 +100,10 @@ struct cNetwork
     cGeneVector genes;
 
     void cycle(cChannelState &c);
+    void calc_attractors();
 
     // Calculated attractor
-    cChannelStates transient, attractor;
+    cAttractors attractors;
 
 };
 

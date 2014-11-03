@@ -54,15 +54,18 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
 
     ctypedef dynamic_bitset[size_t] cChannelState
     ctypedef vector[cChannelState] cChannelStateVector
+    ctypedef vector[cChannelStateVector] cAttractors
 
-    cdef cppclass cChannelStates:
-        void init(size_t np)
-        void push_back(dynamic_bitset[size_t] p)
-        size_t size() 
-        size_t products_size() 
-        bint get(size_t i, size_t j)
-        void set(size_t i, size_t j, bint b)
-        cChannelStateVector products
+    cdef int bitset_cmp(cChannelState &, cChannelState &)
+
+    # cdef cppclass cChannelStates:
+    #     void init(size_t np)
+    #     void push_back(dynamic_bitset[size_t] p)
+    #     size_t size() 
+    #     size_t products_size() 
+    #     bint get(size_t i, size_t j)
+    #     void set(size_t i, size_t j, bint b)
+    #     cChannelStateVector products
 
     cdef cppclass cFactory:
         cFactory(size_t seed)
@@ -75,13 +78,14 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
         pair[size_t, size_t] sub_range
         pair[size_t, size_t] pub_range
 
+        void construct_random(cNetwork &network)
+
         void init_environments()
         cChannelStateVector environments
 
     ctypedef shared_ptr[cFactory] cFactory_ptr
 
     ctypedef vector[cCisModule] cCisModules
-
 
     cdef cppclass cCisModule:
         bint test(unsigned int a, unsigned int b)
@@ -102,19 +106,72 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
         sequence_t identifier
         size_t gene_count
         void cycle(cChannelState c)
+        cAttractors attractors
 
     ctypedef shared_ptr[cNetwork] cNetwork_ptr
     ctypedef vector[cNetwork_ptr] cNetworkVector
 
+cdef class ChannelStateFrozen:
+    cdef:
+        cChannelState cchannel_state
+        cFactory_ptr cfactory_ptr
 
-cdef class ChannelState:
-    cdef cChannelState cchannel_state;
+    def __cinit__(self):
+        pass
 
-    def __cinit__(self, size_t size=0):
-        self.cchannel_state.resize(size)
-
-    cdef init(self, cChannelState &p):
+    cdef init(self, cFactory_ptr &f, cChannelState &p):
+        self.cfactory_ptr = f
         self.cchannel_state = p
+
+    def test(self, size_t i):
+        return self.cchannel_state.test(i)
+
+    def __getitem__(self, size_t i):
+        return self.cchannel_state.test(i)
+
+    def __cmp__(self, ChannelStateFrozen other):
+        return bitset_cmp(self.cchannel_state, other.cchannel_state)
+
+    property size:
+        def __get__(self):
+            return self.cchannel_state.size()
+
+    def __str__(self):
+        cdef:
+            string cstr
+            cFactory *f = self.cfactory_ptr.get()
+
+        if f == NULL:
+            # TODO: Some property exceptions would be good...
+            raise RuntimeError
+
+        cdef size_t cuereg = f.cue_channels + f.reg_channels
+
+        to_string(self.cchannel_state, cstr)
+        # I think it is much easier to understand if we reverse it
+        s = cstr[::-1]
+        env = s[:f.cue_channels]
+        reg = s[f.cue_channels:cuereg]
+        out = s[cuereg:]
+
+        return env + '|' + reg + '|' + out
+
+    def __copy__(self):
+        other = ChannelState()
+        other.init(self.cfactory_ptr, self.cchannel_state)
+        return other
+
+    def copy(self):
+        return self.__copy__()
+
+    def __repr__(self):
+        return "<ChannelStateFrozen: {}>".format(self.__str__())
+
+
+cdef class ChannelState(ChannelStateFrozen):
+
+    def __cinit__(self):
+        pass
 
     def set(self, size_t i):
         self.cchannel_state.set(i)
@@ -125,56 +182,27 @@ cdef class ChannelState:
     def flip(self, size_t i):
         self.cchannel_state.flip(i)
 
-    def test(self, size_t i):
-        return self.cchannel_state.test(i)
-
-    def __getitem__(self, size_t i):
-        return self.cchannel_state.test(i)
-
     def __setitem__(self, size_t i, bint b):
         if b:
             self.cchannel_state.set(i)
         else:
             self.cchannel_state.reset(i)
 
-    def __copy__(self):
-        other = ChannelState()
-        other.init(self.cchannel_state)
-        return other
-
-    def merge(self, ChannelState other):
+    def merge(self, ChannelStateFrozen other):
         self.cchannel_state |= other.cchannel_state
-
-    def __str__(self):
-        cdef string s
-        to_string(self.cchannel_state, s)
-        # I think it is much easier to understand if we reverse it??
-        return s[::-1]
-
-    property size:
-        def __get__(self):
-            return self.cchannel_state.size()
 
     def __repr__(self):
         return "<ChannelState: {}>".format(self.__str__())
 
 
-cdef class ChannelStates:
-    cdef cChannelStates cstates
-
-    def __cinit__(self):
-        pass
-
-    cdef init_from(self, cChannelStates *s):
-        self.cstates = deref(s)
-
-
 cdef class Factory:
     cdef:
         cFactory_ptr cfactory_ptr
-        cFactory * cfactory
+        cFactory *cfactory
         readonly:
             object params
+
+        object _environments
 
     def __cinit__(self, params):
         self.params = params
@@ -195,21 +223,33 @@ cdef class Factory:
 
         self.cfactory.init_environments()
 
+    def create_state(self):
+        c = ChannelState()
+        c.cchannel_state.resize(self.cfactory.total_channels)
+        c.cfactory_ptr = self.cfactory_ptr
+        return c
+
     def create_network(self):
         cdef cNetwork_ptr ptr = cNetwork_ptr(new cNetwork(self.cfactory_ptr))
+        self.cfactory.construct_random(deref(ptr.get()))
         n = Network(self)
         n.bind_to(ptr)
         return n
 
     property environments:
         def __get__(self):
+            if self._environments is not None:
+                return self._environments
+
             cdef vector[cChannelState].iterator i =  self.cfactory.environments.begin()
             envs = []
             while i != self.cfactory.environments.end():
-                p = ChannelState()
-                p.init(deref(i))
+                p = ChannelStateFrozen()
+                p.init(self.cfactory_ptr, deref(i))
                 envs.append(p)
                 preinc(i)
+
+            self._environments = envs
             return envs
 
     def test_states(self):
@@ -233,11 +273,11 @@ cdef class Network:
             bint ready
 
         # Because we hold a reference to the shared_ptr, we know we can always
-        # safely access the ACTUAL pointer. We keep a reference to it too, as
+        # safely access the ACTUAL pointer. We keep the pointer around too, as
         # it makes our life easier. The cost is a tiny bit of space.
         cNetwork_ptr ptr
         cNetwork *cnetwork
-        object _genes
+        object _genes, _attractors
 
     # Networks take two stages. You need to create the python object and then
     # bind it to a cNetwork_ptr.
@@ -272,6 +312,36 @@ cdef class Network:
     def cycle(self, ChannelState c):
         self.cnetwork.cycle(c.cchannel_state)
 
+    property attractors:
+        """A tuple containing the attractors for each environment"""
+        def __get__(self):
+            if self._attractors is not None:
+                return self._attractors
+
+            cdef:
+                vector[cChannelStateVector].iterator cattr_iter
+                vector[cChannelState].iterator cstate_iter
+                
+            attrs = []
+            cattr_iter = self.cnetwork.attractors.begin()
+            while cattr_iter != self.cnetwork.attractors.end():
+                attr = []
+                cstate_iter = deref(cattr_iter).begin()
+                while cstate_iter != deref(cattr_iter).end():
+                    c = ChannelStateFrozen()
+                    c.init(self.factory.cfactory_ptr, deref(cstate_iter))
+                    attr.append(c)
+                    preinc(cstate_iter)
+
+                # Make everything a tuple -- you shouldn't be able to mess
+                # with it!
+                attrs.append(tuple(attr))
+                preinc(cattr_iter)
+
+            # Again: tuples, so you can't mess with it.
+            self._attractors = tuple(attrs)
+            return self._attractors
+                
 
 cdef class Gene:
     """A proxy to a gene.
@@ -283,6 +353,8 @@ cdef class Gene:
         object _modules
 
         readonly:
+            # By holding this ref, we ensure the pointer is always valid (pace
+            # what I said above. DON'T mess with the genes!)
             Network network
             size_t gene_number
 
@@ -413,7 +485,6 @@ def make_population(NetworkCollection nc):
     for i in range(nc.factory.params.population_size):
         nc.cnetworks.push_back(
             cNetwork_ptr(new cNetwork(nc.factory.cfactory_ptr)))
-
 
     # def export_genes(self):
     #     output = numpy.zeros((self.factory.gene_count, 3), dtype=numpy.uint8)

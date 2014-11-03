@@ -23,51 +23,101 @@ cNetwork::cNetwork(cFactory_ptr &f)
     , factory(f)
 {
     identifier = factory->get_next_ident();
+}
 
-    // We initialize
-    auto &rng = factory->random_engine;
-    auto &operands = factory->operands;
-    auto &sub = factory->sub_range;
-    auto pub_base = factory->pub_range.first;
-
-    std::uniform_int_distribution<size_t> r_sub(sub.first, sub.second-1);
-    std::uniform_int_distribution<size_t> r_oper(0, operands.size()-1);
+typedef std::uniform_int_distribution<size_t> randint;
+void cFactory::construct_random(cNetwork &network)
+{
+    randint r_sub(sub_range.first, sub_range.second-1);
+    randint r_oper(0, operands.size()-1);
     
-    for (size_t i=0; i < factory->gene_count; ++i)
+    for (size_t i=0; i < gene_count; ++i)
     {
-        genes.push_back(cGene(i, pub_base + i));
+        network.genes.push_back(cGene(i, pub_range.first + i));
         // genes.emplace_back(i, rpub(rng));
         // Get a reference to it
-        cGene &g = genes.back();
-        for (size_t j=0; j < factory->cis_count; ++j)
+        cGene &g = network.genes.back();
+        for (size_t j=0; j < cis_count; ++j)
         {
             g.modules.push_back(
-                cCisModule(operands[r_oper(rng)], 
-                           r_sub(rng), 
-                           r_sub(rng)
+                cCisModule(operands[r_oper(random_engine)], 
+                           r_sub(random_engine), 
+                           r_sub(random_engine)
                         ));
         }
     }
+
+    // Calculate the attractors
+    network.calc_attractors();
 }
 
 void cNetwork::cycle(cChannelState &c)
 {
     cChannelState next(c.size());
-    
-    for (auto &g: genes)
-    {
-        for (auto &cis: g.modules)
-        {
+    for (auto &g : genes)
+        for (auto &cis : g.modules)
             if (cis.active(c))
             {
                 next.set(g.pub);
-                // just one is sufficient
+                // The gene is active, no use looking further
                 break;
             }
-        }
-    }
-    // "return" this value
+
+    // Update the "return" value.
     c.swap(next);
+}
+
+// This is the inner loop, where we find the attractors. We should tune this.
+void cNetwork::calc_attractors()
+{
+    size_t attractor_begins_at;
+    bool found;
+
+    // Go through each environment.
+    for (auto &env : factory->environments)
+    {
+        // Set the state to current environment, and set it as the start of the
+        // path to the attractor.
+        cChannelStateVector path;
+        cChannelState current = env;
+        path.push_back(current);
+        
+        for (;;)
+        {
+            // Update the current state.
+            cycle(current);
+
+            // Put back the environment (as this remains constant)
+            current |= env;
+
+            // Have we already seen this?
+            attractor_begins_at = 0;
+            found = false;
+            for (cChannelState &prev : path)
+            {
+                if (prev == current)
+                {
+                    found = true;
+                    break;
+                }
+                attractor_begins_at++;
+            }
+
+            // If we have seen this state, we've found the attractor.
+            if (found)
+                break;
+
+            // Add the current to our attractor.
+            path.push_back(current);
+        }
+        // Add a new attractor for this environment.
+        attractors.push_back(cChannelStateVector());
+        cChannelStateVector &attr = attractors.back();
+
+        // Copy the part the path that is the attractor, ignoring the transient
+        for (size_t copy_at=attractor_begins_at; copy_at < path.size(); ++copy_at)
+            attr.push_back(path[copy_at]);
+    }
 }
 
 cFactory::cFactory(size_t seed)

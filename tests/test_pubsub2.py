@@ -3,6 +3,7 @@
 # sys.path.append(str(Path('.')))
 import pytest
 from organismal import pubsub2 as T
+from organismal import operand
 
 @pytest.fixture
 def defaults():
@@ -77,10 +78,51 @@ def test_bad_access(defaults):
 
     assert a is b
 
+def test_channelstate(defaults):
+    p, f = defaults
+    e2 = f.environments[-1]
+    e2_again = f.environments[-1]
 
-def test_network():
+    # We should get the same channels states out.
+    assert e2 == e2_again
+    assert e2 is e2_again
+
+    # When we copy, they should be the same, but not identical.
+    copy_e2 = e2.copy()
+    assert e2 == copy_e2
+    assert e2 is not copy_e2
+
+    # Modify the state -- testing still work
+    copy_e2.flip(0)
+    assert e2 != copy_e2
+    copy_e2.flip(0)
+    assert e2 == copy_e2
+    
+def network_cycle(network, curstate):
+    nextstate = network.factory.create_state()
+    for g in network.genes:
+        for m in g.modules:
+            if operand.calculate(m.op, curstate[m.sub1], curstate[m.sub2]):
+                nextstate.set(g.pub)
+                break
+    return nextstate
+
+def construct_attractor(net, env):
+    cur = env.copy()
+    path = []
+    path.append(cur)
+    while 1:
+        cur = network_cycle(net, cur)
+        cur.merge(env)
+        for i, prev in enumerate(path):
+            if cur == prev:
+                return tuple(path[i:])
+        path.append(cur)
+
+def test_attractors():
+    # TODO: make a load of these
     p = T.Parameters(
-        seed=3,
+        seed=4,
         operands = [
             T.Operand.NOT_A_AND_B,
             T.Operand.A_AND_NOT_B,
@@ -96,25 +138,8 @@ def test_network():
     )
     f = T.Factory(p)
     net = f.create_network()
-    envs = f.environments
-    print 
-    for g in net.genes:
-        print g,
-        for m in g.modules:
-            print m,
-        print
-    for e in envs:
-        cur = e.__copy__()
-        for i in range(4):
-            print cur
-            net.cycle(cur)
-            cur.merge(e)
-        print '--'
-
-
-
-
-
-
-
+    pattractors = [construct_attractor(net, env) for env in f.environments]
+    assert tuple(pattractors) == net.attractors
+    # for patt, catt in zip(pattractors, net.attractors):
+    #     assert patt == catt
 
