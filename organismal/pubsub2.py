@@ -10,7 +10,7 @@ class Parameters(object):
         self.cue_channels = 2
         self.reg_channels = 3
         self.out_channels = 1
-        self.mutation_rate = .01
+        self.gene_mutation_rate = .01
         self.operands = [Operand.AND, Operand.OR, Operand.A_AND_NOT_B]
 
         self._override(kwargs)
@@ -60,7 +60,7 @@ class Parameters(object):
         self.env_count = pow(2, self.cue_channels)
 
         # This is per CIS module, rather than per site
-        self.individual_mutation_rate = self.gene_count * self.cis_count * self.mutation_rate
+        # self.individual_mutation_rate = self.gene_count * self.cis_count * self.mutation_rate
 
         # Lastly, work out our char_size
         # Should never need more than 2, as 99 is really big

@@ -35,5 +35,6 @@ setup(
     ext_modules=cythonize(
         extensions,
         aliases={ 'NUMPY_PATH': numpy.get_include() },
+        nthreads=4,
     )
 )

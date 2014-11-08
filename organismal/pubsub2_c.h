@@ -62,15 +62,22 @@ struct cGene
 
 typedef std::vector<cGene> cGeneVector;
 typedef std::vector<operand_t> cOperands;
+
 struct cNetwork;
+typedef boost::shared_ptr<cNetwork> cNetwork_ptr;
+typedef std::vector<cNetwork_ptr> cNetworkVector;
+
+typedef std::mt19937 random_engine_t;
+typedef std::uniform_int_distribution<size_t> randint_t;
 
 struct cFactory
 {
     cFactory(size_t seed);
     sequence_t get_next_ident() { return next_identifier++; }
     void construct_random(cNetwork &network);
+    void construct_population(cNetworkVector &nv);
 
-    std::mt19937 random_engine;
+    random_engine_t random_engine;
     sequence_t next_identifier;
     size_t pop_count, gene_count, cis_count;
     size_t reg_gene_count;
@@ -107,8 +114,21 @@ struct cNetwork
 
 };
 
-typedef boost::shared_ptr<cNetwork> cNetwork_ptr;
-typedef std::vector<cNetwork_ptr> cNetworkVector;
+// TODO: Pbly should be a base class, then have different types of generators.
+struct cGeneMutator
+{
+    cGeneMutator(cFactory *f, double rate);
+    cFactory *factory;
+    double rate_per_gene;
+    randint_t r_gene;
+    randint_t r_sub, r_oper, r_cis;
+
+    // Mutates the gene in place
+    void mutate_gene(cGene &g);
+    void mutate_network(cNetwork_ptr &n, size_t mutations);
+    cNetwork_ptr copy_and_mutate_network(cNetwork_ptr &n, size_t mutations);
+    void mutate_collection(cNetworkVector &networks);
+};
 
 
 } // end namespace pubsub2

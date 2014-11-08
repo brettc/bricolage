@@ -73,8 +73,7 @@ def test_bad_access(defaults):
 
     nc.add(f.create_network())
     a = nc[0]
-    print a
-    b = nc[-1]
+    b = nc[0]
 
     assert a is b
 
@@ -119,6 +118,7 @@ def construct_attractor(net, env):
                 return tuple(path[i:])
         path.append(cur)
 
+
 def test_attractors():
     # TODO: make a load of these
     p = T.Parameters(
@@ -142,4 +142,49 @@ def test_attractors():
     assert tuple(pattractors) == net.attractors
     # for patt, catt in zip(pattractors, net.attractors):
     #     assert patt == catt
+
+def test_mutator(defaults):
+    p, f = defaults
+    net = f.create_network()
+    print
+    print net.genes[0].modules[0]
+    f.mutate_network(net)
+    print net.genes[0].modules[0]
+
+def test_collection(defaults):
+    p = T.Parameters(
+        gene_mutation_rate=.1,
+        seed=4,
+        operands = [
+            T.Operand.NOT_A_AND_B,
+            T.Operand.A_AND_NOT_B,
+            T.Operand.NOR,
+            T.Operand.AND,
+            T.Operand.FALSE,
+
+        ],
+        cis_count=2,
+        reg_channels=5,
+        out_channels=3,
+        cue_channels=3,
+    )
+    f = T.Factory(p)
+    nc = f.create_collection(10)
+    orig = nc[0]
+    nc.mutate()
+    mute = nc[0]
+    print
+    assert orig is not mute
+    for g1, g2 in zip(orig.genes, mute.genes):
+        for m1, m2 in zip(g1.modules, g2.modules):
+            if m1 != m2:
+                print g1, m1
+                print g2, m2
+
+    for i, (a1, a2) in enumerate(zip(orig.attractors, mute.attractors)):
+        if a1 != a2:
+            print [str(x) for x in a1]
+            print [str(x) for x in a2]
+
+
 

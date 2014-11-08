@@ -4,112 +4,15 @@
 # cython: cdivision=True
 
 import cython
-import numpy
-cimport numpy as np
-from cython.operator import dereference as deref, preincrement as preinc
-from libcpp.vector cimport vector
-from libcpp.string cimport string
-from libcpp.utility cimport pair
-
+# import numpy
 from operand import Operand
 
-cdef extern from "<random>" namespace "std":
-    cdef cppclass mt19937:
-        # mt19937(size_t seed)
-        void seed(size_t s)
-        unsigned int operator()()
+# cimports
+# cimport numpy as np
+from cython.operator import dereference as deref, preincrement as preinc
+from _cpp cimport *
+from pubsub2_ext cimport *
 
-    cdef cppclass uniform_int_distribution[T]:
-        uniform_int_distribution(T, T)
-        T operator()(mt19937)
-
-
-cdef extern from "<boost/shared_ptr.hpp>" namespace "boost":
-    cdef cppclass shared_ptr[T]:
-        shared_ptr()
-        shared_ptr(T* ptr)
-        shared_ptr(shared_ptr& r)
-        T* get()
-
-
-cdef extern from "<boost/dynamic_bitset.hpp>" namespace "boost":
-    cdef cppclass dynamic_bitset[T]:
-        dynamic_bitset()
-        void resize(size_t)
-        size_t size()
-        bint test(size_t)
-        void set(size_t)
-        void reset(size_t)
-        void flip(size_t)
-
-    cdef void to_string(dynamic_bitset[size_t], string s)
-
-
-cdef extern from "pubsub2_c.h" namespace "pubsub2":
-    ctypedef unsigned int signal_t
-    ctypedef unsigned int operand_t
-    ctypedef unsigned int sequence_t
-
-    ctypedef vector[operand_t] cOperands
-
-    ctypedef dynamic_bitset[size_t] cChannelState
-    ctypedef vector[cChannelState] cChannelStateVector
-    ctypedef vector[cChannelStateVector] cAttractors
-
-    cdef int bitset_cmp(cChannelState &, cChannelState &)
-
-    # cdef cppclass cChannelStates:
-    #     void init(size_t np)
-    #     void push_back(dynamic_bitset[size_t] p)
-    #     size_t size() 
-    #     size_t products_size() 
-    #     bint get(size_t i, size_t j)
-    #     void set(size_t i, size_t j, bint b)
-    #     cChannelStateVector products
-
-    cdef cppclass cFactory:
-        cFactory(size_t seed)
-        mt19937 random_engine
-        sequence_t next_identifier
-        size_t pop_count, gene_count, cis_count
-        size_t cue_channels, reg_channels, out_channels
-        size_t total_channels
-        cOperands operands
-        pair[size_t, size_t] sub_range
-        pair[size_t, size_t] pub_range
-
-        void construct_random(cNetwork &network)
-
-        void init_environments()
-        cChannelStateVector environments
-
-    ctypedef shared_ptr[cFactory] cFactory_ptr
-
-    ctypedef vector[cCisModule] cCisModules
-
-    cdef cppclass cCisModule:
-        bint test(unsigned int a, unsigned int b)
-        bint active(dynamic_bitset[size_t] s)
-        signal_t op, sub1, sub2
-
-    ctypedef vector[cCisModule] cCisModules
-
-    cdef cppclass cGene:
-        sequence_t sequence;
-        cCisModules modules;
-        signal_t pub
-
-    cdef cppclass cNetwork:
-        cNetwork(cFactory_ptr)
-        void *pyobject
-        vector[cGene] genes
-        sequence_t identifier
-        size_t gene_count
-        void cycle(cChannelState c)
-        cAttractors attractors
-
-    ctypedef shared_ptr[cNetwork] cNetwork_ptr
-    ctypedef vector[cNetwork_ptr] cNetworkVector
 
 cdef class ChannelStateFrozen:
     cdef:
@@ -199,6 +102,7 @@ cdef class Factory:
     cdef:
         cFactory_ptr cfactory_ptr
         cFactory *cfactory
+        cGeneMutator *cmutator
         readonly:
             object params
 
@@ -209,7 +113,7 @@ cdef class Factory:
         self.cfactory_ptr = cFactory_ptr(new cFactory(params.seed))
         self.cfactory = self.cfactory_ptr.get()
 
-        # Now translate everything to cpp 
+        # Now translate everything to cpp -- this needs to be done first.
         # There is automatic conversion for most of this (stl::vector etc)
         self.cfactory.gene_count = params.gene_count
         self.cfactory.cis_count = params.cis_count
@@ -219,9 +123,14 @@ cdef class Factory:
         self.cfactory.cue_channels = params.cue_channels
         self.cfactory.reg_channels = params.reg_channels
         self.cfactory.out_channels = params.out_channels
-        self.cfactory.out_channels = params.out_channels
 
         self.cfactory.init_environments()
+
+        # Create a mutator
+        self.cmutator = new cGeneMutator(self.cfactory, params.gene_mutation_rate)
+
+    def __dealloc__(self):
+        del self.cmutator
 
     def create_state(self):
         c = ChannelState()
@@ -235,6 +144,22 @@ cdef class Factory:
         n = Network(self)
         n.bind_to(ptr)
         return n
+
+    def create_collection(self, size_t size):
+        cdef:
+            cNetwork_ptr ptr
+            size_t i
+
+        nc = NetworkCollection(self)
+        for i in range(size):
+            ptr = cNetwork_ptr(new cNetwork(self.cfactory_ptr))
+            self.cfactory.construct_random(deref(ptr.get()))
+            nc.cnetworks.push_back(ptr)
+
+        return nc
+
+    def mutate_network(self, Network n):
+        self.cmutator.mutate_network(n.ptr, 2)
 
     property environments:
         def __get__(self):
@@ -251,20 +176,6 @@ cdef class Factory:
 
             self._environments = envs
             return envs
-
-    def test_states(self):
-        self.states.init(5)
-        # self.states.push_back()
-        # self.states.push_back()
-        # self.states.push_back()
-        # self.states.set(0, 3, True)
-        # self.states.set(1, 1, True)
-        # cdef size_t i, j
-        # for i in range(self.states.size()):
-        #     print '--'
-        #     for j in range(self.states.products_size()):
-        #         print self.states.get(i, j)
-
 
 cdef class Network:
     cdef:
@@ -419,6 +330,18 @@ cdef class CisModule:
         def __set__(self, operand_t val):
             self.ccismodule.op = val
 
+    def __cmp__(self, CisModule other):
+        if self.ccismodule.op == other.ccismodule.op:
+            if self.ccismodule.sub1 == other.ccismodule.sub1:
+                if self.ccismodule.sub2 == other.ccismodule.sub2:
+                    return 0
+                else:
+                    return self.ccismodule.sub1 - other.ccismodule.sub1
+            else:
+                return self.ccismodule.sub2 - other.ccismodule.sub2
+        else:
+            return self.ccismodule.op - other.ccismodule.op
+
     def test(self, unsigned int a, unsigned int b):
         return self.ccismodule.test(a, b)
 
@@ -480,11 +403,9 @@ cdef class NetworkCollection:
     def __repr__(self):
         return "<NetworkCollection: {}>".format(self.size)
 
-def make_population(NetworkCollection nc):
-    cdef size_t i
-    for i in range(nc.factory.params.population_size):
-        nc.cnetworks.push_back(
-            cNetwork_ptr(new cNetwork(nc.factory.cfactory_ptr)))
+    def mutate(self):
+        self.factory.cmutator.mutate_collection(self.cnetworks)
+
 
     # def export_genes(self):
     #     output = numpy.zeros((self.factory.gene_count, 3), dtype=numpy.uint8)
