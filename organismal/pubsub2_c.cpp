@@ -21,6 +21,7 @@ cNetwork::cNetwork(cFactory_ptr &f)
     , factory(f)
 {
     identifier = factory->get_next_ident();
+    parent_identifier = -1;
 }
 
 void cFactory::construct_random(cNetwork &network)
@@ -113,7 +114,11 @@ void cNetwork::calc_attractors()
 
         // Copy the part the path that is the attractor, ignoring the transient
         for (size_t copy_at=attractor_begins_at; copy_at < path.size(); ++copy_at)
+        {
+            // TODO: This is where we could calculate the rates, and
+            // constructed them at the same time.
             attr.push_back(path[copy_at]);
+        }
     }
 }
 
@@ -149,15 +154,17 @@ cGeneMutator::cGeneMutator(cFactory *f, double r)
 
 void cGeneMutator::mutate_gene(cGene &g)
 {
-    // Ok. What exactly do we want to mutate
+    // TODO: This needs fixing !!
     cCisModule &m = g.modules[0];
     m.op = factory->operands[r_oper(factory->random_engine)];
     m.sub1 = r_sub(factory->random_engine);
 }
 
-// TODO: return a new one
 void cGeneMutator::mutate_network(cNetwork_ptr &n, size_t mutations)
 {
+    // NOTE: This done INPLACE mutation. It should never be called on a network
+    // that has already had its attractors calculated! 
+    
     // Select the genes that should be mutated
     while (mutations > 0)
     {
@@ -170,8 +177,9 @@ void cGeneMutator::mutate_network(cNetwork_ptr &n, size_t mutations)
 cNetwork_ptr cGeneMutator::copy_and_mutate_network(cNetwork_ptr &n, size_t mutations)
 {
     cNetwork_ptr copy(new cNetwork(n->factory));
-    // The copy constructor does the hard work here...
+    // The copy constructor of vector does the hard work here...
     copy->genes = n->genes;
+    copy->parent_identifier = n->identifier;
 
     // Now mutate it and calculate the attractors
     mutate_network(copy, mutations);
@@ -201,11 +209,13 @@ void cGeneMutator::mutate_collection(cNetworkVector &networks)
     for (size_t i=0; i < mutations; ++i)
         mutes.push_back(r_network(factory->random_engine));
 
+    // Sort them so that repeats are next to one another.
     std::sort(mutes.begin(), mutes.end());
 
     // We now let the networks figure out how *exactly* they will mutate.  This
     // looks longwinded, but we want to handle cases where a single network is
-    // mutated more than once.
+    // mutated more than once in one step, rather than calling multiple times
+    // on the same network.
     auto it = mutes.begin();
     size_t network = *it, count = 1;
     ++it;

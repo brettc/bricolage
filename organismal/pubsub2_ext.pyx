@@ -45,7 +45,7 @@ cdef class ChannelStateFrozen:
             cFactory *f = self.cfactory_ptr.get()
 
         if f == NULL:
-            # TODO: Some property exceptions would be good...
+            # TODO: Some proper exceptions would be good...
             raise RuntimeError
 
         cdef size_t cuereg = f.cue_channels + f.reg_channels
@@ -158,9 +158,6 @@ cdef class Factory:
 
         return nc
 
-    def mutate_network(self, Network n):
-        self.cmutator.mutate_network(n.ptr, 2)
-
     property environments:
         def __get__(self):
             if self._environments is not None:
@@ -176,6 +173,7 @@ cdef class Factory:
 
             self._environments = envs
             return envs
+
 
 cdef class Network:
     cdef:
@@ -210,6 +208,10 @@ cdef class Network:
         def __get__(self):
             return self.cnetwork.identifier
 
+    property parent_identifier:
+        def __get__(self):
+            return self.cnetwork.parent_identifier
+
     property gene_count:
         def __get__(self):
             return self.cnetwork.genes.size()
@@ -222,6 +224,17 @@ cdef class Network:
 
     def cycle(self, ChannelState c):
         self.cnetwork.cycle(c.cchannel_state)
+
+    def mutated(self, size_t nmutations):
+        """Return a mutated version..."""
+        cdef:
+            cGeneMutator *mutator = self.factory.cmutator
+            cNetwork_ptr new_ptr
+
+        new_ptr = mutator.copy_and_mutate_network(self.ptr, nmutations)
+        new_net = Network(self.factory)
+        new_net.bind_to(new_ptr)
+        return new_net
 
     property attractors:
         """A tuple containing the attractors for each environment"""
@@ -253,13 +266,16 @@ cdef class Network:
             self._attractors = tuple(attrs)
             return self._attractors
                 
+    def __repr__(self):
+        return "<Network id:{} pt:{}>".format(self.identifier, self.parent_identifier)
+
 
 cdef class Gene:
     """A proxy to a gene.
     """
     cdef:
-        # Assumption: Networks CANNOT mess with their genes once established
-        # (You must copy and mutate a network)
+        # Assumption: Networks CANNOT mess with genes number once a network
+        # has been established (You must copy and mutate a network).
         cGene *cgene
         object _modules
 
@@ -270,6 +286,7 @@ cdef class Gene:
             size_t gene_number
 
     def __cinit__(self, Network n, size_t g):
+        """This should never be called publicly"""
         self.network = n
         self.gene_number = g
         self.cgene = &self.network.cnetwork.genes[g]
@@ -290,7 +307,8 @@ cdef class Gene:
         def __get__(self):
             # Lazy construction
             if self._modules is None:
-                self._modules = tuple(CisModule(self, i) for i in range(self.module_count))
+                self._modules = tuple(CisModule(self, i) 
+                                      for i in range(self.module_count))
             return self._modules
 
     def __repr__(self):
@@ -331,16 +349,14 @@ cdef class CisModule:
             self.ccismodule.op = val
 
     def __cmp__(self, CisModule other):
-        if self.ccismodule.op == other.ccismodule.op:
-            if self.ccismodule.sub1 == other.ccismodule.sub1:
-                if self.ccismodule.sub2 == other.ccismodule.sub2:
-                    return 0
-                else:
-                    return self.ccismodule.sub1 - other.ccismodule.sub1
-            else:
-                return self.ccismodule.sub2 - other.ccismodule.sub2
-        else:
-            return self.ccismodule.op - other.ccismodule.op
+        cdef int retval 
+        retval = c_cmp(self.ccismodule.op, other.ccismodule.op)
+        if retval != 0:
+            return retval
+        retval = c_cmp(self.ccismodule.sub1, other.ccismodule.sub1)
+        if retval != 0:
+            return retval
+        return c_cmp(self.ccismodule.sub2, other.ccismodule.sub2)
 
     def test(self, unsigned int a, unsigned int b):
         return self.ccismodule.test(a, b)
@@ -350,7 +366,7 @@ cdef class CisModule:
 
     def __repr__(self):
         p = self.gene.network.factory.params
-        return "<CisModule: {}, {}, {}>".format(
+        return "<CisModule: {}({}, {})>".format(
             Operand(self.op).name,
             p.name_for_channel(self.sub1),
             p.name_for_channel(self.sub2),
@@ -405,7 +421,6 @@ cdef class NetworkCollection:
 
     def mutate(self):
         self.factory.cmutator.mutate_collection(self.cnetworks)
-
 
     # def export_genes(self):
     #     output = numpy.zeros((self.factory.gene_count, 3), dtype=numpy.uint8)

@@ -4,6 +4,7 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
     ctypedef unsigned int signal_t
     ctypedef unsigned int operand_t
     ctypedef unsigned int sequence_t
+    ctypedef int int_t
     ctypedef random_engine_t
     ctypedef uniform_int_distribution[size_t] randint_t
 
@@ -14,6 +15,8 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
     ctypedef vector[cChannelStateVector] cAttractors
 
     cdef int bitset_cmp(cChannelState &, cChannelState &)
+    cdef int c_sgn(int)
+    cdef int c_cmp(int, int)
 
     cdef cppclass cFactory:
         cFactory(size_t seed)
@@ -51,7 +54,7 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
         cNetwork(cFactory_ptr)
         void *pyobject
         vector[cGene] genes
-        sequence_t identifier
+        int_t identifier, parent_identifier
         size_t gene_count
         void cycle(cChannelState c)
         cAttractors attractors

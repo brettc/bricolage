@@ -1,63 +1,69 @@
-# import sys
-# from pathlib import Path
-# sys.path.append(str(Path('.')))
 import pytest
 from organismal import pubsub2 as T
 from organismal import operand
 
 @pytest.fixture
-def defaults():
-    p = T.Parameters()
-    f = T.Factory(p)
-    return p, f
+def basic_params():
+    return T.Parameters()
 
-def test_factory(defaults):
-    p = T.Parameters(cue_channels=3, reg_channels=5)
-    f = T.Factory(p)
+@pytest.fixture
+def complex_params():
+    return T.Parameters(
+        seed=4,
+        operands = [
+            T.Operand.NOT_A_AND_B,
+            T.Operand.A_AND_NOT_B,
+            T.Operand.NOR,
+            T.Operand.AND,
+            T.Operand.FALSE,
+
+        ],
+        cis_count=2,
+        reg_channels=5,
+        out_channels=2,
+        cue_channels=3,
+    )
+
+def test_factory(complex_params):
+    f = T.Factory(complex_params)
 
     # Make sure we can stuff from the Factory
-    assert p == f.params
+    assert complex_params == f.params
     e = f.environments
-    print
     for i in e:
         print repr(i)
 
-def test_network_ids(defaults):
-    p, f = defaults
+def test_network_ids(complex_params):
+    f = T.Factory(complex_params)
     for i in range(10):
         n = f.create_network()
         assert n.identifier == i
 
-def test_network_construction():
-    p = T.Parameters(
-        seed=21, 
-        cis_count=4, 
-        cue_channels=3, 
-        reg_channels=10, 
-        out_channels=3
-    )
+    pop = f.create_collection(10)
+    assert pop[9].identifier == 19
 
+def test_network_construction(complex_params):
+    p = complex_params
     f = T.Factory(p)
-    n = f.create_network()
-    assert n.ready
-    assert len(n.genes) == p.gene_count
-    for g in n.genes:
-        assert len(g.modules) == p.cis_count
-        assert g.pub in p.pub_signals
-        for c in g.modules:
-            assert T.Operand(c.op) in p.operands
-            assert p.sub_range[0] <= c.sub1 < p.sub_range[1]
+    pop = f.create_collection(1000)
+    for n in pop:
+        assert len(n.genes) == p.gene_count
+        for g in n.genes:
+            assert len(g.modules) == p.cis_count
+            assert g.pub in p.pub_signals
+            for c in g.modules:
+                assert T.Operand(c.op) in p.operands
+                assert p.sub_range[0] <= c.sub1 < p.sub_range[1]
 
-def test_referencing(defaults):
-    p, f = defaults
+def test_referencing(basic_params):
+    f = T.Factory(basic_params)
     nc = T.NetworkCollection(f)
     net = f.create_network()
 
     nc.add(net)
     del net
 
-    # These should be the same -- as we re-use python references if they
-    # exist
+    # These should be the same, as we re-use python references if they exist
     a = nc[0]
     b = nc[0]
 
@@ -98,6 +104,7 @@ def test_channelstate(defaults):
     assert e2 == copy_e2
     
 def network_cycle(network, curstate):
+    """A Python version of what the C++ cycle does."""
     nextstate = network.factory.create_state()
     for g in network.genes:
         for m in g.modules:
@@ -107,6 +114,7 @@ def network_cycle(network, curstate):
     return nextstate
 
 def construct_attractor(net, env):
+    """Make an attractor by cycling repeatedly"""
     cur = env.copy()
     path = []
     path.append(cur)
@@ -119,29 +127,13 @@ def construct_attractor(net, env):
         path.append(cur)
 
 
-def test_attractors():
-    # TODO: make a load of these
-    p = T.Parameters(
-        seed=4,
-        operands = [
-            T.Operand.NOT_A_AND_B,
-            T.Operand.A_AND_NOT_B,
-            T.Operand.NOR,
-            T.Operand.AND,
-            T.Operand.FALSE,
-
-        ],
-        cis_count=2,
-        reg_channels=5,
-        out_channels=2,
-        cue_channels=3,
-    )
-    f = T.Factory(p)
+def test_attractors(complex_params):
+    f = T.Factory(complex_params)
     net = f.create_network()
     pattractors = [construct_attractor(net, env) for env in f.environments]
+
+    # Make sure the attractors created in C++ are the same
     assert tuple(pattractors) == net.attractors
-    # for patt, catt in zip(pattractors, net.attractors):
-    #     assert patt == catt
 
 def test_mutator(defaults):
     p, f = defaults
@@ -151,25 +143,10 @@ def test_mutator(defaults):
     f.mutate_network(net)
     print net.genes[0].modules[0]
 
-def test_collection(defaults):
-    p = T.Parameters(
-        gene_mutation_rate=.1,
-        seed=4,
-        operands = [
-            T.Operand.NOT_A_AND_B,
-            T.Operand.A_AND_NOT_B,
-            T.Operand.NOR,
-            T.Operand.AND,
-            T.Operand.FALSE,
-
-        ],
-        cis_count=2,
-        reg_channels=5,
-        out_channels=3,
-        cue_channels=3,
-    )
-    f = T.Factory(p)
+def test_collection(complex_params):
+    f = T.Factory(complex_params)
     nc = f.create_collection(10)
+
     orig = nc[0]
     nc.mutate()
     mute = nc[0]
@@ -183,8 +160,27 @@ def test_collection(defaults):
 
     for i, (a1, a2) in enumerate(zip(orig.attractors, mute.attractors)):
         if a1 != a2:
+            print i, [str(x) for x in a1]
+            print i, [str(x) for x in a2]
+            print '--'
+
+
+def test_mutation(complex_params):
+    f = T.Factory(complex_params)
+    orig = f.create_network()
+    mute = orig.mutated(1)
+    print orig.identifier, orig.parent_identifier
+    print mute.identifier, mute.parent_identifier
+    print orig, mute
+    for g1, g2 in zip(orig.genes, mute.genes):
+        for m1, m2 in zip(g1.modules, g2.modules):
+            if m1 != m2:
+                print g1, m1
+                print g2, m2
+
+    for i, (a1, a2) in enumerate(zip(orig.attractors, mute.attractors)):
+        if a1 != a2:
             print [str(x) for x in a1]
             print [str(x) for x in a2]
-
 
 

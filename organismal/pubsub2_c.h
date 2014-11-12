@@ -12,11 +12,25 @@
 namespace pubsub2
 {
 
+// http://stackoverflow.com/questions/1903954/
+// is-there-a-standard-sign-function-signum-sgn-in-c-c
+template <typename T> inline int c_sgn(T val) 
+{
+    return (T(0) < val) - (val < T(0));
+}
+
+template <typename T> inline int c_cmp(T a, T b) 
+{
+    return c_sgn(a - b);
+}
+
 typedef int_fast8_t signal_t;
 typedef int_fast16_t operand_t;
 typedef signed int int_t;
 typedef unsigned int sequence_t;
 
+// TODO: Maybe change this for something a little light (Do we really need
+// anything bigger than 64bits?)
 typedef boost::dynamic_bitset<size_t> cChannelState;
 typedef std::vector<cChannelState> cChannelStateVector;
 typedef std::vector<cChannelStateVector> cAttractors;
@@ -43,9 +57,9 @@ struct cCisModule
 
     inline bool active(cChannelState const &state) const 
     {
-        unsigned int a = state[sub1] ? 1: 0;
-        unsigned int b = state[sub2] ? 1: 0;
-        return test(a, b);
+        // Note: C++ standard guarantees integral conversion from bool results
+        // in 0 or 1 (important for above).
+        return test(state.test(sub1), state.test(sub2));
     }
 };
 
@@ -103,7 +117,7 @@ struct cNetwork
     void *pyobject;
 
     cFactory_ptr factory;
-    sequence_t identifier;
+    int_t identifier, parent_identifier;
     cGeneVector genes;
 
     void cycle(cChannelState &c);
