@@ -4,11 +4,11 @@
 # cython: cdivision=True
 
 import cython
-# import numpy
+import numpy
 from operand import Operand
 
 # cimports
-# cimport numpy as np
+cimport numpy as np
 from cython.operator import dereference as deref, preincrement as preinc
 from _cpp cimport *
 from pubsub2_ext cimport *
@@ -67,6 +67,17 @@ cdef class ChannelStateFrozen:
     def copy(self):
         return self.__copy__()
 
+    def as_array(self):
+        vals = numpy.zeros(self.size, dtype=numpy.int32)
+        cdef: 
+            np.npy_int32[:] v = vals
+            size_t i
+
+        for i in range(self.cchannel_state.size()):
+            v[i] = self.cchannel_state.test(i)
+
+        return vals
+
     def __repr__(self):
         return "<ChannelStateFrozen: {}>".format(self.__str__())
 
@@ -102,7 +113,7 @@ cdef class Factory:
     cdef:
         cFactory_ptr cfactory_ptr
         cFactory *cfactory
-        cGeneMutator *cmutator
+        cMutationModel *cmutator
         readonly:
             object params
 
@@ -120,6 +131,7 @@ cdef class Factory:
         self.cfactory.operands = params.operands
         self.cfactory.sub_range = params.sub_range
         self.cfactory.pub_range = params.pub_range
+        self.cfactory.out_range = params.out_range
         self.cfactory.cue_channels = params.cue_channels
         self.cfactory.reg_channels = params.reg_channels
         self.cfactory.out_channels = params.out_channels
@@ -127,7 +139,8 @@ cdef class Factory:
         self.cfactory.init_environments()
 
         # Create a mutator
-        self.cmutator = new cGeneMutator(self.cfactory, params.gene_mutation_rate)
+        self.cmutator = new cMutationModel(self.cfactory, 
+                                         params.gene_mutation_rate)
 
     def __dealloc__(self):
         del self.cmutator
@@ -140,7 +153,7 @@ cdef class Factory:
 
     def create_network(self):
         cdef cNetwork_ptr ptr = cNetwork_ptr(new cNetwork(self.cfactory_ptr))
-        self.cfactory.construct_random(deref(ptr.get()))
+        self.cmutator.construct_network(deref(ptr.get()))
         n = Network(self)
         n.bind_to(ptr)
         return n
@@ -153,7 +166,7 @@ cdef class Factory:
         nc = NetworkCollection(self)
         for i in range(size):
             ptr = cNetwork_ptr(new cNetwork(self.cfactory_ptr))
-            self.cfactory.construct_random(deref(ptr.get()))
+            self.cmutator.construct_network(deref(ptr.get()))
             nc.cnetworks.push_back(ptr)
 
         return nc
@@ -186,7 +199,7 @@ cdef class Network:
         # it makes our life easier. The cost is a tiny bit of space.
         cNetwork_ptr ptr
         cNetwork *cnetwork
-        object _genes, _attractors
+        object _genes, _attractors, _rates
 
     # Networks take two stages. You need to create the python object and then
     # bind it to a cNetwork_ptr.
@@ -228,7 +241,7 @@ cdef class Network:
     def mutated(self, size_t nmutations):
         """Return a mutated version..."""
         cdef:
-            cGeneMutator *mutator = self.factory.cmutator
+            cMutationModel *mutator = self.factory.cmutator
             cNetwork_ptr new_ptr
 
         new_ptr = mutator.copy_and_mutate_network(self.ptr, nmutations)
@@ -265,6 +278,31 @@ cdef class Network:
             # Again: tuples, so you can't mess with it.
             self._attractors = tuple(attrs)
             return self._attractors
+
+    property rates:
+        """Return a readonly numpy array of the rates"""
+        def __get__(self):
+            # Lazy evaluation
+            if self._rates is not None:
+                return self._rates
+
+            # Construct the numpy array via python
+            r = numpy.zeros((self.factory.cfactory.environments.size(),
+                         self.factory.cfactory.out_channels))
+
+            cdef:
+                np.npy_double[:,:] c_r = r
+                size_t i, j
+
+            # Copy in the goods using a memory array
+            for i in range(self.factory.cfactory.environments.size()):
+                for j in range(self.factory.cfactory.out_channels):
+                    c_r[i, j] = self.cnetwork.rates[i][j]
+
+            # Don't mess with it!
+            r.flags.writeable = False
+            self._rates = r
+            return self._rates
                 
     def __repr__(self):
         return "<Network id:{} pt:{}>".format(self.identifier, self.parent_identifier)
@@ -330,23 +368,22 @@ cdef class CisModule:
         assert i < g.cgene.modules.size()
         self.ccismodule = &g.cgene.modules[i]
 
+    property op:
+        def __get__(self):
+            return self.ccismodule.op
+
     property sub1:
         def __get__(self):
             return self.ccismodule.sub1
-        def __set__(self, signal_t val):
-            self.ccismodule.sub1 = val
 
     property sub2:
         def __get__(self):
             return self.ccismodule.sub2
-        def __set__(self, signal_t val):
-            self.ccismodule.sub2 = val
 
-    property op:
+    property silenced:
         def __get__(self):
-            return self.ccismodule.op
-        def __set__(self, operand_t val):
-            self.ccismodule.op = val
+            return self.ccismodule.silenced
+
 
     def __cmp__(self, CisModule other):
         cdef int retval 
@@ -361,8 +398,8 @@ cdef class CisModule:
     def test(self, unsigned int a, unsigned int b):
         return self.ccismodule.test(a, b)
 
-    def active(self, ChannelState p):
-        return self.ccismodule.active(p.cchannel_state)
+    def is_active(self, ChannelState p):
+        return self.ccismodule.is_active(p.cchannel_state)
 
     def __repr__(self):
         p = self.gene.network.factory.params
@@ -420,40 +457,9 @@ cdef class NetworkCollection:
         return "<NetworkCollection: {}>".format(self.size)
 
     def mutate(self):
-        self.factory.cmutator.mutate_collection(self.cnetworks)
+        cdef cIndexes mutated
+        self.factory.cmutator.mutate_collection(self.cnetworks, mutated)
 
-    # def export_genes(self):
-    #     output = numpy.zeros((self.factory.gene_count, 3), dtype=numpy.uint8)
-    #
-    #     cdef:
-    #         cGene *g
-    #         np.npy_ubyte[:,:] output_c = output
-    #         size_t i = 0
-    #         vector[cGene].iterator gene_i = self.cnetwork.genes.begin()
-    #
-    #     while gene_i != self.cnetwork.genes.end():
-    #         g = &deref(gene_i)
-    #         output_c[i, 0] = g.sub1
-    #         output_c[i, 1] = g.sub2
-    #         output_c[i, 2] = g.pub
-    #         preinc(gene_i)
-    #         i += 1
-    #
-    #     return output
-    #
-    # def import_genes(self, np.npy_ubyte[:, :] input_c):
-    #
-    #     cdef:
-    #         vector[cGene].iterator gene_i
-    #         cGene *g
-    #         size_t i = 0
-    #     
-    #     gene_i = self.cnetwork.genes.begin()
-    #
-    #     while gene_i != self.cnetwork.genes.end():
-    #         g = &deref(gene_i)
-    #         g.sub1 = input_c[i, 0]
-    #         g.sub2 = input_c[i, 1]
-    #         g.pub = input_c[i, 2]
-    #         preinc(gene_i)
-    #         i += 1
+        # Return indexes of the mutated networks. Automatic conversion (thank
+        # you Cython)
+        return mutated

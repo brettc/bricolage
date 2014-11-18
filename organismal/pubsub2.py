@@ -12,6 +12,7 @@ class Parameters(object):
         self.out_channels = 1
         self.gene_mutation_rate = .01
         self.operands = [Operand.AND, Operand.OR, Operand.A_AND_NOT_B]
+        self.p_silenced = .5
 
         self._override(kwargs)
 

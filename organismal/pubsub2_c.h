@@ -34,6 +34,9 @@ typedef unsigned int sequence_t;
 typedef boost::dynamic_bitset<size_t> cChannelState;
 typedef std::vector<cChannelState> cChannelStateVector;
 typedef std::vector<cChannelStateVector> cAttractors;
+typedef std::vector<size_t> cIndexes;
+typedef std::vector<double> cRates;
+typedef std::vector<cRates> cRatesVector;
 
 inline int bitset_cmp(cChannelState &a, cChannelState &b)
 {
@@ -45,20 +48,23 @@ inline int bitset_cmp(cChannelState &a, cChannelState &b)
 
 struct cCisModule
 {
-    cCisModule(operand_t op_, signal_t sub1_, signal_t sub2_);
+    // Default constructor is fine
     operand_t op;
     signal_t sub1, sub2;
+    bool silenced;
 
     // Inline this stuff. It won't change.
     inline bool test(unsigned int a, unsigned int b) const 
     { 
+        // Note: C++ standard guarantees integral conversion from bool results
+        // in 0 or 1.
         return op & (8 >> ((a << 1) | b)); 
     }
 
-    inline bool active(cChannelState const &state) const 
+    inline bool is_active(cChannelState const &state) const 
     {
-        // Note: C++ standard guarantees integral conversion from bool results
-        // in 0 or 1 (important for above).
+        if (silenced) return false;
+
         return test(state.test(sub1), state.test(sub2));
     }
 };
@@ -83,21 +89,21 @@ typedef std::vector<cNetwork_ptr> cNetworkVector;
 
 typedef std::mt19937 random_engine_t;
 typedef std::uniform_int_distribution<size_t> randint_t;
+typedef std::uniform_real_distribution<> randreal_t;
 
 struct cFactory
 {
     cFactory(size_t seed);
     sequence_t get_next_ident() { return next_identifier++; }
-    void construct_random(cNetwork &network);
-    void construct_population(cNetworkVector &nv);
 
     random_engine_t random_engine;
     sequence_t next_identifier;
-    size_t pop_count, gene_count, cis_count;
+    size_t gene_count, cis_count;
     size_t reg_gene_count;
     size_t cue_channels, reg_channels, out_channels;
     std::pair<size_t, size_t> sub_range;
     std::pair<size_t, size_t> pub_range;
+    std::pair<size_t, size_t> out_range;
 
     cOperands operands;
 
@@ -123,25 +129,46 @@ struct cNetwork
     void cycle(cChannelState &c);
     void calc_attractors();
 
-    // Calculated attractor
+    // Calculated attractor and rates
     cAttractors attractors;
+    cRatesVector rates;
 
 };
 
-// TODO: Pbly should be a base class, then have different types of generators.
-struct cGeneMutator
+// TODO: Eventually this will be a base class, then have different types of
+// generators.
+struct cMutationModel
 {
-    cGeneMutator(cFactory *f, double rate);
+    cMutationModel(cFactory *f, double rate_per_gene_);
     cFactory *factory;
     double rate_per_gene;
-    randint_t r_gene;
+    randint_t r_gene, r_mod;
     randint_t r_sub, r_oper, r_cis;
 
+    // default constructed [0, 1]
+    randreal_t r_uniform_01;
+
+    // This is where the constructors and mutators for networks live
+    void construct_cis(cCisModule &m);
+    void construct_network(cNetwork &network);
+
     // Mutates the gene in place
+    void mutate_cis(cCisModule &m);
     void mutate_gene(cGene &g);
     void mutate_network(cNetwork_ptr &n, size_t mutations);
+
     cNetwork_ptr copy_and_mutate_network(cNetwork_ptr &n, size_t mutations);
-    void mutate_collection(cNetworkVector &networks);
+    void mutate_collection(cNetworkVector &networks, cIndexes &mutated);
+};
+
+// struct cSelectionModel
+// {
+//     void select_collection(cNetworkVector &networks, cIndexes &selected);
+// };
+
+struct cSimpleMutationModel : public cMutationModel
+{
+
 };
 
 

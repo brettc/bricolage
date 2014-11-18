@@ -13,6 +13,9 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
     ctypedef dynamic_bitset[size_t] cChannelState
     ctypedef vector[cChannelState] cChannelStateVector
     ctypedef vector[cChannelStateVector] cAttractors
+    ctypedef vector[size_t] cIndexes
+    ctypedef vector[double] cRates
+    ctypedef vector[cRates] cRatesVector
 
     cdef int bitset_cmp(cChannelState &, cChannelState &)
     cdef int c_sgn(int)
@@ -28,8 +31,7 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
         cOperands operands
         pair[size_t, size_t] sub_range
         pair[size_t, size_t] pub_range
-
-        void construct_random(cNetwork &network)
+        pair[size_t, size_t] out_range
 
         void init_environments()
         cChannelStateVector environments
@@ -40,8 +42,10 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
 
     cdef cppclass cCisModule:
         bint test(unsigned int a, unsigned int b)
-        bint active(dynamic_bitset[size_t] s)
-        signal_t op, sub1, sub2
+        bint is_active(dynamic_bitset[size_t] s)
+        operand_t op
+        signal_t sub1, sub2
+        bint silenced
 
     ctypedef vector[cCisModule] cCisModules
 
@@ -58,15 +62,21 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
         size_t gene_count
         void cycle(cChannelState c)
         cAttractors attractors
+        cRatesVector rates
 
     ctypedef shared_ptr[cNetwork] cNetwork_ptr
     ctypedef vector[cNetwork_ptr] cNetworkVector
 
-    cdef cppclass cGeneMutator:
-        cGeneMutator(cFactory *f, double rate)
-        cFactory *factory;
-        randint_t r_sub, r_oper, r_cis
+    cdef cppclass cMutationModel:
+        cMutationModel(cFactory *f, double rate)
+        cFactory *factory
+
+        void construct_cis(cCisModule &m);
+        void construct_network(cNetwork &network);
+
+        void mutate_cis(cCisModule &m)
         void mutate_gene(cGene &g)
         void mutate_network(cNetwork_ptr &n, size_t n)
+
         cNetwork_ptr copy_and_mutate_network(cNetwork_ptr &n, size_t mutations)
-        void mutate_collection(cNetworkVector &networks)
+        void mutate_collection(cNetworkVector &networks, cIndexes &mutated)
