@@ -30,8 +30,8 @@ typedef int_fast16_t operand_t;
 typedef signed int int_t;
 typedef unsigned int sequence_t;
 
-// TODO: Maybe change this for something a little light (Do we really need
-// anything bigger than 64bits?)
+// TODO: Maybe change dynamic_bitset for something a little light (Do we really
+// need anything bigger than 64bits?)
 typedef boost::dynamic_bitset<size_t> cChannelState;
 typedef std::vector<cChannelState> cChannelStateVector;
 typedef std::vector<cChannelStateVector> cAttractors;
@@ -100,6 +100,12 @@ struct cFactory
     sequence_t get_next_target_ident() { return next_target_identifier++; }
 
     random_engine_t random_engine;
+    double get_random_double(double low, double high) {
+        return std::uniform_real_distribution<double>(low, high)(random_engine); }
+    double get_random_int(int low, int high) {
+        return std::uniform_int_distribution<int>(low, high)(random_engine); }
+
+
     sequence_t next_network_identifier, next_target_identifier;
     size_t gene_count, cis_count;
     size_t reg_gene_count;
@@ -139,6 +145,12 @@ struct cNetwork
     cAttractors attractors;
     cRatesVector rates;
 
+    // Record the fitness and the target against which it was calculated. 
+    // This means we don't need to recalc the fitness if the target has not
+    // changed.
+    mutable int_t target;
+    mutable double fitness;
+
 };
 
 struct cTarget
@@ -161,6 +173,8 @@ struct cMutationModel
     cMutationModel(cFactory *f, double rate_per_gene_);
     cFactory *factory;
     double rate_per_gene;
+
+    // Not sure whether this is worth it, but still...
     randint_t r_gene, r_mod;
     randint_t r_sub, r_oper, r_cis;
 
@@ -180,11 +194,19 @@ struct cMutationModel
     void mutate_collection(cNetworkVector &networks, cIndexes &mutated);
 };
 
-// struct cSelectionModel
-// {
-//     void select_collection(cNetworkVector &networks, cIndexes &selected);
-// };
-//
+struct cSelectionModel
+{
+    cSelectionModel(cFactory_ptr &factory);
+    cFactory_ptr factory;
+
+    bool select(
+        const cNetworkVector &networks, cTarget &target, 
+        size_t number, cIndexes &selected);
+
+    void copy_using_indexes(
+        const cNetworkVector &from, cNetworkVector &to, const cIndexes &selected);
+};
+
 // struct cSimpleMutationModel : public cMutationModel
 // {
 //

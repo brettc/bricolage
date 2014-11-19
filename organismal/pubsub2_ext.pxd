@@ -23,7 +23,11 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
 
     cdef cppclass cFactory:
         cFactory(size_t seed)
+
         mt19937 random_engine
+        double get_random_double(double low, double high)
+        double get_random_int(int low, int high)
+
         sequence_t next_identifier
         size_t pop_count, gene_count, cis_count
         size_t cue_channels, reg_channels, out_channels
@@ -33,8 +37,8 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
         pair[size_t, size_t] pub_range
         pair[size_t, size_t] out_range
 
-        void init_environments()
         cChannelStateVector environments
+        void init_environments()
 
     ctypedef shared_ptr[cFactory] cFactory_ptr
 
@@ -63,6 +67,8 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
         void cycle(cChannelState c)
         cAttractors attractors
         cRatesVector rates
+        int_t target
+        double fitness
 
     ctypedef shared_ptr[cNetwork] cNetwork_ptr
     ctypedef vector[cNetwork_ptr] cNetworkVector
@@ -87,3 +93,14 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
 
         cNetwork_ptr copy_and_mutate_network(cNetwork_ptr &n, size_t mutations)
         void mutate_collection(cNetworkVector &networks, cIndexes &mutated)
+
+    cdef cppclass cSelectionModel:
+        cSelectionModel(cFactory_ptr &factory)
+        cFactory_ptr factory
+
+        bint select(
+            const cNetworkVector &networks, cTarget &target, 
+            size_t number, cIndexes &selected)
+
+        void copy_using_indexes(
+            const cNetworkVector &fr, cNetworkVector &to, const cIndexes &selected)

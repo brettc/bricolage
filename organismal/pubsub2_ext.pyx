@@ -187,6 +187,17 @@ cdef class Factory:
             self._environments = envs
             return envs
 
+    # Some routines just for testing, mainly for testing (NOT fast)
+    def seed_random_engine(self, int s):
+        self.cfactory.random_engine.seed(s)
+
+    def get_random_double(self, double low, double high):
+        return self.cfactory.get_random_double(low, high)
+
+    def get_random_int(self, int low, int high):
+        return self.cfactory.get_random_int(low, high)
+
+
 cdef class Target:
     cdef:
         cTarget *ctarget
@@ -331,6 +342,15 @@ cdef class Network:
             r.flags.writeable = False
             self._rates = r
             return self._rates
+
+
+    property fitness:
+        def __get__(self):
+            return self.cnetwork.fitness
+
+    property target:
+        def __get__(self):
+            return self.cnetwork.target
                 
     def __repr__(self):
         return "<Network id:{} pt:{}>".format(self.identifier, self.parent_identifier)
@@ -491,3 +511,31 @@ cdef class NetworkCollection:
         # Return indexes of the mutated networks. Automatic conversion (thank
         # you Cython)
         return mutated
+
+    def select(self, Target target):
+        """Inplace selection of networks"""
+
+
+        cdef:
+            cSelectionModel *sm
+            bint sel
+            cIndexes indexes
+            cNetworkVector new_networks
+
+        sm = new cSelectionModel(self.factory.cfactory_ptr)
+
+        sel = sm.select(self.cnetworks, deref(target.ctarget), 
+                     self.cnetworks.size(), indexes)
+        if sel:
+            sm.copy_using_indexes(self.cnetworks, new_networks, indexes)
+
+            # Replace everything -- this is fast
+            self.cnetworks.swap(new_networks)
+
+        del sm
+
+        return sel
+
+
+
+

@@ -16,8 +16,6 @@ def complex_params():
             T.Operand.A_AND_NOT_B,
             T.Operand.NOR,
             T.Operand.AND,
-            T.Operand.FALSE,
-
         ],
         cis_count=2,
         reg_channels=5,
@@ -198,8 +196,8 @@ def test_rates(complex_params):
 
 def _construct_target(x):
     a, b, c = x
-    f1 = int(a and b or not c)
-    f2 = int(a or c) / 2.0
+    f1 = .5 if a and b or not c else 1.0
+    f2 = 1 if ((a or c) and not (a and b)) and b else 0
     return f1, f2
 
 def test_targets(complex_params):
@@ -215,5 +213,14 @@ def test_targets(complex_params):
 
         # summed = scores.sum(axis=1) * ch.fitness_contribution
         # summed = scores.sum(axis=1)
-
+        
+def test_selection(complex_params):
+    f = T.Factory(complex_params)
+    targ = T.Target(f, _construct_target)
+    nc = f.create_collection(1000)
+    for i in range(10000):
+        nc.select(targ)
+        print max([n.fitness for n in nc])
+        nc.mutate()
+    
 
