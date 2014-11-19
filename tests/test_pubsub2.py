@@ -1,4 +1,5 @@
 import pytest
+import numpy
 from organismal import pubsub2 as T
 from organismal import operand
 
@@ -71,8 +72,8 @@ def test_referencing(basic_params):
     assert a.factory is b.factory
     assert a.factory.params is b.factory.params
 
-def test_bad_access(defaults):
-    p, f = defaults
+def test_bad_access(complex_params):
+    f = T.Factory(complex_params)
     nc = T.NetworkCollection(f)
     with pytest.raises(IndexError):
         a = nc[0]
@@ -83,8 +84,8 @@ def test_bad_access(defaults):
 
     assert a is b
 
-def test_channelstate(defaults):
-    p, f = defaults
+def test_channelstate(complex_params):
+    f = T.Factory(complex_params)
     e2 = f.environments[-1]
     e2_again = f.environments[-1]
 
@@ -108,9 +109,10 @@ def network_cycle(network, curstate):
     nextstate = network.factory.create_state()
     for g in network.genes:
         for m in g.modules:
-            if operand.calculate(m.op, curstate[m.sub1], curstate[m.sub2]):
-                nextstate.set(g.pub)
-                break
+            if not m.silenced:
+                if operand.calculate(m.op, curstate[m.sub1], curstate[m.sub2]):
+                    nextstate.set(g.pub)
+                    break
     return nextstate
 
 def construct_attractor(net, env):
@@ -126,44 +128,35 @@ def construct_attractor(net, env):
                 return tuple(path[i:])
         path.append(cur)
 
-
 def test_attractors(complex_params):
     f = T.Factory(complex_params)
-    net = f.create_network()
-    pattractors = [construct_attractor(net, env) for env in f.environments]
+    nc = f.create_collection(100)
+    for net in nc:
+        pattractors = [construct_attractor(net, env) for env in f.environments]
+        # Make sure the attractors created in C++ are the same
+        assert tuple(pattractors) == net.attractors
 
-    # Make sure the attractors created in C++ are the same
-    assert tuple(pattractors) == net.attractors
+        # It should be readonly
+        with pytest.raises(ValueError):
+            net.rates[0, 0] = 10.
 
-def test_mutator(defaults):
-    p, f = defaults
-    net = f.create_network()
-    print
-    print net.genes[0].modules[0]
-    f.mutate_network(net)
-    print net.genes[0].modules[0]
+        # assert len(net.attractors) == len(net.rates)
+        # for attr, rate in zip(net.attractors, net.rates):
+        #     for a in attr:
+        #         print a[:]
 
 def test_collection(complex_params):
     f = T.Factory(complex_params)
-    nc = f.create_collection(10)
+    nets = f.create_collection(100)
 
-    orig = nc[0]
-    nc.mutate()
-    mute = nc[0]
-    print
-    assert orig is not mute
-    for g1, g2 in zip(orig.genes, mute.genes):
-        for m1, m2 in zip(g1.modules, g2.modules):
-            if m1 != m2:
-                print g1, m1
-                print g2, m2
+    old_nets = [_ for _ in nets]
+    mutated = nets.mutate()
 
-    for i, (a1, a2) in enumerate(zip(orig.attractors, mute.attractors)):
-        if a1 != a2:
-            print i, [str(x) for x in a1]
-            print i, [str(x) for x in a2]
-            print '--'
-
+    for i, n in enumerate(nets):
+        if i in mutated:
+            assert n is not old_nets[i]
+        else:
+            assert n is old_nets[i]
 
 def test_mutation(complex_params):
     f = T.Factory(complex_params)
@@ -182,5 +175,45 @@ def test_mutation(complex_params):
         if a1 != a2:
             print [str(x) for x in a1]
             print [str(x) for x in a2]
+
+def test_rates(complex_params):
+    f = T.Factory(complex_params)
+    orig = f.create_network()
+    rates = orig.rates
+
+    # It should be readonly
+    with pytest.raises(ValueError):
+        rates[0, 0] = 10.
+
+    # rates only include the output channels
+    outc = complex_params.out_channels
+    nc = f.create_collection(100)
+    for net in nc:
+        for attr, rate in zip(net.attractors, net.rates):
+            test_rate = numpy.zeros(outc)
+            for state in attr: 
+                test_rate += state.as_array()[-outc:]
+            test_rate /= len(attr)
+            assert (test_rate == rate).all()
+
+def _construct_target(x):
+    a, b, c = x
+    f1 = int(a and b or not c)
+    f2 = int(a or c) / 2.0
+    return f1, f2
+
+def test_targets(complex_params):
+    f = T.Factory(complex_params)
+    targ = T.Target(f, _construct_target)
+    nc = f.create_collection(100)
+    for net in nc:
+        diffs = abs(targ.as_array() - net.rates)
+        scores = 1.0 - diffs
+
+        # These should be the same (approx)
+        assert abs(scores.mean() - targ.assess(net)) < 1e-12
+
+        # summed = scores.sum(axis=1) * ch.fitness_contribution
+        # summed = scores.sum(axis=1)
 
 

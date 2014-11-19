@@ -2,7 +2,6 @@ import logging
 logging.basicConfig()
 log = logging.getLogger("")
 
-
 import itertools
 import StringIO
 import networkx as nx

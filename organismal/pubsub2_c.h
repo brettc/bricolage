@@ -7,6 +7,7 @@
 // #include <tr1/memory> Another shared_ptr?
 #include <boost/shared_ptr.hpp>
 #include <boost/dynamic_bitset.hpp>
+#include <boost/multi_array.hpp>
 #include <random>
 
 namespace pubsub2
@@ -94,10 +95,12 @@ typedef std::uniform_real_distribution<> randreal_t;
 struct cFactory
 {
     cFactory(size_t seed);
-    sequence_t get_next_ident() { return next_identifier++; }
+
+    sequence_t get_next_network_ident() { return next_network_identifier++; }
+    sequence_t get_next_target_ident() { return next_target_identifier++; }
 
     random_engine_t random_engine;
-    sequence_t next_identifier;
+    sequence_t next_network_identifier, next_target_identifier;
     size_t gene_count, cis_count;
     size_t reg_gene_count;
     size_t cue_channels, reg_channels, out_channels;
@@ -121,6 +124,9 @@ struct cNetwork
     cNetwork(cFactory_ptr &f);
 
     void *pyobject;
+    
+    // Set this when the network has been finalised
+    // bool _locked;
 
     cFactory_ptr factory;
     int_t identifier, parent_identifier;
@@ -132,6 +138,19 @@ struct cNetwork
     // Calculated attractor and rates
     cAttractors attractors;
     cRatesVector rates;
+
+};
+
+struct cTarget
+{
+    cTarget(cFactory *factory);
+    cFactory *factory;
+    int_t identifier;
+    cRatesVector optimal_rates;
+
+    // TODO: per env weighting
+    // TODO: per output weighting
+    double assess(const cNetwork &net);
 
 };
 
@@ -165,11 +184,11 @@ struct cMutationModel
 // {
 //     void select_collection(cNetworkVector &networks, cIndexes &selected);
 // };
-
-struct cSimpleMutationModel : public cMutationModel
-{
-
-};
-
+//
+// struct cSimpleMutationModel : public cMutationModel
+// {
+//
+// };
+//
 
 } // end namespace pubsub2

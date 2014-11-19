@@ -187,6 +187,34 @@ cdef class Factory:
             self._environments = envs
             return envs
 
+cdef class Target:
+    cdef:
+        cTarget *ctarget
+        readonly:
+            Factory factory
+
+    def __cinit__(self, Factory f, init_func):
+        self.factory = f
+        self.ctarget = new cTarget(f.cfactory)
+
+        for i, e in enumerate(f.environments):
+            outputs = init_func(e.as_array()[:f.params.cue_channels])
+            if len(outputs) != f.params.out_channels:
+                raise RuntimeError
+
+            for j, val in enumerate(outputs):
+                self.ctarget.optimal_rates[i][j] = float(val)
+
+    def __dealloc__(self):
+        del self.ctarget
+
+    def assess(self, Network net):
+        assert net.factory is self.factory
+        return self.ctarget.assess(deref(net.cnetwork));
+
+    def as_array(self):
+        return numpy.array(self.ctarget.optimal_rates)
+
 
 cdef class Network:
     cdef:
@@ -437,7 +465,7 @@ cdef class NetworkCollection:
         if net.pyobject:
             return <object>(net.pyobject)
 
-        # Ok, so we need to create a python wrapper object
+        # Nope. So we need to create a new python wrapper object
         n = Network(self.factory)
         n.bind_to(ptr)
         return n

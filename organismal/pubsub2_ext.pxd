@@ -67,6 +67,13 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
     ctypedef shared_ptr[cNetwork] cNetwork_ptr
     ctypedef vector[cNetwork_ptr] cNetworkVector
 
+    cdef cppclass cTarget:
+        cTarget(cFactory *factory)
+        double assess(cNetwork &net)
+        cFactory *factory
+        int_t identifier
+        cRatesVector optimal_rates
+
     cdef cppclass cMutationModel:
         cMutationModel(cFactory *f, double rate)
         cFactory *factory

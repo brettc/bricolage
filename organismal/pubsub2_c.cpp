@@ -1,5 +1,7 @@
 // vim: path=.,/usr/include/c++/4.2.1,/usr/include/c++/4.2.1/tr1 fdm=syntax
 #include "pubsub2_c.h"
+#include <cmath>
+#include <stdexcept>
 
 using namespace pubsub2;
 
@@ -13,7 +15,7 @@ cNetwork::cNetwork(cFactory_ptr &f)
     : pyobject(0)
     , factory(f)
 {
-    identifier = factory->get_next_ident();
+    identifier = factory->get_next_network_ident();
     parent_identifier = -1;
 }
 
@@ -106,7 +108,8 @@ void cNetwork::calc_attractors()
 
 cFactory::cFactory(size_t seed)
     : random_engine(seed)
-    , next_identifier(0)
+    , next_network_identifier(0)
+    , next_target_identifier(0)
     , gene_count(4)
     , cis_count(3)
 {
@@ -122,6 +125,49 @@ void cFactory::init_environments()
         cChannelState c = cChannelState(total_channels, i);
         environments.push_back(c);
     }
+}
+
+cTarget::cTarget(cFactory *f)
+    : factory(f) 
+    , identifier(f->get_next_target_ident())
+{
+    cRates temp;
+    std::fill_n(std::back_inserter(temp), f->out_channels, 0.0);
+    std::fill_n(std::back_inserter(optimal_rates), f->environments.size(), temp);
+}
+
+// TODO: per env weighting
+// TODO: per output weighting
+// TODO: Profiling -- make faster?
+double cTarget::assess(const cNetwork &net)
+{
+    // TODO: check that factories are the same?
+    size_t nsize = net.rates.size();
+    size_t osize = factory->out_channels;
+
+    if (nsize != optimal_rates.size())
+        throw std::runtime_error("optimal rates and networks rates differ in size");
+
+    // We need to score each of the outputs individually
+    cRates scores;
+    std::fill_n(std::back_inserter(scores), osize, 0.0);
+
+    // The difference from the target reduces the score from a max of 1.0
+    for (size_t i = 0; i < nsize; ++i)
+        for (size_t j = 0; j < osize; ++j)
+            scores[j] += ((1.0 - fabs(net.rates[i][j] - optimal_rates[i][j])) 
+                          / double(nsize));
+
+    // Now take the average
+    double score = 0.0;
+    for (size_t j = 0; j < osize; ++j)
+    {
+        scores[j] /= double(osize);
+        score += scores[j];
+    }
+
+    // Must be greater 0 >= n <= 1.0
+    return score;
 }
 
 cMutationModel::cMutationModel(cFactory *f, double rate_per_gene_)
