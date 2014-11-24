@@ -45,6 +45,9 @@ void cNetwork::cycle(cChannelState &c)
 // This is the inner loop, where we find the attractors. We should tune this.
 void cNetwork::calc_attractors()
 {
+    attractors.clear();
+    rates.clear();
+
     size_t attractor_begins_at;
     bool found;
 
@@ -133,13 +136,13 @@ void cNetwork::calc_attractors()
 //     // return positions GENE -> CISMOD -> SITE
 // }
 
-cNetwork_ptr cNetwork::get_detached_copy() const
-{
-    cNetwork *copy = new cNetwork(factory, true);
-    copy->parent_identifier = identifier;
-    copy->genes = genes;
-    return cNetwork_ptr(copy);
-}
+// cNetwork_ptr cNetwork::get_detached_copy() const
+// {
+//     cNetwork *copy = new cNetwork(factory, true);
+//     copy->parent_identifier = identifier;
+//     copy->genes = genes;
+//     return cNetwork_ptr(copy);
+// }
 
 cNetworkAnalysis::cNetworkAnalysis(const cNetwork_ptr &n)
     : original(n)
@@ -153,6 +156,28 @@ void cNetworkAnalysis::find_knockouts()
 {
     // Incrementally add site knockouts that have no effect. This isn't
     // perfect, but it will do for now.
+    for (size_t i=0; i < modified.gene_count(); ++i)
+    {
+        cGene &g = modified.genes[i];
+        for (size_t j=0; j < g.module_count(); ++j)
+        {
+            cCisModule &m = g.modules[j];
+            for (size_t k=0; k < m.site_count(); ++k)
+            {
+                // Knock this out by setting it to ZERO channel
+                signal_t old = m.set_site_channel(k, 0);
+                modified.calc_attractors();
+
+                // Did it change? 
+                if (modified.attractors == original->attractors)
+                    // Record it
+                    knockouts.push_back(cSiteIndex(i, j, k));
+                else
+                    // Reset it
+                    m.set_site_channel(k, old);
+            }
+        }
+    }
 }
 
 cFactory::cFactory(size_t seed)

@@ -1,5 +1,5 @@
 from operand import Operand
-from pubsub2_ext import Factory, NetworkCollection, Target
+from pubsub2_ext import Factory, NetworkCollection, Target, NetworkAnalysis
 
 class Parameters(object):
     def __init__(self, **kwargs):

@@ -184,6 +184,7 @@ struct cNetworkAnalysis
     cNetworkAnalysis(const cNetwork_ptr &n);
     cNetwork_ptr original;
     cNetwork modified;
+    cSiteLocations knockouts;
 
     // Go through and change everything.
     void find_knockouts();

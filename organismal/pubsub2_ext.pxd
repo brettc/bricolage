@@ -58,7 +58,6 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
         cCisModules modules;
         signal_t pub
 
-
     cdef cppclass cNetwork
     ctypedef shared_ptr[cNetwork] cNetwork_ptr
 
@@ -75,7 +74,16 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
         double fitness
         void calc_attractors()
         bint is_detached()
-        cNetwork_ptr get_detached_copy()
+
+    cdef cppclass cSiteIndex:
+        int_t gene, cismod, site
+
+    ctypedef vector[cSiteIndex] cSiteLocations
+
+    cdef cppclass cNetworkAnalysis:
+        cNetworkAnalysis(const cNetwork_ptr &n)
+        void find_knockouts()
+        cSiteLocations knockouts
 
     # ctypedef shared_ptr[cNetwork] cNetwork_ptr
     # cNetwork_ptr get_detached_copy(cNetwork_ptr)

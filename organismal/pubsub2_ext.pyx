@@ -214,6 +214,7 @@ cdef class Target:
         self.factory = f
         self.ctarget = new cTarget(f.cfactory)
 
+        # Slow and cumbersome, but it doesn't matter
         for i, e in enumerate(f.environments):
             outputs = init_func(e.as_array()[:f.params.cue_channels])
             if len(outputs) != f.params.out_channels:
@@ -231,6 +232,7 @@ cdef class Target:
 
     def as_array(self):
         return numpy.array(self.ctarget.optimal_rates)
+
 
 cdef class Network:
     cdef:
@@ -360,22 +362,8 @@ cdef class Network:
         def __get__(self):
             return self.cnetwork.target
 
-    def get_detached_copy(self):
-        cdef:
-            cNetwork_ptr ccopy
-
-        copy = DetachedNetwork(self.factory)
-        ccopy = self.cnetwork.get_detached_copy()
-        copy.bind_to(ccopy)
-        return copy
-
     def __repr__(self):
         return "<Network id:{} pt:{}>".format(self.identifier, self.parent_identifier)
-
-cdef class DetachedNetwork(Network):
-
-    def calc_attractors(self):
-        self.cnetwork.calc_attractors()
 
 
 cdef class Gene:
@@ -438,46 +426,28 @@ cdef class CisModule:
         assert i < g.cgene.modules.size()
         self.ccismodule = &g.cgene.modules[i]
 
-    property editable:
-        def __get__(self):
-            return self.gene.network.cnetwork.is_detached()
-
-    cdef check_channel(self, size_t channel):
-        if channel >= self.gene.network.factory.cfactory.total_channels:
-            raise RuntimeError
-
-    cdef set_dirty(self):
-        self.gene.network.dirty = True
+    cdef reset_network(self):
+        self.gene.network._attractors = None
+        self.gene.network._rates = None
+        self.gene.network.cnetwork.calc_attractors()
 
     property op:
         def __get__(self):
             return self.ccismodule.op
 
-        # def __set__(self, op):
-        #     if self.editable:
-        #         return self.ccismodule.op
-
     property sub1:
         def __get__(self):
             return self.ccismodule.sub1
         def __set__(self, size_t c):
-            if not self.editable:
-                raise RuntimeError
-            self.check_channel(c)
-            if c != self.ccismodule.sub1:
-                self.ccismodule.sub2 = c
-                self.set_dirty()
+            self.ccismodule.sub1 = c
+            self.reset_network()
 
     property sub2:
         def __get__(self):
             return self.ccismodule.sub2
         def __set__(self, size_t c):
-            if not self.editable:
-                raise RuntimeError
-            self.check_channel(c)
-            if c != self.ccismodule.sub2:
-                self.ccismodule.sub2 = c
-                self.set_dirty()
+            self.ccismodule.sub2 = c
+            self.reset_network()
 
     def __cmp__(self, CisModule other):
         cdef int retval 
@@ -503,6 +473,35 @@ cdef class CisModule:
             p.name_for_channel(self.sub2),
         )
     
+
+cdef class NetworkAnalysis:
+    cdef:
+        cNetworkAnalysis *canalysis
+        readonly:
+            Network network
+
+    def __cinit__(self, Network net):
+        self.network = net
+        self.canalysis = new cNetworkAnalysis(net.ptr)
+        self.canalysis.find_knockouts()
+
+    def __dealloc__(self):
+        del self.canalysis
+
+    property knockouts:
+        def __get__(self):
+            cdef:
+                cSiteIndex *si
+                vector[cSiteIndex].iterator i = self.canalysis.knockouts.begin()
+
+            k = []
+            while i != self.canalysis.knockouts.end():
+                si = &deref(i)
+                k.append((si.gene, si.cismod, si.site))
+                preinc(i)
+
+            return k
+
 
 cdef class NetworkCollection:
     cdef:

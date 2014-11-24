@@ -8,7 +8,7 @@ def basic_params():
     return T.Parameters()
 
 @pytest.fixture
-def complex_params():
+def params3x2():
     return T.Parameters(
         seed=4,
         operands = [
@@ -23,17 +23,33 @@ def complex_params():
         cue_channels=3,
     )
 
-def test_factory(complex_params):
-    f = T.Factory(complex_params)
+@pytest.fixture
+def params3x3():
+    return T.Parameters(
+        seed=1,
+        operands = [
+            T.Operand.NOT_A_AND_B,
+            T.Operand.A_AND_NOT_B,
+            T.Operand.NOR,
+            T.Operand.AND,
+        ],
+        cis_count=2,
+        reg_channels=3,
+        out_channels=3,
+        cue_channels=3,
+    )
+
+def test_factory(params3x2):
+    f = T.Factory(params3x2)
 
     # Make sure we can stuff from the Factory
-    assert complex_params == f.params
+    assert params3x2 == f.params
     e = f.environments
     for i in e:
         print repr(i)
 
-def test_network_ids(complex_params):
-    f = T.Factory(complex_params)
+def test_network_ids(params3x2):
+    f = T.Factory(params3x2)
     for i in range(10):
         n = f.create_network()
         assert n.identifier == i
@@ -41,8 +57,8 @@ def test_network_ids(complex_params):
     pop = f.create_collection(10)
     assert pop[9].identifier == 19
 
-def test_network_construction(complex_params):
-    p = complex_params
+def test_network_construction(params3x2):
+    p = params3x2
     f = T.Factory(p)
     pop = f.create_collection(1000)
     for n in pop:
@@ -70,8 +86,8 @@ def test_referencing(basic_params):
     assert a.factory is b.factory
     assert a.factory.params is b.factory.params
 
-def test_bad_access(complex_params):
-    f = T.Factory(complex_params)
+def test_bad_access(params3x2):
+    f = T.Factory(params3x2)
     nc = T.NetworkCollection(f)
     with pytest.raises(IndexError):
         a = nc[0]
@@ -82,8 +98,8 @@ def test_bad_access(complex_params):
 
     assert a is b
 
-def test_channelstate(complex_params):
-    f = T.Factory(complex_params)
+def test_channelstate(params3x2):
+    f = T.Factory(params3x2)
     e2 = f.environments[-1]
     e2_again = f.environments[-1]
 
@@ -125,8 +141,8 @@ def construct_attractor(net, env):
                 return tuple(path[i:])
         path.append(cur)
 
-def test_attractors(complex_params):
-    f = T.Factory(complex_params)
+def test_attractors(params3x2):
+    f = T.Factory(params3x2)
     nc = f.create_collection(100)
     for net in nc:
         pattractors = [construct_attractor(net, env) for env in f.environments]
@@ -137,8 +153,8 @@ def test_attractors(complex_params):
         with pytest.raises(ValueError):
             net.rates[0, 0] = 10.
 
-def test_collection(complex_params):
-    f = T.Factory(complex_params)
+def test_collection(params3x2):
+    f = T.Factory(params3x2)
     nets = f.create_collection(100)
 
     old_nets = [_ for _ in nets]
@@ -150,8 +166,8 @@ def test_collection(complex_params):
         else:
             assert n is old_nets[i]
 
-def test_mutation(complex_params):
-    f = T.Factory(complex_params)
+def test_mutation(params3x2):
+    f = T.Factory(params3x2)
     orig = f.create_network()
     mute = orig.mutated(1)
     print orig.identifier, orig.parent_identifier
@@ -168,8 +184,8 @@ def test_mutation(complex_params):
             print [str(x) for x in a1]
             print [str(x) for x in a2]
 
-def test_rates(complex_params):
-    f = T.Factory(complex_params)
+def test_rates(params3x2):
+    f = T.Factory(params3x2)
     orig = f.create_network()
     rates = orig.rates
 
@@ -178,7 +194,7 @@ def test_rates(complex_params):
         rates[0, 0] = 10.
 
     # rates only include the output channels
-    outc = complex_params.out_channels
+    outc = params3x2.out_channels
     nc = f.create_collection(100)
     for net in nc:
         for attr, rate in zip(net.attractors, net.rates):
@@ -199,8 +215,20 @@ def target_3x2():
         return f1, f2
     return make_target
 
-def test_targets(complex_params, target_3x2):
-    f = T.Factory(complex_params)
+@pytest.fixture
+def target_3x3():
+    """Return a function for initialising a target that has 3 inputs and 2
+    outputs"""
+    def make_target(x):
+        a, b, c = x
+        res = (a and b) or (b and c)
+        if res:
+            return 0, 1, .5
+        return 1, .5, 0
+    return make_target
+
+def test_targets(params3x2, target_3x2):
+    f = T.Factory(params3x2)
     targ = T.Target(f, target_3x2)
     nc = f.create_collection(100)
     for net in nc:
@@ -213,8 +241,8 @@ def test_targets(complex_params, target_3x2):
         # summed = scores.sum(axis=1) * ch.fitness_contribution
         # summed = scores.sum(axis=1)
 
-def test_random_engine(complex_params, target_3x2):
-    f = T.Factory(complex_params)
+def test_random_engine(params3x2, target_3x2):
+    f = T.Factory(params3x2)
     f.seed_random_engine(1)
     first_time = [f.get_random_double(0, 1) for _ in range(20)]
     first_time += [f.get_random_int(0, 100) for _ in range(20)]
@@ -225,9 +253,9 @@ def test_random_engine(complex_params, target_3x2):
 
     assert first_time == second_time
         
-def test_selection(complex_params, target_3x2):
+def test_selection(params3x2, target_3x2):
     # TODO: Test selection
-    factory = T.Factory(complex_params)
+    factory = T.Factory(params3x2)
     target = T.Target(factory, target_3x2)
     population = factory.create_collection(1000)
 
@@ -246,38 +274,43 @@ def test_selection(complex_params, target_3x2):
 
     indexes = []
 
-def test_play(complex_params, target_3x2):
-    factory = T.Factory(complex_params)
-    # target = T.Target(factory, target_3x2)
-    net = factory.create_network()
-    print
-    print net
-    det = net.get_detached_copy()
-    print det
+def test_play(target_3x3):
+    p = T.Parameters(
+        seed=4,
+        operands = [
+            T.Operand.NOT_A_AND_B,
+            T.Operand.A_AND_NOT_B,
+            T.Operand.AND,
+            T.Operand.NOR,
+            T.Operand.A_AND_NOT_B,
+            T.Operand.NOT_A_AND_B,
+        ],
+        cis_count=1,
+        reg_channels=8,
+        out_channels=3,
+        cue_channels=3,
+    )
 
-    m1 = net.genes[0].modules[0]
-    print m1
-    # m1.sub1 = 4
+    factory = T.Factory(p)
+    target = T.Target(factory, target_3x3)
+    pop = factory.create_collection(1000)
+    for i in range(10000):
+        pop.select(target)
+        pop.mutate()
 
-    m2 = det.genes[0].modules[0]
-    print m2
+    winners = []
+    for net in pop:
+        if net.fitness == 1.0:
+            winners.append(net)
 
-    print m2
-    det.calc_attractors()
-    a1 = det.attractors
-    m2.sub1 = 0
-    det.calc_attractors()
-    a2 = det.attractors
+    for net in winners:
+        for g in net.genes:
+            print g
+            for m in g.modules:
+                print '   ', m
+        ana = T.NetworkAnalysis(net)
+        for k in ana.knockouts:
+            print k
 
-    if a1 != a2:
-        print "DIFF"
+        print '--'
 
-
-    # for g in net.genes:
-    #     print g
-
-    # We know how stuff works 
-    # for i in range(10000):
-    #     nc.select(targ)
-    #     print max([n.fitness for n in nc])
-    #     nc.mutate()
