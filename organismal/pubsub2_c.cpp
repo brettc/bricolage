@@ -11,15 +11,21 @@ cGene::cGene(sequence_t seq, signal_t p)
 {
 }
 
-cNetwork::cNetwork(cFactory_ptr &f)
+cNetwork::cNetwork(const cFactory_ptr &f, bool no_ident)
     : pyobject(0)
     , factory(f)
     , parent_identifier(-1)
     , target(-1)
 {
-    identifier = factory->get_next_network_ident();
+    if (!no_ident)
+        identifier = factory->get_next_network_ident();
+    else
+        // A network that is not part of a lineage, for analysis only.
+        // We'll call this a "detached" network
+        identifier = -1;
 }
 
+// This is the inner-inner loop!
 void cNetwork::cycle(cChannelState &c)
 {
     cChannelState next(c.size());
@@ -91,19 +97,62 @@ void cNetwork::calc_attractors()
         // Copy the part the path that is the attractor, ignoring the transient
         for (size_t copy_at=attractor_begins_at; copy_at < path.size(); ++copy_at)
         {
-            // TODO: This is where we could calculate the rates, and
-            // constructed them at the same time.
             cChannelState &c = path[copy_at];
             this_attr.push_back(c);
 
+            // We construct the rates at the same time
             for (size_t i=0; i < factory->out_channels; ++i)
                 this_rate[i] += double(c[i + factory->out_range.first]);
 
         }
+        // Now normalise the rates
         for (size_t i=0; i < factory->out_channels; ++i)
             this_rate[i] /= double(this_attr.size());
 
     }
+}
+
+// void cNetwork::make_graph_edges(cEdgeList &edges)
+// {
+//     // We're building a bipartite graph 
+//     // Gene -> Channel
+//     // Channel -> Gene
+//
+//     for g in genes:
+//         add g -> pub
+//
+//         for m in mod:
+//             for c in mod:
+//                 add c -> g (Label with index = CISMOD/SITE)
+//
+//     // Now if required FILTER By find_knockouts
+// }
+//
+// void cNetwork::find_knockouts()
+// {
+//     // return positions GENE -> CISMOD -> SITE
+// }
+
+cNetwork_ptr cNetwork::get_detached_copy() const
+{
+    cNetwork *copy = new cNetwork(factory, true);
+    copy->parent_identifier = identifier;
+    copy->genes = genes;
+    return cNetwork_ptr(copy);
+}
+
+cNetworkAnalysis::cNetworkAnalysis(const cNetwork_ptr &n)
+    : original(n)
+    , modified(n->factory, true)
+{
+    // Just copy the genes for now. Don't bother doing anything else.
+    modified.genes = original->genes;
+}
+
+void cNetworkAnalysis::find_knockouts()
+{
+    // Incrementally add site knockouts that have no effect. This isn't
+    // perfect, but it will do for now.
 }
 
 cFactory::cFactory(size_t seed)
@@ -116,13 +165,16 @@ cFactory::cFactory(size_t seed)
 }
 
 void cFactory::init_environments()
-{
-    total_channels = cue_channels + reg_channels + out_channels;
-    // Numbor of environments is 2^cue_channels. Use some binary math...
+{   
+    // Remember: Channel 0 is reserved, so we need to add 1.
+    total_channels = cue_channels + reg_channels + out_channels + 1;
+
+    // Number of environments is 2^cue_channels. Use some binary math...
     size_t env_count = 1 << cue_channels;
     for (size_t i = 0; i < env_count; ++i)
     {
-        cChannelState c = cChannelState(total_channels, i);
+        // Shift one, to account for channel 0
+        cChannelState c = cChannelState(total_channels, i << 1);
         environments.push_back(c);
     }
 }
@@ -139,6 +191,7 @@ cTarget::cTarget(cFactory *f)
 // TODO: per env weighting
 // TODO: per output weighting
 // TODO: Profiling -- make faster?
+// TODO: Maybe we should be use multi_array??
 double cTarget::assess(const cNetwork &net)
 {
     // We've already done it!
@@ -212,8 +265,6 @@ void cMutationModel::construct_cis(cCisModule &cis)
     cis.op = factory->operands[r_oper(re)];
     cis.sub1 = r_sub(re);
     cis.sub2 = r_sub(re);
-    cis.silenced = false;
-    // cis.silenced = bool(r_uniform_01(re) > p_silenced);
 }
 
 void cMutationModel::mutate_network(cNetwork_ptr &n, size_t mutations)
@@ -271,7 +322,7 @@ void cMutationModel::mutate_collection(cNetworkVector &networks,
     for (size_t i=0; i < mutations; ++i)
         mutes.push_back(r_network(factory->random_engine));
 
-    // Sort them so that repeats are next to one another.
+    // Sort them so that any repeated networks are adjacent.
     std::sort(mutes.begin(), mutes.end());
 
     // We now let the networks figure out how *exactly* they will mutate.  This
@@ -307,7 +358,6 @@ void cMutationModel::mutate_collection(cNetworkVector &networks,
             count += 1;
         }
     }
-
 }
 
 void cMutationModel::mutate_gene(cGene &g)
@@ -327,7 +377,7 @@ void cMutationModel::mutate_gene(cGene &g)
 // This is where the action really is.
 void cMutationModel::mutate_cis(cCisModule &m)
 {
-    // otherwise, let's change something
+    // TODO: This is shite; just a start.
     double p = r_uniform_01(factory->random_engine);
     if (p < .5)
         m.op = factory->operands[r_oper(factory->random_engine)];
@@ -337,11 +387,10 @@ void cMutationModel::mutate_cis(cCisModule &m)
         m.sub2 = r_sub(factory->random_engine);
 }
 
-cSelectionModel::cSelectionModel(cFactory_ptr &f):
-    factory(f)
+cSelectionModel::cSelectionModel(cFactory_ptr &f)
+    : factory(f)
 {
 }
-
 
 bool cSelectionModel::select(
     const cNetworkVector &networks, cTarget &target,
@@ -398,4 +447,36 @@ void cSelectionModel::copy_using_indexes(
     for (auto i : selected)
         // We could check ...
         to.push_back(from[i]);
+}
+
+signal_t cCisModule::get_site_channel(size_t index) const
+{
+    // TODO: Fix runtime error?
+    if (index >= site_count())
+        throw std::runtime_error("illegal site index");
+
+    if (index == 0)
+        return sub1;
+    return sub2;
+}
+
+signal_t cCisModule::set_site_channel(size_t index, signal_t channel)
+{
+    // TODO: Fix runtime error?
+    if (index >= site_count())
+        throw std::runtime_error("illegal site index");
+
+    signal_t old;
+    if (index == 0)
+    {
+        old = sub1;
+        sub1 = channel;
+    }
+    else
+    {
+        old = sub2;
+        sub2 = channel;
+    }
+
+    return old;
 }

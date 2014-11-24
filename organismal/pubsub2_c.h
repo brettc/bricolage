@@ -1,4 +1,4 @@
-// vim: path=.,/usr/include/c++/4.2.1,/usr/include/c++/4.2.1/tr1,/usr/local/include
+// vim: path=.,/usr/include/c++/4.2.1,/usr/include/c++/4.2.1/tr1,/usr/local/include fdm=syntax
 #pragma once
 
 #include <cstdint>
@@ -30,7 +30,7 @@ typedef int_fast16_t operand_t;
 typedef signed int int_t;
 typedef unsigned int sequence_t;
 
-// TODO: Maybe change dynamic_bitset for something a little light (Do we really
+// TODO: Maybe change dynamic_bitset for something a little lighter (Do we really
 // need anything bigger than 64bits?)
 typedef boost::dynamic_bitset<size_t> cChannelState;
 typedef std::vector<cChannelState> cChannelStateVector;
@@ -46,13 +46,15 @@ inline int bitset_cmp(cChannelState &a, cChannelState &b)
     return 1;
 }
 
-
 struct cCisModule
 {
     // Default constructor is fine
     operand_t op;
     signal_t sub1, sub2;
-    bool silenced;
+
+    size_t site_count() const { return 2; }
+    signal_t get_site_channel(size_t index) const;
+    signal_t set_site_channel(size_t index, signal_t channel);
 
     // Inline this stuff. It won't change.
     inline bool test(unsigned int a, unsigned int b) const 
@@ -64,8 +66,6 @@ struct cCisModule
 
     inline bool is_active(cChannelState const &state) const 
     {
-        if (silenced) return false;
-
         return test(state.test(sub1), state.test(sub2));
     }
 };
@@ -75,6 +75,8 @@ typedef std::vector<cCisModule> cCisModules;
 struct cGene
 {
     cGene(sequence_t sequence, signal_t p);
+
+    size_t module_count() { return modules.size(); }
 
     sequence_t sequence;
     cCisModules modules;
@@ -96,17 +98,17 @@ struct cFactory
 {
     cFactory(size_t seed);
 
+    random_engine_t random_engine;
+    sequence_t next_network_identifier, next_target_identifier;
+
     sequence_t get_next_network_ident() { return next_network_identifier++; }
     sequence_t get_next_target_ident() { return next_target_identifier++; }
 
-    random_engine_t random_engine;
     double get_random_double(double low, double high) {
         return std::uniform_real_distribution<double>(low, high)(random_engine); }
     double get_random_int(int low, int high) {
         return std::uniform_int_distribution<int>(low, high)(random_engine); }
 
-
-    sequence_t next_network_identifier, next_target_identifier;
     size_t gene_count, cis_count;
     size_t reg_gene_count;
     size_t cue_channels, reg_channels, out_channels;
@@ -120,30 +122,41 @@ struct cFactory
     void init_environments();
     cChannelStateVector environments;
     size_t total_channels;
-
 };
 
 typedef boost::shared_ptr<cFactory> cFactory_ptr;
 
+struct cSiteIndex 
+{
+    cSiteIndex(int_t g=0, int_t c=0, int_t s=0)
+        : gene(g), cismod(c), site(s) {}
+    int_t gene, cismod, site;
+};
+typedef std::vector<cSiteIndex> cSiteLocations;
+
+// struct cSiteLocator
+// {
+//     cSiteLocator(const cFactory_ptr &f);
+//     bool next_site(Network_ptr, cSiteIndex &x, bool init=false);
+// };
+
 struct cNetwork
 {
-    cNetwork(cFactory_ptr &f);
+    cNetwork(const cFactory_ptr &f, bool no_ident=false);
+    size_t gene_count() { return genes.size(); }
 
-    void *pyobject;
+    mutable void *pyobject;
     
-    // Set this when the network has been finalised
-    // bool _locked;
-
     cFactory_ptr factory;
     int_t identifier, parent_identifier;
     cGeneVector genes;
 
-    void cycle(cChannelState &c);
-    void calc_attractors();
-
     // Calculated attractor and rates
     cAttractors attractors;
     cRatesVector rates;
+
+    void cycle(cChannelState &c);
+    void calc_attractors();
 
     // Record the fitness and the target against which it was calculated. 
     // This means we don't need to recalc the fitness if the target has not
@@ -151,6 +164,29 @@ struct cNetwork
     mutable int_t target;
     mutable double fitness;
 
+    bool is_detached() const { return identifier < 0; }
+    cNetwork_ptr get_detached_copy() const;
+
+};
+
+// cNetwork_ptr get_detached_copy(cNetwork_ptr original);
+// inline cNetwork_ptr get_detached_copy(cNetwork_ptr original)
+// {
+//     cNetwork *copy = new cNetwork(original->factory, true);
+//     copy->parent_identifier = original->identifier;
+//     copy->genes = original->genes;
+//
+//     return cNetwork_ptr(copy);
+// }
+
+struct cNetworkAnalysis
+{
+    cNetworkAnalysis(const cNetwork_ptr &n);
+    cNetwork_ptr original;
+    cNetwork modified;
+
+    // Go through and change everything.
+    void find_knockouts();
 };
 
 struct cTarget
@@ -163,6 +199,7 @@ struct cTarget
     // TODO: per env weighting
     // TODO: per output weighting
     double assess(const cNetwork &net);
+
 
 };
 

@@ -107,10 +107,9 @@ def network_cycle(network, curstate):
     nextstate = network.factory.create_state()
     for g in network.genes:
         for m in g.modules:
-            if not m.silenced:
-                if operand.calculate(m.op, curstate[m.sub1], curstate[m.sub2]):
-                    nextstate.set(g.pub)
-                    break
+            if operand.calculate(m.op, curstate[m.sub1], curstate[m.sub2]):
+                nextstate.set(g.pub)
+                break
     return nextstate
 
 def construct_attractor(net, env):
@@ -137,11 +136,6 @@ def test_attractors(complex_params):
         # It should be readonly
         with pytest.raises(ValueError):
             net.rates[0, 0] = 10.
-
-        # assert len(net.attractors) == len(net.rates)
-        # for attr, rate in zip(net.attractors, net.rates):
-        #     for a in attr:
-        #         print a[:]
 
 def test_collection(complex_params):
     f = T.Factory(complex_params)
@@ -194,15 +188,20 @@ def test_rates(complex_params):
             test_rate /= len(attr)
             assert (test_rate == rate).all()
 
-def _construct_target(x):
-    a, b, c = x
-    f1 = .5 if a and b or not c else 1.0
-    f2 = 1 if ((a or c) and not (a and b)) and b else 0
-    return f1, f2
+@pytest.fixture
+def target_3x2():
+    """Return a function for initialising a target that has 3 inputs and 2
+    outputs"""
+    def make_target(x):
+        a, b, c = x
+        f1 = .5 if a and b or not c else 1.0
+        f2 = 1 if ((a or c) and not (a and b)) and b else 0
+        return f1, f2
+    return make_target
 
-def test_targets(complex_params):
+def test_targets(complex_params, target_3x2):
     f = T.Factory(complex_params)
-    targ = T.Target(f, _construct_target)
+    targ = T.Target(f, target_3x2)
     nc = f.create_collection(100)
     for net in nc:
         diffs = abs(targ.as_array() - net.rates)
@@ -213,14 +212,72 @@ def test_targets(complex_params):
 
         # summed = scores.sum(axis=1) * ch.fitness_contribution
         # summed = scores.sum(axis=1)
-        
-def test_selection(complex_params):
-    f = T.Factory(complex_params)
-    targ = T.Target(f, _construct_target)
-    nc = f.create_collection(1000)
-    for i in range(10000):
-        nc.select(targ)
-        print max([n.fitness for n in nc])
-        nc.mutate()
-    
 
+def test_random_engine(complex_params, target_3x2):
+    f = T.Factory(complex_params)
+    f.seed_random_engine(1)
+    first_time = [f.get_random_double(0, 1) for _ in range(20)]
+    first_time += [f.get_random_int(0, 100) for _ in range(20)]
+    
+    f.seed_random_engine(1)
+    second_time = [f.get_random_double(0, 1) for _ in range(20)]
+    second_time += [f.get_random_int(0, 100) for _ in range(20)]
+
+    assert first_time == second_time
+        
+def test_selection(complex_params, target_3x2):
+    # TODO: Test selection
+    factory = T.Factory(complex_params)
+    target = T.Target(factory, target_3x2)
+    population = factory.create_collection(1000)
+
+    # What does c++ do?
+    factory.seed_random_engine(1)
+    c_selection_indexes = population.selection_indexes(target)
+
+    # Now, do it in python
+    factory.seed_random_engine(1)
+    p_selection_indexes = []
+    cum_scores = []
+    cum_score = 0.0
+    for net in population:
+        cum_scores.append(cum_score)
+        cum_score += target.assess(net)
+
+    indexes = []
+
+def test_play(complex_params, target_3x2):
+    factory = T.Factory(complex_params)
+    # target = T.Target(factory, target_3x2)
+    net = factory.create_network()
+    print
+    print net
+    det = net.get_detached_copy()
+    print det
+
+    m1 = net.genes[0].modules[0]
+    print m1
+    # m1.sub1 = 4
+
+    m2 = det.genes[0].modules[0]
+    print m2
+
+    print m2
+    det.calc_attractors()
+    a1 = det.attractors
+    m2.sub1 = 0
+    det.calc_attractors()
+    a2 = det.attractors
+
+    if a1 != a2:
+        print "DIFF"
+
+
+    # for g in net.genes:
+    #     print g
+
+    # We know how stuff works 
+    # for i in range(10000):
+    #     nc.select(targ)
+    #     print max([n.fitness for n in nc])
+    #     nc.mutate()

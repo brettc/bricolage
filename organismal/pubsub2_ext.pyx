@@ -13,6 +13,8 @@ from cython.operator import dereference as deref, preincrement as preinc
 from _cpp cimport *
 from pubsub2_ext cimport *
 
+import random
+cdef int magic_number = random.randint(0, 100000)
 
 cdef class ChannelStateFrozen:
     cdef:
@@ -40,6 +42,7 @@ cdef class ChannelStateFrozen:
             return self.cchannel_state.size()
 
     def __str__(self):
+        # TODO: Clean this function up---it is a bit rough.
         cdef:
             string cstr
             cFactory *f = self.cfactory_ptr.get()
@@ -51,8 +54,11 @@ cdef class ChannelStateFrozen:
         cdef size_t cuereg = f.cue_channels + f.reg_channels
 
         to_string(self.cchannel_state, cstr)
+
         # I think it is much easier to understand if we reverse it
-        s = cstr[::-1]
+        # Also, clip the "silencing" channel 0
+        # TODO: fix this nasty hack
+        s = cstr[::-1][1:]
         env = s[:f.cue_channels]
         reg = s[f.cue_channels:cuereg]
         out = s[cuereg:]
@@ -226,12 +232,12 @@ cdef class Target:
     def as_array(self):
         return numpy.array(self.ctarget.optimal_rates)
 
-
 cdef class Network:
     cdef:
         readonly:
             Factory factory
             bint ready
+            bint dirty
 
         # Because we hold a reference to the shared_ptr, we know we can always
         # safely access the ACTUAL pointer. We keep the pointer around too, as
@@ -245,6 +251,7 @@ cdef class Network:
     def __cinit__(self, Factory factory):
         self.factory = factory
         self.ready = False
+        self.dirty = False
         self._genes = None
 
     cdef bind_to(self, cNetwork_ptr &ptr):
@@ -291,6 +298,7 @@ cdef class Network:
     property attractors:
         """A tuple containing the attractors for each environment"""
         def __get__(self):
+            # Have if we're detached, we have to recalc every time
             if self._attractors is not None:
                 return self._attractors
 
@@ -316,6 +324,7 @@ cdef class Network:
 
             # Again: tuples, so you can't mess with it.
             self._attractors = tuple(attrs)
+            self.dirty = False
             return self._attractors
 
     property rates:
@@ -343,7 +352,6 @@ cdef class Network:
             self._rates = r
             return self._rates
 
-
     property fitness:
         def __get__(self):
             return self.cnetwork.fitness
@@ -351,9 +359,23 @@ cdef class Network:
     property target:
         def __get__(self):
             return self.cnetwork.target
-                
+
+    def get_detached_copy(self):
+        cdef:
+            cNetwork_ptr ccopy
+
+        copy = DetachedNetwork(self.factory)
+        ccopy = self.cnetwork.get_detached_copy()
+        copy.bind_to(ccopy)
+        return copy
+
     def __repr__(self):
         return "<Network id:{} pt:{}>".format(self.identifier, self.parent_identifier)
+
+cdef class DetachedNetwork(Network):
+
+    def calc_attractors(self):
+        self.cnetwork.calc_attractors()
 
 
 cdef class Gene:
@@ -416,22 +438,46 @@ cdef class CisModule:
         assert i < g.cgene.modules.size()
         self.ccismodule = &g.cgene.modules[i]
 
+    property editable:
+        def __get__(self):
+            return self.gene.network.cnetwork.is_detached()
+
+    cdef check_channel(self, size_t channel):
+        if channel >= self.gene.network.factory.cfactory.total_channels:
+            raise RuntimeError
+
+    cdef set_dirty(self):
+        self.gene.network.dirty = True
+
     property op:
         def __get__(self):
             return self.ccismodule.op
 
+        # def __set__(self, op):
+        #     if self.editable:
+        #         return self.ccismodule.op
+
     property sub1:
         def __get__(self):
             return self.ccismodule.sub1
+        def __set__(self, size_t c):
+            if not self.editable:
+                raise RuntimeError
+            self.check_channel(c)
+            if c != self.ccismodule.sub1:
+                self.ccismodule.sub2 = c
+                self.set_dirty()
 
     property sub2:
         def __get__(self):
             return self.ccismodule.sub2
-
-    property silenced:
-        def __get__(self):
-            return self.ccismodule.silenced
-
+        def __set__(self, size_t c):
+            if not self.editable:
+                raise RuntimeError
+            self.check_channel(c)
+            if c != self.ccismodule.sub2:
+                self.ccismodule.sub2 = c
+                self.set_dirty()
 
     def __cmp__(self, CisModule other):
         cdef int retval 
@@ -513,9 +559,32 @@ cdef class NetworkCollection:
         return mutated
 
     def select(self, Target target):
-        """Inplace selection of networks"""
+        """Inplace selection of networks, replacing networks"""
+        cdef:
+            cSelectionModel *sm
+            bint sel
+            cIndexes indexes
+            cNetworkVector new_networks
 
+        sm = new cSelectionModel(self.factory.cfactory_ptr)
+        sel = sm.select(self.cnetworks, deref(target.ctarget), 
+                     self.cnetworks.size(), indexes)
+        if sel:
+            sm.copy_using_indexes(self.cnetworks, new_networks, indexes)
 
+            # Replace everything -- this is fast
+            self.cnetworks.swap(new_networks)
+
+        # Get rid of this
+        del sm
+
+        return sel
+
+    def selection_indexes(self, Target target):
+        """Just return the indices where selection would happen.
+
+        This is used for testing.
+        """
         cdef:
             cSelectionModel *sm
             bint sel
@@ -526,16 +595,6 @@ cdef class NetworkCollection:
 
         sel = sm.select(self.cnetworks, deref(target.ctarget), 
                      self.cnetworks.size(), indexes)
-        if sel:
-            sm.copy_using_indexes(self.cnetworks, new_networks, indexes)
 
-            # Replace everything -- this is fast
-            self.cnetworks.swap(new_networks)
-
-        del sm
-
-        return sel
-
-
-
+        return indexes
 

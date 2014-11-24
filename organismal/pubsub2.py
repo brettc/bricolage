@@ -40,13 +40,14 @@ class Parameters(object):
         self.sub_channels = self.cue_channels + self.reg_channels
 
         self.channel_count = self.cue_channels + self.reg_channels + \
-            self.out_channels
+            self.out_channels + 1
 
-        self.sub_range = 0, self.sub_channels
-        self.reg_range = self.cue_channels, self.sub_channels
-        self.pub_range = self.cue_channels, self.sub_channels + self.out_channels
-        self.cue_range = 0, self.cue_channels
-        self.out_range = self.sub_channels, self.channel_count
+        self.cue_range = 1, self.cue_channels + 1
+        self.sub_range = 1, self.sub_channels + 1
+        self.reg_range = self.cue_channels + 1, self.sub_channels + 1
+        self.pub_range = self.cue_channels + 1, self.sub_channels + \
+            self.out_channels + 1
+        self.out_range = self.sub_channels + 1, self.channel_count + 1
 
         # Let's make these, they'll be useful
         self.cue_signals = range(*self.cue_range)

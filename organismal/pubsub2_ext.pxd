@@ -49,7 +49,7 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
         bint is_active(dynamic_bitset[size_t] s)
         operand_t op
         signal_t sub1, sub2
-        bint silenced
+        # bint silenced
 
     ctypedef vector[cCisModule] cCisModules
 
@@ -57,6 +57,10 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
         sequence_t sequence;
         cCisModules modules;
         signal_t pub
+
+
+    cdef cppclass cNetwork
+    ctypedef shared_ptr[cNetwork] cNetwork_ptr
 
     cdef cppclass cNetwork:
         cNetwork(cFactory_ptr)
@@ -69,8 +73,14 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
         cRatesVector rates
         int_t target
         double fitness
+        void calc_attractors()
+        bint is_detached()
+        cNetwork_ptr get_detached_copy()
 
-    ctypedef shared_ptr[cNetwork] cNetwork_ptr
+    # ctypedef shared_ptr[cNetwork] cNetwork_ptr
+    # cNetwork_ptr get_detached_copy(cNetwork_ptr)
+    # ctypedef shared_ptr[const cNetwork] cConstNetwork_ptr
+    # ctypedef vector[cConstNetwork_ptr] cNetworkVector
     ctypedef vector[cNetwork_ptr] cNetworkVector
 
     cdef cppclass cTarget:
