@@ -66,7 +66,18 @@ cNetwork::~cNetwork()
         delete g;
 }
 
+void cNetwork::clone_genes(cGeneVector &gv) const
+{
+    for (auto g : genes)
+        gv.push_back(g->clone());
+}
+
 // This is the inner-inner loop!
+// TODO: Maybe this could be moved down the the CIS level to prevent constant
+// calling of virtual function. It would have to be Factory level call:
+// cGeneFactory::cycle(Network &, ChannelState &). But this would mean building 
+// the cis action into the factory somehow (or static_cast-ing the CIS which
+// would, I guess, be safe.
 void cNetwork::cycle(cChannelState &c) const
 {
     cChannelState next(c.size());
@@ -78,18 +89,18 @@ void cNetwork::cycle(cChannelState &c) const
                 // The gene is active, no use looking further
                 break;
             }
-
     // Update the "return" value.
     c.swap(next);
 }
 
-void cNetwork::clone_genes(cGeneVector &gv) const
-{
-    for (auto g : genes)
-        gv.push_back(g->clone());
-}
-
-// This is the inner loop, where we find the attractors. We should tune this.
+// This is the outer-inner loop, where we find the attractors. 
+// TODO: Maybe template-ize this so that it runs faster without constract calls
+// to the virtual function. Like this maybe:
+// template class attractor_calc<Cis_Type, Factory_Type>
+// {
+// }
+// But it would still need a dynamic runtime selector to call the right one...
+// Hmmm.
 void cNetwork::calc_attractors()
 {
     attractors.clear();
@@ -513,7 +524,6 @@ cGeneFactoryLogic2::cGeneFactoryLogic2(cFactory *f, double rate_per_gene_)
 cCisModule *cGeneFactoryLogic2::construct_cis()
 {
     cCisModuleLogic2 *cis = new cCisModuleLogic2();
-
     random_engine_t &re = factory->random_engine;
     cis->op = factory->operands[r_oper(re)];
     cis->channels[0] = r_sub(re);
