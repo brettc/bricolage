@@ -66,12 +66,8 @@ typedef std::vector<cCisModule *> cCisModules;
 struct cGene
 {
     cGene(sequence_t sequence, signal_t p);
-
-    // Our copy constructor makes sure that the cis modules are duplicated
-    // cGene(const cGene &other);
-
-    // Kill the CIS
     ~cGene();
+    cGene *clone();
 
     size_t module_count() { return modules.size(); }
 
@@ -141,9 +137,14 @@ class cNetwork
 {
 public:
     cNetwork(const cFactory_ptr &f, bool no_ident=false);
-    // ~cNetwork();
+    ~cNetwork();
 
     size_t gene_count() { return genes.size(); }
+    void cycle(cChannelState &c) const;
+    void calc_attractors();
+    void clone_genes(cGeneVector &gv) const;
+    bool is_detached() const { return identifier < 0; }
+    cNetwork_ptr get_detached_copy() const;
 
     mutable void *pyobject;
     
@@ -155,17 +156,11 @@ public:
     cAttractors attractors;
     cRatesVector rates;
 
-    void cycle(cChannelState &c);
-    void calc_attractors();
-
     // Record the fitness and the target against which it was calculated. 
     // This means we don't need to recalc the fitness if the target has not
     // changed.
     mutable int_t target;
     mutable double fitness;
-
-    bool is_detached() const { return identifier < 0; }
-    cNetwork_ptr get_detached_copy() const;
 
 private:
     // Don't allow copying
@@ -266,6 +261,7 @@ public:
 
     size_t site_count() const { return 2; }
     virtual cCisModule* clone() const;
+    void mutate();
 
     // Inline this stuff. It won't change.
     inline bool test(unsigned int a, unsigned int b) const 

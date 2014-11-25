@@ -158,23 +158,26 @@ def test_attractors(params3x2, basic_params):
 
 def test_collection(params3x2):
     f = T.Factory(params3x2)
-    nets = f.create_collection(100)
+
+    nets = f.create_collection(1000)
 
     old_nets = [_ for _ in nets]
     mutated = nets.mutate()
 
+    nmutations = 0
     for i, n in enumerate(nets):
         if i in mutated:
+            nmutations += 1
             assert n is not old_nets[i]
         else:
             assert n is old_nets[i]
+
+    assert nmutations > 0
 
 def test_mutation(params3x2):
     f = T.Factory(params3x2)
     orig = f.create_network()
     mute = orig.mutated(1)
-    print orig.identifier, orig.parent_identifier
-    print mute.identifier, mute.parent_identifier
     print orig, mute
     for g1, g2 in zip(orig.genes, mute.genes):
         for m1, m2 in zip(g1.modules, g2.modules):
@@ -294,26 +297,27 @@ def test_play(target_3x3):
         cue_channels=3,
     )
 
-    # factory = T.Factory(p)
-    # target = T.Target(factory, target_3x3)
-    # pop = factory.create_collection(1000)
-    # for i in range(10000):
-    #     pop.select(target)
-    #     pop.mutate()
-    #
-    # winners = []
-    # for net in pop:
-    #     if net.fitness == 1.0:
-    #         winners.append(net)
-    #
-    # for net in winners:
-    #     for g in net.genes:
-    #         print g
-    #         for m in g.modules:
-    #             print '   ', m
-    #     ana = T.NetworkAnalysis(net)
-    #     for k in ana.knockouts:
-    #         print k
-    #
-    #     print '--'
-    #
+    factory = T.Factory(p)
+    target = T.Target(factory, target_3x3)
+    pop = factory.create_collection(1000)
+    for i in range(1000):
+        pop.select(target)
+        pop.mutate()
+
+    winners = []
+    for net in pop:
+        if net.fitness == 1.0:
+            winners.append(net)
+
+    for net in winners:
+        for g in net.genes:
+            print g
+            for m in g.modules:
+                print '   ', m
+        ana = T.NetworkAnalysis(net)
+        for k in ana.knockouts:
+            print k
+        break
+
+        print '--'
+

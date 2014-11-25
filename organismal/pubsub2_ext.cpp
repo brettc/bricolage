@@ -902,7 +902,7 @@ struct __pyx_obj_10organismal_11pubsub2_ext_Network {
 };
 
 
-/* "organismal/pubsub2_ext.pyx":369
+/* "organismal/pubsub2_ext.pyx":376
  * 
  * 
  * cdef class Gene:             # <<<<<<<<<<<<<<
@@ -918,7 +918,7 @@ struct __pyx_obj_10organismal_11pubsub2_ext_Gene {
 };
 
 
-/* "organismal/pubsub2_ext.pyx":415
+/* "organismal/pubsub2_ext.pyx":422
  * 
  * 
  * cdef class CisModule:             # <<<<<<<<<<<<<<
@@ -933,7 +933,7 @@ struct __pyx_obj_10organismal_11pubsub2_ext_CisModule {
 };
 
 
-/* "organismal/pubsub2_ext.pyx":476
+/* "organismal/pubsub2_ext.pyx":483
  * 
  * 
  * cdef class CisModuleLogic2(CisModule):             # <<<<<<<<<<<<<<
@@ -946,7 +946,7 @@ struct __pyx_obj_10organismal_11pubsub2_ext_CisModuleLogic2 {
 };
 
 
-/* "organismal/pubsub2_ext.pyx":503
+/* "organismal/pubsub2_ext.pyx":510
  *         )
  * 
  * cdef class NetworkAnalysis:             # <<<<<<<<<<<<<<
@@ -960,7 +960,7 @@ struct __pyx_obj_10organismal_11pubsub2_ext_NetworkAnalysis {
 };
 
 
-/* "organismal/pubsub2_ext.pyx":532
+/* "organismal/pubsub2_ext.pyx":539
  * 
  * 
  * cdef class NetworkCollection:             # <<<<<<<<<<<<<<
@@ -1005,7 +1005,7 @@ struct __pyx_obj_10organismal_11pubsub2_ext___pyx_scope_struct_1_genexpr {
 };
 
 
-/* "organismal/pubsub2_ext.pyx":403
+/* "organismal/pubsub2_ext.pyx":410
  * 
  *     property modules:
  *         def __get__(self):             # <<<<<<<<<<<<<<
@@ -1018,7 +1018,7 @@ struct __pyx_obj_10organismal_11pubsub2_ext___pyx_scope_struct_2___get__ {
 };
 
 
-/* "organismal/pubsub2_ext.pyx":406
+/* "organismal/pubsub2_ext.pyx":413
  *             # Lazy construction
  *             if self._modules is None:
  *                 self._modules = tuple(CisModuleLogic2(self, i)             # <<<<<<<<<<<<<<
@@ -1035,7 +1035,7 @@ struct __pyx_obj_10organismal_11pubsub2_ext___pyx_scope_struct_3_genexpr {
 };
 
 
-/* "organismal/pubsub2_ext.pyx":571
+/* "organismal/pubsub2_ext.pyx":578
  *         return self.get_at(i)
  * 
  *     def __iter__(self):             # <<<<<<<<<<<<<<
@@ -1171,7 +1171,7 @@ struct __pyx_vtabstruct_10organismal_11pubsub2_ext_Network {
 static struct __pyx_vtabstruct_10organismal_11pubsub2_ext_Network *__pyx_vtabptr_10organismal_11pubsub2_ext_Network;
 
 
-/* "organismal/pubsub2_ext.pyx":415
+/* "organismal/pubsub2_ext.pyx":422
  * 
  * 
  * cdef class CisModule:             # <<<<<<<<<<<<<<
@@ -1185,7 +1185,7 @@ struct __pyx_vtabstruct_10organismal_11pubsub2_ext_CisModule {
 static struct __pyx_vtabstruct_10organismal_11pubsub2_ext_CisModule *__pyx_vtabptr_10organismal_11pubsub2_ext_CisModule;
 
 
-/* "organismal/pubsub2_ext.pyx":476
+/* "organismal/pubsub2_ext.pyx":483
  * 
  * 
  * cdef class CisModuleLogic2(CisModule):             # <<<<<<<<<<<<<<
@@ -1199,7 +1199,7 @@ struct __pyx_vtabstruct_10organismal_11pubsub2_ext_CisModuleLogic2 {
 static struct __pyx_vtabstruct_10organismal_11pubsub2_ext_CisModuleLogic2 *__pyx_vtabptr_10organismal_11pubsub2_ext_CisModuleLogic2;
 
 
-/* "organismal/pubsub2_ext.pyx":532
+/* "organismal/pubsub2_ext.pyx":539
  * 
  * 
  * cdef class NetworkCollection:             # <<<<<<<<<<<<<<
@@ -1614,11 +1614,19 @@ static CYTHON_INLINE pubsub2::operand_t __Pyx_PyInt_As_pubsub2_3a__3a_operand_t(
 
 static CYTHON_INLINE PyObject* __Pyx_PyInt_From_pubsub2_3a__3a_int_t(pubsub2::int_t value);
 
+static int __Pyx_Print(PyObject*, PyObject *, int);
+#if CYTHON_COMPILING_IN_PYPY || PY_MAJOR_VERSION >= 3
+static PyObject* __pyx_print = 0;
+static PyObject* __pyx_print_kwargs = 0;
+#endif
+
+static int __Pyx_PrintOne(PyObject* stream, PyObject *o);
+
+static CYTHON_INLINE PyObject* __Pyx_PyInt_From_pubsub2_3a__3a_operand_t(pubsub2::operand_t value);
+
 static CYTHON_INLINE PyObject* __Pyx_PyInt_From_pubsub2_3a__3a_sequence_t(pubsub2::sequence_t value);
 
 static CYTHON_INLINE PyObject* __Pyx_PyInt_From_pubsub2_3a__3a_signal_t(pubsub2::signal_t value);
-
-static CYTHON_INLINE PyObject* __Pyx_PyInt_From_pubsub2_3a__3a_operand_t(pubsub2::operand_t value);
 
 #if CYTHON_CCOMPLEX
   #ifdef __cplusplus
@@ -1990,6 +1998,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_7Network_5rates___get__(str
 static PyObject *__pyx_pf_10organismal_11pubsub2_ext_7Network_7fitness___get__(struct __pyx_obj_10organismal_11pubsub2_ext_Network *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf_10organismal_11pubsub2_ext_7Network_6target___get__(struct __pyx_obj_10organismal_11pubsub2_ext_Network *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf_10organismal_11pubsub2_ext_7Network_8__repr__(struct __pyx_obj_10organismal_11pubsub2_ext_Network *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_10organismal_11pubsub2_ext_7Network_10testing(struct __pyx_obj_10organismal_11pubsub2_ext_Network *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf_10organismal_11pubsub2_ext_7Network_7factory___get__(struct __pyx_obj_10organismal_11pubsub2_ext_Network *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf_10organismal_11pubsub2_ext_7Network_5ready___get__(struct __pyx_obj_10organismal_11pubsub2_ext_Network *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf_10organismal_11pubsub2_ext_7Network_5dirty___get__(struct __pyx_obj_10organismal_11pubsub2_ext_Network *__pyx_v_self); /* proto */
@@ -2101,15 +2110,18 @@ static char __pyx_k_Zg[] = "Zg";
 static char __pyx_k__2[] = "|";
 static char __pyx_k_id[] = "id";
 static char __pyx_k_op[] = "op";
+static char __pyx_k_end[] = "end";
 static char __pyx_k_low[] = "low";
 static char __pyx_k_net[] = "net";
 static char __pyx_k_obj[] = "obj";
+static char __pyx_k_one[] = "one";
 static char __pyx_k_pub[] = "pub";
 static char __pyx_k_str[] = "__str__";
 static char __pyx_k_Gene[] = "<Gene[{}]: {}>";
 static char __pyx_k_args[] = "args";
 static char __pyx_k_base[] = "base";
 static char __pyx_k_copy[] = "__copy__";
+static char __pyx_k_file[] = "file";
 static char __pyx_k_high[] = "high";
 static char __pyx_k_iter[] = "__iter__";
 static char __pyx_k_main[] = "__main__";
@@ -2131,6 +2143,7 @@ static char __pyx_k_error[] = "error";
 static char __pyx_k_flags[] = "flags";
 static char __pyx_k_int32[] = "int32";
 static char __pyx_k_numpy[] = "numpy";
+static char __pyx_k_print[] = "print";
 static char __pyx_k_range[] = "range";
 static char __pyx_k_shape[] = "shape";
 static char __pyx_k_start[] = "start";
@@ -2272,11 +2285,13 @@ static PyObject *__pyx_n_s_copy;
 static PyObject *__pyx_n_s_cue_channels;
 static PyObject *__pyx_n_s_dtype;
 static PyObject *__pyx_n_s_dtype_is_object;
+static PyObject *__pyx_n_s_end;
 static PyObject *__pyx_n_s_enumerate;
 static PyObject *__pyx_n_s_environments;
 static PyObject *__pyx_n_s_error;
 static PyObject *__pyx_n_s_f;
 static PyObject *__pyx_n_s_factory;
+static PyObject *__pyx_n_s_file;
 static PyObject *__pyx_n_s_flags;
 static PyObject *__pyx_n_s_format;
 static PyObject *__pyx_n_s_fortran;
@@ -2311,6 +2326,7 @@ static PyObject *__pyx_n_s_ndim;
 static PyObject *__pyx_n_s_net;
 static PyObject *__pyx_n_s_numpy;
 static PyObject *__pyx_n_s_obj;
+static PyObject *__pyx_n_s_one;
 static PyObject *__pyx_n_s_op;
 static PyObject *__pyx_n_s_operand;
 static PyObject *__pyx_n_s_operands;
@@ -2319,6 +2335,7 @@ static PyObject *__pyx_n_s_out_range;
 static PyObject *__pyx_n_s_pack;
 static PyObject *__pyx_n_s_params;
 static PyObject *__pyx_n_s_parent_identifier;
+static PyObject *__pyx_n_s_print;
 static PyObject *__pyx_n_s_pub;
 static PyObject *__pyx_n_s_pub_range;
 static PyObject *__pyx_n_s_pyx_getbuffer;
@@ -7258,7 +7275,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_7Network_8__repr__(struct _
  *     def __repr__(self):
  *         return "<Network id:{} pt:{}>".format(self.identifier, self.parent_identifier)             # <<<<<<<<<<<<<<
  * 
- * 
+ *     def testing(self):
  */
   __Pyx_XDECREF(__pyx_r);
   __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_kp_s_Network_id_pt, __pyx_n_s_format); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 366; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
@@ -7315,6 +7332,110 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_7Network_8__repr__(struct _
   __Pyx_XDECREF(__pyx_t_5);
   __Pyx_XDECREF(__pyx_t_7);
   __Pyx_AddTraceback("organismal.pubsub2_ext.Network.__repr__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "organismal/pubsub2_ext.pyx":368
+ *         return "<Network id:{} pt:{}>".format(self.identifier, self.parent_identifier)
+ * 
+ *     def testing(self):             # <<<<<<<<<<<<<<
+ *         cdef cGene *g = self.cnetwork.genes[0];
+ *         cdef cCisModule *m = g.modules[0];
+ */
+
+/* Python wrapper */
+static PyObject *__pyx_pw_10organismal_11pubsub2_ext_7Network_11testing(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
+static PyObject *__pyx_pw_10organismal_11pubsub2_ext_7Network_11testing(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused) {
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("testing (wrapper)", 0);
+  __pyx_r = __pyx_pf_10organismal_11pubsub2_ext_7Network_10testing(((struct __pyx_obj_10organismal_11pubsub2_ext_Network *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_10organismal_11pubsub2_ext_7Network_10testing(struct __pyx_obj_10organismal_11pubsub2_ext_Network *__pyx_v_self) {
+  pubsub2::cGene *__pyx_v_g;
+  pubsub2::cCisModule *__pyx_v_m;
+  pubsub2::cCisModuleLogic2 *__pyx_v_ml;
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  pubsub2::cCisModuleLogic2 *__pyx_t_1;
+  PyObject *__pyx_t_2 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("testing", 0);
+
+  /* "organismal/pubsub2_ext.pyx":369
+ * 
+ *     def testing(self):
+ *         cdef cGene *g = self.cnetwork.genes[0];             # <<<<<<<<<<<<<<
+ *         cdef cCisModule *m = g.modules[0];
+ *         print 'one'
+ */
+  __pyx_v_g = (__pyx_v_self->cnetwork->genes[0]);
+
+  /* "organismal/pubsub2_ext.pyx":370
+ *     def testing(self):
+ *         cdef cGene *g = self.cnetwork.genes[0];
+ *         cdef cCisModule *m = g.modules[0];             # <<<<<<<<<<<<<<
+ *         print 'one'
+ *         cdef cCisModuleLogic2 *ml = dynamic_cast_cCisModuleLogic2(m)
+ */
+  __pyx_v_m = (__pyx_v_g->modules[0]);
+
+  /* "organismal/pubsub2_ext.pyx":371
+ *         cdef cGene *g = self.cnetwork.genes[0];
+ *         cdef cCisModule *m = g.modules[0];
+ *         print 'one'             # <<<<<<<<<<<<<<
+ *         cdef cCisModuleLogic2 *ml = dynamic_cast_cCisModuleLogic2(m)
+ *         print ml.op
+ */
+  if (__Pyx_PrintOne(0, __pyx_n_s_one) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 371; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+
+  /* "organismal/pubsub2_ext.pyx":372
+ *         cdef cCisModule *m = g.modules[0];
+ *         print 'one'
+ *         cdef cCisModuleLogic2 *ml = dynamic_cast_cCisModuleLogic2(m)             # <<<<<<<<<<<<<<
+ *         print ml.op
+ * 
+ */
+  __pyx_t_1 = dynamic_cast<pubsub2::cCisModuleLogic2 *>(__pyx_v_m); if (unlikely(__pyx_t_1 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 372; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_v_ml = __pyx_t_1;
+
+  /* "organismal/pubsub2_ext.pyx":373
+ *         print 'one'
+ *         cdef cCisModuleLogic2 *ml = dynamic_cast_cCisModuleLogic2(m)
+ *         print ml.op             # <<<<<<<<<<<<<<
+ * 
+ * 
+ */
+  __pyx_t_2 = __Pyx_PyInt_From_pubsub2_3a__3a_operand_t(__pyx_v_ml->op); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 373; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_2);
+  if (__Pyx_PrintOne(0, __pyx_t_2) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 373; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+
+  /* "organismal/pubsub2_ext.pyx":368
+ *         return "<Network id:{} pt:{}>".format(self.identifier, self.parent_identifier)
+ * 
+ *     def testing(self):             # <<<<<<<<<<<<<<
+ *         cdef cGene *g = self.cnetwork.genes[0];
+ *         cdef cCisModule *m = g.modules[0];
+ */
+
+  /* function exit code */
+  __pyx_r = Py_None; __Pyx_INCREF(Py_None);
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_2);
+  __Pyx_AddTraceback("organismal.pubsub2_ext.Network.testing", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XGIVEREF(__pyx_r);
@@ -7453,7 +7574,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_7Network_5dirty___get__(str
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":384
+/* "organismal/pubsub2_ext.pyx":391
  *             size_t gene_number
  * 
  *     def __cinit__(self, Network n, size_t g):             # <<<<<<<<<<<<<<
@@ -7492,11 +7613,11 @@ static int __pyx_pw_10organismal_11pubsub2_ext_4Gene_1__cinit__(PyObject *__pyx_
         case  1:
         if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_g)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 2, 2, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 384; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+          __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 2, 2, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 391; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 384; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 391; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 2) {
       goto __pyx_L5_argtuple_error;
@@ -7505,17 +7626,17 @@ static int __pyx_pw_10organismal_11pubsub2_ext_4Gene_1__cinit__(PyObject *__pyx_
       values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
     }
     __pyx_v_n = ((struct __pyx_obj_10organismal_11pubsub2_ext_Network *)values[0]);
-    __pyx_v_g = __Pyx_PyInt_As_size_t(values[1]); if (unlikely((__pyx_v_g == (size_t)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 384; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+    __pyx_v_g = __Pyx_PyInt_As_size_t(values[1]); if (unlikely((__pyx_v_g == (size_t)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 391; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 384; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+  __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 391; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
   __pyx_L3_error:;
   __Pyx_AddTraceback("organismal.pubsub2_ext.Gene.__cinit__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_n), __pyx_ptype_10organismal_11pubsub2_ext_Network, 1, "n", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 384; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_n), __pyx_ptype_10organismal_11pubsub2_ext_Network, 1, "n", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 391; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_r = __pyx_pf_10organismal_11pubsub2_ext_4Gene___cinit__(((struct __pyx_obj_10organismal_11pubsub2_ext_Gene *)__pyx_v_self), __pyx_v_n, __pyx_v_g);
 
   /* function exit code */
@@ -7532,7 +7653,7 @@ static int __pyx_pf_10organismal_11pubsub2_ext_4Gene___cinit__(struct __pyx_obj_
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__cinit__", 0);
 
-  /* "organismal/pubsub2_ext.pyx":386
+  /* "organismal/pubsub2_ext.pyx":393
  *     def __cinit__(self, Network n, size_t g):
  *         """This should never be called publicly"""
  *         self.network = n             # <<<<<<<<<<<<<<
@@ -7545,7 +7666,7 @@ static int __pyx_pf_10organismal_11pubsub2_ext_4Gene___cinit__(struct __pyx_obj_
   __Pyx_DECREF(((PyObject *)__pyx_v_self->network));
   __pyx_v_self->network = __pyx_v_n;
 
-  /* "organismal/pubsub2_ext.pyx":387
+  /* "organismal/pubsub2_ext.pyx":394
  *         """This should never be called publicly"""
  *         self.network = n
  *         self.gene_number = g             # <<<<<<<<<<<<<<
@@ -7554,7 +7675,7 @@ static int __pyx_pf_10organismal_11pubsub2_ext_4Gene___cinit__(struct __pyx_obj_
  */
   __pyx_v_self->gene_number = __pyx_v_g;
 
-  /* "organismal/pubsub2_ext.pyx":388
+  /* "organismal/pubsub2_ext.pyx":395
  *         self.network = n
  *         self.gene_number = g
  *         self.cgene = self.network.cnetwork.genes[g]             # <<<<<<<<<<<<<<
@@ -7563,7 +7684,7 @@ static int __pyx_pf_10organismal_11pubsub2_ext_4Gene___cinit__(struct __pyx_obj_
  */
   __pyx_v_self->cgene = (__pyx_v_self->network->cnetwork->genes[__pyx_v_g]);
 
-  /* "organismal/pubsub2_ext.pyx":384
+  /* "organismal/pubsub2_ext.pyx":391
  *             size_t gene_number
  * 
  *     def __cinit__(self, Network n, size_t g):             # <<<<<<<<<<<<<<
@@ -7577,7 +7698,7 @@ static int __pyx_pf_10organismal_11pubsub2_ext_4Gene___cinit__(struct __pyx_obj_
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":391
+/* "organismal/pubsub2_ext.pyx":398
  * 
  *     property sequence:
  *         def __get__(self):             # <<<<<<<<<<<<<<
@@ -7607,7 +7728,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_8sequence___get__(str
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__get__", 0);
 
-  /* "organismal/pubsub2_ext.pyx":392
+  /* "organismal/pubsub2_ext.pyx":399
  *     property sequence:
  *         def __get__(self):
  *             return self.cgene.sequence             # <<<<<<<<<<<<<<
@@ -7615,13 +7736,13 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_8sequence___get__(str
  *     property pub:
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_pubsub2_3a__3a_sequence_t(__pyx_v_self->cgene->sequence); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 392; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyInt_From_pubsub2_3a__3a_sequence_t(__pyx_v_self->cgene->sequence); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 399; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "organismal/pubsub2_ext.pyx":391
+  /* "organismal/pubsub2_ext.pyx":398
  * 
  *     property sequence:
  *         def __get__(self):             # <<<<<<<<<<<<<<
@@ -7640,7 +7761,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_8sequence___get__(str
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":395
+/* "organismal/pubsub2_ext.pyx":402
  * 
  *     property pub:
  *         def __get__(self):             # <<<<<<<<<<<<<<
@@ -7670,7 +7791,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_3pub___get__(struct _
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__get__", 0);
 
-  /* "organismal/pubsub2_ext.pyx":396
+  /* "organismal/pubsub2_ext.pyx":403
  *     property pub:
  *         def __get__(self):
  *             return self.cgene.pub             # <<<<<<<<<<<<<<
@@ -7678,13 +7799,13 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_3pub___get__(struct _
  *     property module_count:
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_pubsub2_3a__3a_signal_t(__pyx_v_self->cgene->pub); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 396; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyInt_From_pubsub2_3a__3a_signal_t(__pyx_v_self->cgene->pub); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 403; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "organismal/pubsub2_ext.pyx":395
+  /* "organismal/pubsub2_ext.pyx":402
  * 
  *     property pub:
  *         def __get__(self):             # <<<<<<<<<<<<<<
@@ -7703,7 +7824,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_3pub___get__(struct _
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":399
+/* "organismal/pubsub2_ext.pyx":406
  * 
  *     property module_count:
  *         def __get__(self):             # <<<<<<<<<<<<<<
@@ -7733,7 +7854,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_12module_count___get_
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__get__", 0);
 
-  /* "organismal/pubsub2_ext.pyx":400
+  /* "organismal/pubsub2_ext.pyx":407
  *     property module_count:
  *         def __get__(self):
  *             return self.cgene.modules.size()             # <<<<<<<<<<<<<<
@@ -7741,13 +7862,13 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_12module_count___get_
  *     property modules:
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_FromSize_t(__pyx_v_self->cgene->modules.size()); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 400; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyInt_FromSize_t(__pyx_v_self->cgene->modules.size()); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 407; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "organismal/pubsub2_ext.pyx":399
+  /* "organismal/pubsub2_ext.pyx":406
  * 
  *     property module_count:
  *         def __get__(self):             # <<<<<<<<<<<<<<
@@ -7766,7 +7887,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_12module_count___get_
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":403
+/* "organismal/pubsub2_ext.pyx":410
  * 
  *     property modules:
  *         def __get__(self):             # <<<<<<<<<<<<<<
@@ -7788,7 +7909,7 @@ static PyObject *__pyx_pw_10organismal_11pubsub2_ext_4Gene_7modules_1__get__(PyO
 }
 static PyObject *__pyx_gb_10organismal_11pubsub2_ext_4Gene_7modules_7__get___2generator2(__pyx_GeneratorObject *__pyx_generator, PyObject *__pyx_sent_value); /* proto */
 
-/* "organismal/pubsub2_ext.pyx":406
+/* "organismal/pubsub2_ext.pyx":413
  *             # Lazy construction
  *             if self._modules is None:
  *                 self._modules = tuple(CisModuleLogic2(self, i)             # <<<<<<<<<<<<<<
@@ -7814,7 +7935,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_7modules_7__get___gen
   __Pyx_INCREF(((PyObject *)__pyx_cur_scope->__pyx_outer_scope));
   __Pyx_GIVEREF(__pyx_cur_scope->__pyx_outer_scope);
   {
-    __pyx_GeneratorObject *gen = __Pyx_Generator_New((__pyx_generator_body_t) __pyx_gb_10organismal_11pubsub2_ext_4Gene_7modules_7__get___2generator2, (PyObject *) __pyx_cur_scope, __pyx_n_s_genexpr, __pyx_n_s_Gene___get___locals_genexpr); if (unlikely(!gen)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 406; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_GeneratorObject *gen = __Pyx_Generator_New((__pyx_generator_body_t) __pyx_gb_10organismal_11pubsub2_ext_4Gene_7modules_7__get___2generator2, (PyObject *) __pyx_cur_scope, __pyx_n_s_genexpr, __pyx_n_s_Gene___get___locals_genexpr); if (unlikely(!gen)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 413; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_DECREF(__pyx_cur_scope);
     __Pyx_RefNannyFinishContext();
     return (PyObject *) gen;
@@ -7852,33 +7973,33 @@ static PyObject *__pyx_gb_10organismal_11pubsub2_ext_4Gene_7modules_7__get___2ge
     return NULL;
   }
   __pyx_L3_first_run:;
-  if (unlikely(!__pyx_sent_value)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 406; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__pyx_sent_value)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 413; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
 
-  /* "organismal/pubsub2_ext.pyx":407
+  /* "organismal/pubsub2_ext.pyx":414
  *             if self._modules is None:
  *                 self._modules = tuple(CisModuleLogic2(self, i)
  *                                       for i in range(self.module_count))             # <<<<<<<<<<<<<<
  *             return self._modules
  * 
  */
-  if (unlikely(!__pyx_cur_scope->__pyx_outer_scope->__pyx_v_self)) { __Pyx_RaiseClosureNameError("self"); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 407; __pyx_clineno = __LINE__; goto __pyx_L1_error;} }
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_cur_scope->__pyx_outer_scope->__pyx_v_self), __pyx_n_s_module_count); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 407; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__pyx_cur_scope->__pyx_outer_scope->__pyx_v_self)) { __Pyx_RaiseClosureNameError("self"); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 414; __pyx_clineno = __LINE__; goto __pyx_L1_error;} }
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_cur_scope->__pyx_outer_scope->__pyx_v_self), __pyx_n_s_module_count); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 414; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = PyTuple_New(1); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 407; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_2 = PyTuple_New(1); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 414; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_2);
   PyTuple_SET_ITEM(__pyx_t_2, 0, __pyx_t_1);
   __Pyx_GIVEREF(__pyx_t_1);
   __pyx_t_1 = 0;
-  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_builtin_range, __pyx_t_2, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 407; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_builtin_range, __pyx_t_2, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 414; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   if (likely(PyList_CheckExact(__pyx_t_1)) || PyTuple_CheckExact(__pyx_t_1)) {
     __pyx_t_2 = __pyx_t_1; __Pyx_INCREF(__pyx_t_2); __pyx_t_3 = 0;
     __pyx_t_4 = NULL;
   } else {
-    __pyx_t_3 = -1; __pyx_t_2 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 407; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_3 = -1; __pyx_t_2 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 414; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_4 = Py_TYPE(__pyx_t_2)->tp_iternext; if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 407; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_4 = Py_TYPE(__pyx_t_2)->tp_iternext; if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 414; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   }
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   for (;;) {
@@ -7886,16 +8007,16 @@ static PyObject *__pyx_gb_10organismal_11pubsub2_ext_4Gene_7modules_7__get___2ge
       if (likely(PyList_CheckExact(__pyx_t_2))) {
         if (__pyx_t_3 >= PyList_GET_SIZE(__pyx_t_2)) break;
         #if CYTHON_COMPILING_IN_CPYTHON
-        __pyx_t_1 = PyList_GET_ITEM(__pyx_t_2, __pyx_t_3); __Pyx_INCREF(__pyx_t_1); __pyx_t_3++; if (unlikely(0 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 407; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        __pyx_t_1 = PyList_GET_ITEM(__pyx_t_2, __pyx_t_3); __Pyx_INCREF(__pyx_t_1); __pyx_t_3++; if (unlikely(0 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 414; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
         #else
-        __pyx_t_1 = PySequence_ITEM(__pyx_t_2, __pyx_t_3); __pyx_t_3++; if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 407; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        __pyx_t_1 = PySequence_ITEM(__pyx_t_2, __pyx_t_3); __pyx_t_3++; if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 414; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
         #endif
       } else {
         if (__pyx_t_3 >= PyTuple_GET_SIZE(__pyx_t_2)) break;
         #if CYTHON_COMPILING_IN_CPYTHON
-        __pyx_t_1 = PyTuple_GET_ITEM(__pyx_t_2, __pyx_t_3); __Pyx_INCREF(__pyx_t_1); __pyx_t_3++; if (unlikely(0 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 407; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        __pyx_t_1 = PyTuple_GET_ITEM(__pyx_t_2, __pyx_t_3); __Pyx_INCREF(__pyx_t_1); __pyx_t_3++; if (unlikely(0 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 414; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
         #else
-        __pyx_t_1 = PySequence_ITEM(__pyx_t_2, __pyx_t_3); __pyx_t_3++; if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 407; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        __pyx_t_1 = PySequence_ITEM(__pyx_t_2, __pyx_t_3); __pyx_t_3++; if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 414; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
         #endif
       }
     } else {
@@ -7904,7 +8025,7 @@ static PyObject *__pyx_gb_10organismal_11pubsub2_ext_4Gene_7modules_7__get___2ge
         PyObject* exc_type = PyErr_Occurred();
         if (exc_type) {
           if (likely(exc_type == PyExc_StopIteration || PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
-          else {__pyx_filename = __pyx_f[0]; __pyx_lineno = 407; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+          else {__pyx_filename = __pyx_f[0]; __pyx_lineno = 414; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
         }
         break;
       }
@@ -7915,15 +8036,15 @@ static PyObject *__pyx_gb_10organismal_11pubsub2_ext_4Gene_7modules_7__get___2ge
     __Pyx_GIVEREF(__pyx_t_1);
     __pyx_t_1 = 0;
 
-    /* "organismal/pubsub2_ext.pyx":406
+    /* "organismal/pubsub2_ext.pyx":413
  *             # Lazy construction
  *             if self._modules is None:
  *                 self._modules = tuple(CisModuleLogic2(self, i)             # <<<<<<<<<<<<<<
  *                                       for i in range(self.module_count))
  *             return self._modules
  */
-    if (unlikely(!__pyx_cur_scope->__pyx_outer_scope->__pyx_v_self)) { __Pyx_RaiseClosureNameError("self"); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 406; __pyx_clineno = __LINE__; goto __pyx_L1_error;} }
-    __pyx_t_1 = PyTuple_New(2); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 406; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    if (unlikely(!__pyx_cur_scope->__pyx_outer_scope->__pyx_v_self)) { __Pyx_RaiseClosureNameError("self"); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 413; __pyx_clineno = __LINE__; goto __pyx_L1_error;} }
+    __pyx_t_1 = PyTuple_New(2); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 413; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_1);
     __Pyx_INCREF(((PyObject *)__pyx_cur_scope->__pyx_outer_scope->__pyx_v_self));
     PyTuple_SET_ITEM(__pyx_t_1, 0, ((PyObject *)__pyx_cur_scope->__pyx_outer_scope->__pyx_v_self));
@@ -7931,7 +8052,7 @@ static PyObject *__pyx_gb_10organismal_11pubsub2_ext_4Gene_7modules_7__get___2ge
     __Pyx_INCREF(__pyx_cur_scope->__pyx_v_i);
     PyTuple_SET_ITEM(__pyx_t_1, 1, __pyx_cur_scope->__pyx_v_i);
     __Pyx_GIVEREF(__pyx_cur_scope->__pyx_v_i);
-    __pyx_t_5 = __Pyx_PyObject_Call(((PyObject *)((PyObject*)__pyx_ptype_10organismal_11pubsub2_ext_CisModuleLogic2)), __pyx_t_1, NULL); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 406; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_5 = __Pyx_PyObject_Call(((PyObject *)((PyObject*)__pyx_ptype_10organismal_11pubsub2_ext_CisModuleLogic2)), __pyx_t_1, NULL); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 413; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_5);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     __pyx_r = __pyx_t_5;
@@ -7951,9 +8072,9 @@ static PyObject *__pyx_gb_10organismal_11pubsub2_ext_4Gene_7modules_7__get___2ge
     __Pyx_XGOTREF(__pyx_t_2);
     __pyx_t_3 = __pyx_cur_scope->__pyx_t_1;
     __pyx_t_4 = __pyx_cur_scope->__pyx_t_2;
-    if (unlikely(!__pyx_sent_value)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 406; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    if (unlikely(!__pyx_sent_value)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 413; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
 
-    /* "organismal/pubsub2_ext.pyx":407
+    /* "organismal/pubsub2_ext.pyx":414
  *             if self._modules is None:
  *                 self._modules = tuple(CisModuleLogic2(self, i)
  *                                       for i in range(self.module_count))             # <<<<<<<<<<<<<<
@@ -7963,7 +8084,7 @@ static PyObject *__pyx_gb_10organismal_11pubsub2_ext_4Gene_7modules_7__get___2ge
   }
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "organismal/pubsub2_ext.pyx":406
+  /* "organismal/pubsub2_ext.pyx":413
  *             # Lazy construction
  *             if self._modules is None:
  *                 self._modules = tuple(CisModuleLogic2(self, i)             # <<<<<<<<<<<<<<
@@ -7987,7 +8108,7 @@ static PyObject *__pyx_gb_10organismal_11pubsub2_ext_4Gene_7modules_7__get___2ge
   return NULL;
 }
 
-/* "organismal/pubsub2_ext.pyx":403
+/* "organismal/pubsub2_ext.pyx":410
  * 
  *     property modules:
  *         def __get__(self):             # <<<<<<<<<<<<<<
@@ -8017,7 +8138,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_7modules___get__(stru
   __Pyx_INCREF((PyObject *)__pyx_cur_scope->__pyx_v_self);
   __Pyx_GIVEREF((PyObject *)__pyx_cur_scope->__pyx_v_self);
 
-  /* "organismal/pubsub2_ext.pyx":405
+  /* "organismal/pubsub2_ext.pyx":412
  *         def __get__(self):
  *             # Lazy construction
  *             if self._modules is None:             # <<<<<<<<<<<<<<
@@ -8028,21 +8149,21 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_7modules___get__(stru
   __pyx_t_2 = (__pyx_t_1 != 0);
   if (__pyx_t_2) {
 
-    /* "organismal/pubsub2_ext.pyx":406
+    /* "organismal/pubsub2_ext.pyx":413
  *             # Lazy construction
  *             if self._modules is None:
  *                 self._modules = tuple(CisModuleLogic2(self, i)             # <<<<<<<<<<<<<<
  *                                       for i in range(self.module_count))
  *             return self._modules
  */
-    __pyx_t_3 = __pyx_pf_10organismal_11pubsub2_ext_4Gene_7modules_7__get___genexpr(((PyObject*)__pyx_cur_scope)); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 406; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_3 = __pyx_pf_10organismal_11pubsub2_ext_4Gene_7modules_7__get___genexpr(((PyObject*)__pyx_cur_scope)); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 413; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_4 = PyTuple_New(1); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 406; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_4 = PyTuple_New(1); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 413; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_4);
     PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_t_3);
     __Pyx_GIVEREF(__pyx_t_3);
     __pyx_t_3 = 0;
-    __pyx_t_3 = __Pyx_PyObject_Call(((PyObject *)((PyObject*)(&PyTuple_Type))), __pyx_t_4, NULL); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 406; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_3 = __Pyx_PyObject_Call(((PyObject *)((PyObject*)(&PyTuple_Type))), __pyx_t_4, NULL); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 413; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     __Pyx_GIVEREF(__pyx_t_3);
@@ -8054,7 +8175,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_7modules___get__(stru
   }
   __pyx_L3:;
 
-  /* "organismal/pubsub2_ext.pyx":408
+  /* "organismal/pubsub2_ext.pyx":415
  *                 self._modules = tuple(CisModuleLogic2(self, i)
  *                                       for i in range(self.module_count))
  *             return self._modules             # <<<<<<<<<<<<<<
@@ -8066,7 +8187,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_7modules___get__(stru
   __pyx_r = __pyx_cur_scope->__pyx_v_self->_modules;
   goto __pyx_L0;
 
-  /* "organismal/pubsub2_ext.pyx":403
+  /* "organismal/pubsub2_ext.pyx":410
  * 
  *     property modules:
  *         def __get__(self):             # <<<<<<<<<<<<<<
@@ -8087,7 +8208,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_7modules___get__(stru
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":410
+/* "organismal/pubsub2_ext.pyx":417
  *             return self._modules
  * 
  *     def __repr__(self):             # <<<<<<<<<<<<<<
@@ -8126,7 +8247,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_2__repr__(struct __py
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__repr__", 0);
 
-  /* "organismal/pubsub2_ext.pyx":411
+  /* "organismal/pubsub2_ext.pyx":418
  * 
  *     def __repr__(self):
  *         p = self.network.factory.params             # <<<<<<<<<<<<<<
@@ -8138,7 +8259,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_2__repr__(struct __py
   __pyx_v_p = __pyx_t_1;
   __pyx_t_1 = 0;
 
-  /* "organismal/pubsub2_ext.pyx":412
+  /* "organismal/pubsub2_ext.pyx":419
  *     def __repr__(self):
  *         p = self.network.factory.params
  *         return "<Gene[{}]: {}>".format(self.sequence, p.name_for_channel(self.pub))             # <<<<<<<<<<<<<<
@@ -8146,13 +8267,13 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_2__repr__(struct __py
  * 
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_kp_s_Gene, __pyx_n_s_format); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 412; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_kp_s_Gene, __pyx_n_s_format); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 419; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_sequence); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 412; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_sequence); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 419; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_p, __pyx_n_s_name_for_channel); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 412; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_p, __pyx_n_s_name_for_channel); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 419; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_5);
-  __pyx_t_6 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_pub); if (unlikely(!__pyx_t_6)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 412; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_6 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_pub); if (unlikely(!__pyx_t_6)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 419; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_6);
   __pyx_t_7 = NULL;
   if (CYTHON_COMPILING_IN_CPYTHON && likely(PyMethod_Check(__pyx_t_5))) {
@@ -8165,17 +8286,17 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_2__repr__(struct __py
     }
   }
   if (!__pyx_t_7) {
-    __pyx_t_4 = __Pyx_PyObject_CallOneArg(__pyx_t_5, __pyx_t_6); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 412; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_4 = __Pyx_PyObject_CallOneArg(__pyx_t_5, __pyx_t_6); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 419; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
     __Pyx_GOTREF(__pyx_t_4);
   } else {
-    __pyx_t_8 = PyTuple_New(1+1); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 412; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_8 = PyTuple_New(1+1); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 419; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_8);
     PyTuple_SET_ITEM(__pyx_t_8, 0, __pyx_t_7); __Pyx_GIVEREF(__pyx_t_7); __pyx_t_7 = NULL;
     PyTuple_SET_ITEM(__pyx_t_8, 0+1, __pyx_t_6);
     __Pyx_GIVEREF(__pyx_t_6);
     __pyx_t_6 = 0;
-    __pyx_t_4 = __Pyx_PyObject_Call(__pyx_t_5, __pyx_t_8, NULL); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 412; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_4 = __Pyx_PyObject_Call(__pyx_t_5, __pyx_t_8, NULL); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 419; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
   }
@@ -8192,7 +8313,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_2__repr__(struct __py
       __pyx_t_9 = 1;
     }
   }
-  __pyx_t_8 = PyTuple_New(2+__pyx_t_9); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 412; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_8 = PyTuple_New(2+__pyx_t_9); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 419; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_8);
   if (__pyx_t_5) {
     PyTuple_SET_ITEM(__pyx_t_8, 0, __pyx_t_5); __Pyx_GIVEREF(__pyx_t_5); __pyx_t_5 = NULL;
@@ -8203,7 +8324,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_2__repr__(struct __py
   __Pyx_GIVEREF(__pyx_t_4);
   __pyx_t_3 = 0;
   __pyx_t_4 = 0;
-  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_8, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 412; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_8, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 419; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
@@ -8211,7 +8332,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_2__repr__(struct __py
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "organismal/pubsub2_ext.pyx":410
+  /* "organismal/pubsub2_ext.pyx":417
  *             return self._modules
  * 
  *     def __repr__(self):             # <<<<<<<<<<<<<<
@@ -8238,7 +8359,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_2__repr__(struct __py
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":381
+/* "organismal/pubsub2_ext.pyx":388
  *             # By holding this ref, we ensure the pointer is always valid (pace
  *             # what I said above. DON'T mess with the genes!)
  *             Network network             # <<<<<<<<<<<<<<
@@ -8275,7 +8396,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_7network___get__(stru
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":382
+/* "organismal/pubsub2_ext.pyx":389
  *             # what I said above. DON'T mess with the genes!)
  *             Network network
  *             size_t gene_number             # <<<<<<<<<<<<<<
@@ -8305,7 +8426,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_11gene_number___get__
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__get__", 0);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_FromSize_t(__pyx_v_self->gene_number); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 382; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyInt_FromSize_t(__pyx_v_self->gene_number); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 389; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -8322,7 +8443,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_4Gene_11gene_number___get__
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":424
+/* "organismal/pubsub2_ext.pyx":431
  *             Gene gene
  * 
  *     def __cinit__(self, Gene g, size_t i):             # <<<<<<<<<<<<<<
@@ -8361,11 +8482,11 @@ static int __pyx_pw_10organismal_11pubsub2_ext_9CisModule_1__cinit__(PyObject *_
         case  1:
         if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_i)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 2, 2, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 424; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+          __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 2, 2, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 431; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 424; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 431; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 2) {
       goto __pyx_L5_argtuple_error;
@@ -8374,17 +8495,17 @@ static int __pyx_pw_10organismal_11pubsub2_ext_9CisModule_1__cinit__(PyObject *_
       values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
     }
     __pyx_v_g = ((struct __pyx_obj_10organismal_11pubsub2_ext_Gene *)values[0]);
-    __pyx_v_i = __Pyx_PyInt_As_size_t(values[1]); if (unlikely((__pyx_v_i == (size_t)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 424; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+    __pyx_v_i = __Pyx_PyInt_As_size_t(values[1]); if (unlikely((__pyx_v_i == (size_t)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 431; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 424; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+  __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 431; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
   __pyx_L3_error:;
   __Pyx_AddTraceback("organismal.pubsub2_ext.CisModule.__cinit__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_g), __pyx_ptype_10organismal_11pubsub2_ext_Gene, 1, "g", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 424; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_g), __pyx_ptype_10organismal_11pubsub2_ext_Gene, 1, "g", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 431; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_r = __pyx_pf_10organismal_11pubsub2_ext_9CisModule___cinit__(((struct __pyx_obj_10organismal_11pubsub2_ext_CisModule *)__pyx_v_self), __pyx_v_g, __pyx_v_i);
 
   /* function exit code */
@@ -8404,7 +8525,7 @@ static int __pyx_pf_10organismal_11pubsub2_ext_9CisModule___cinit__(struct __pyx
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__cinit__", 0);
 
-  /* "organismal/pubsub2_ext.pyx":425
+  /* "organismal/pubsub2_ext.pyx":432
  * 
  *     def __cinit__(self, Gene g, size_t i):
  *         self.gene = g             # <<<<<<<<<<<<<<
@@ -8417,7 +8538,7 @@ static int __pyx_pf_10organismal_11pubsub2_ext_9CisModule___cinit__(struct __pyx
   __Pyx_DECREF(((PyObject *)__pyx_v_self->gene));
   __pyx_v_self->gene = __pyx_v_g;
 
-  /* "organismal/pubsub2_ext.pyx":426
+  /* "organismal/pubsub2_ext.pyx":433
  *     def __cinit__(self, Gene g, size_t i):
  *         self.gene = g
  *         assert i < g.cgene.modules.size()             # <<<<<<<<<<<<<<
@@ -8428,12 +8549,12 @@ static int __pyx_pf_10organismal_11pubsub2_ext_9CisModule___cinit__(struct __pyx
   if (unlikely(!Py_OptimizeFlag)) {
     if (unlikely(!((__pyx_v_i < __pyx_v_g->cgene->modules.size()) != 0))) {
       PyErr_SetNone(PyExc_AssertionError);
-      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 426; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 433; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     }
   }
   #endif
 
-  /* "organismal/pubsub2_ext.pyx":427
+  /* "organismal/pubsub2_ext.pyx":434
  *         self.gene = g
  *         assert i < g.cgene.modules.size()
  *         self.ccismodule = g.cgene.modules[i]             # <<<<<<<<<<<<<<
@@ -8442,7 +8563,7 @@ static int __pyx_pf_10organismal_11pubsub2_ext_9CisModule___cinit__(struct __pyx
  */
   __pyx_v_self->ccismodule = (__pyx_v_g->cgene->modules[__pyx_v_i]);
 
-  /* "organismal/pubsub2_ext.pyx":424
+  /* "organismal/pubsub2_ext.pyx":431
  *             Gene gene
  * 
  *     def __cinit__(self, Gene g, size_t i):             # <<<<<<<<<<<<<<
@@ -8461,7 +8582,7 @@ static int __pyx_pf_10organismal_11pubsub2_ext_9CisModule___cinit__(struct __pyx
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":429
+/* "organismal/pubsub2_ext.pyx":436
  *         self.ccismodule = g.cgene.modules[i]
  * 
  *     def site_count(self):             # <<<<<<<<<<<<<<
@@ -8491,7 +8612,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_9CisModule_2site_count(stru
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("site_count", 0);
 
-  /* "organismal/pubsub2_ext.pyx":430
+  /* "organismal/pubsub2_ext.pyx":437
  * 
  *     def site_count(self):
  *         return self.ccismodule.site_count()             # <<<<<<<<<<<<<<
@@ -8499,13 +8620,13 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_9CisModule_2site_count(stru
  *     def get_site(self, size_t i):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_FromSize_t(__pyx_v_self->ccismodule->site_count()); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 430; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyInt_FromSize_t(__pyx_v_self->ccismodule->site_count()); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 437; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "organismal/pubsub2_ext.pyx":429
+  /* "organismal/pubsub2_ext.pyx":436
  *         self.ccismodule = g.cgene.modules[i]
  * 
  *     def site_count(self):             # <<<<<<<<<<<<<<
@@ -8524,7 +8645,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_9CisModule_2site_count(stru
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":432
+/* "organismal/pubsub2_ext.pyx":439
  *         return self.ccismodule.site_count()
  * 
  *     def get_site(self, size_t i):             # <<<<<<<<<<<<<<
@@ -8543,7 +8664,7 @@ static PyObject *__pyx_pw_10organismal_11pubsub2_ext_9CisModule_5get_site(PyObje
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("get_site (wrapper)", 0);
   assert(__pyx_arg_i); {
-    __pyx_v_i = __Pyx_PyInt_As_size_t(__pyx_arg_i); if (unlikely((__pyx_v_i == (size_t)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 432; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+    __pyx_v_i = __Pyx_PyInt_As_size_t(__pyx_arg_i); if (unlikely((__pyx_v_i == (size_t)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 439; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -8567,7 +8688,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_9CisModule_4get_site(struct
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("get_site", 0);
 
-  /* "organismal/pubsub2_ext.pyx":433
+  /* "organismal/pubsub2_ext.pyx":440
  * 
  *     def get_site(self, size_t i):
  *         assert i < self.ccismodule.site_count()             # <<<<<<<<<<<<<<
@@ -8578,12 +8699,12 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_9CisModule_4get_site(struct
   if (unlikely(!Py_OptimizeFlag)) {
     if (unlikely(!((__pyx_v_i < __pyx_v_self->ccismodule->site_count()) != 0))) {
       PyErr_SetNone(PyExc_AssertionError);
-      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 433; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 440; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     }
   }
   #endif
 
-  /* "organismal/pubsub2_ext.pyx":434
+  /* "organismal/pubsub2_ext.pyx":441
  *     def get_site(self, size_t i):
  *         assert i < self.ccismodule.site_count()
  *         return self.ccismodule.get_site_channel(i)             # <<<<<<<<<<<<<<
@@ -8591,13 +8712,13 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_9CisModule_4get_site(struct
  *     cdef reset_network(self):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_pubsub2_3a__3a_signal_t(__pyx_v_self->ccismodule->get_site_channel(__pyx_v_i)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 434; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyInt_From_pubsub2_3a__3a_signal_t(__pyx_v_self->ccismodule->get_site_channel(__pyx_v_i)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 441; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "organismal/pubsub2_ext.pyx":432
+  /* "organismal/pubsub2_ext.pyx":439
  *         return self.ccismodule.site_count()
  * 
  *     def get_site(self, size_t i):             # <<<<<<<<<<<<<<
@@ -8616,7 +8737,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_9CisModule_4get_site(struct
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":436
+/* "organismal/pubsub2_ext.pyx":443
  *         return self.ccismodule.get_site_channel(i)
  * 
  *     cdef reset_network(self):             # <<<<<<<<<<<<<<
@@ -8629,7 +8750,7 @@ static PyObject *__pyx_f_10organismal_11pubsub2_ext_9CisModule_reset_network(str
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("reset_network", 0);
 
-  /* "organismal/pubsub2_ext.pyx":437
+  /* "organismal/pubsub2_ext.pyx":444
  * 
  *     cdef reset_network(self):
  *         self.gene.network._attractors = None             # <<<<<<<<<<<<<<
@@ -8642,7 +8763,7 @@ static PyObject *__pyx_f_10organismal_11pubsub2_ext_9CisModule_reset_network(str
   __Pyx_DECREF(__pyx_v_self->gene->network->_attractors);
   __pyx_v_self->gene->network->_attractors = Py_None;
 
-  /* "organismal/pubsub2_ext.pyx":438
+  /* "organismal/pubsub2_ext.pyx":445
  *     cdef reset_network(self):
  *         self.gene.network._attractors = None
  *         self.gene.network._rates = None             # <<<<<<<<<<<<<<
@@ -8655,7 +8776,7 @@ static PyObject *__pyx_f_10organismal_11pubsub2_ext_9CisModule_reset_network(str
   __Pyx_DECREF(__pyx_v_self->gene->network->_rates);
   __pyx_v_self->gene->network->_rates = Py_None;
 
-  /* "organismal/pubsub2_ext.pyx":439
+  /* "organismal/pubsub2_ext.pyx":446
  *         self.gene.network._attractors = None
  *         self.gene.network._rates = None
  *         self.gene.network.cnetwork.calc_attractors()             # <<<<<<<<<<<<<<
@@ -8664,7 +8785,7 @@ static PyObject *__pyx_f_10organismal_11pubsub2_ext_9CisModule_reset_network(str
  */
   __pyx_v_self->gene->network->cnetwork->calc_attractors();
 
-  /* "organismal/pubsub2_ext.pyx":436
+  /* "organismal/pubsub2_ext.pyx":443
  *         return self.ccismodule.get_site_channel(i)
  * 
  *     cdef reset_network(self):             # <<<<<<<<<<<<<<
@@ -8679,7 +8800,7 @@ static PyObject *__pyx_f_10organismal_11pubsub2_ext_9CisModule_reset_network(str
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":472
+/* "organismal/pubsub2_ext.pyx":479
  *     #     return self.ccismodule.test(a, b)
  * 
  *     def is_active(self, ChannelState p):             # <<<<<<<<<<<<<<
@@ -8696,7 +8817,7 @@ static PyObject *__pyx_pw_10organismal_11pubsub2_ext_9CisModule_7is_active(PyObj
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("is_active (wrapper)", 0);
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_p), __pyx_ptype_10organismal_11pubsub2_ext_ChannelState, 1, "p", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 472; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_p), __pyx_ptype_10organismal_11pubsub2_ext_ChannelState, 1, "p", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 479; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_r = __pyx_pf_10organismal_11pubsub2_ext_9CisModule_6is_active(((struct __pyx_obj_10organismal_11pubsub2_ext_CisModule *)__pyx_v_self), ((struct __pyx_obj_10organismal_11pubsub2_ext_ChannelState *)__pyx_v_p));
 
   /* function exit code */
@@ -8717,7 +8838,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_9CisModule_6is_active(struc
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("is_active", 0);
 
-  /* "organismal/pubsub2_ext.pyx":473
+  /* "organismal/pubsub2_ext.pyx":480
  * 
  *     def is_active(self, ChannelState p):
  *         return self.ccismodule.is_active(p.cchannel_state)             # <<<<<<<<<<<<<<
@@ -8725,13 +8846,13 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_9CisModule_6is_active(struc
  * 
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyBool_FromLong(__pyx_v_self->ccismodule->is_active(__pyx_v_p->__pyx_base.cchannel_state)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 473; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyBool_FromLong(__pyx_v_self->ccismodule->is_active(__pyx_v_p->__pyx_base.cchannel_state)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 480; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "organismal/pubsub2_ext.pyx":472
+  /* "organismal/pubsub2_ext.pyx":479
  *     #     return self.ccismodule.test(a, b)
  * 
  *     def is_active(self, ChannelState p):             # <<<<<<<<<<<<<<
@@ -8750,7 +8871,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_9CisModule_6is_active(struc
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":422
+/* "organismal/pubsub2_ext.pyx":429
  * 
  *         readonly:
  *             Gene gene             # <<<<<<<<<<<<<<
@@ -8787,7 +8908,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_9CisModule_4gene___get__(st
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":480
+/* "organismal/pubsub2_ext.pyx":487
  *         cCisModuleLogic2 *logic2
  * 
  *     def __cinit__(self, Gene g, size_t i):             # <<<<<<<<<<<<<<
@@ -8826,11 +8947,11 @@ static int __pyx_pw_10organismal_11pubsub2_ext_15CisModuleLogic2_1__cinit__(PyOb
         case  1:
         if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_i)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 2, 2, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 480; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+          __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 2, 2, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 487; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 480; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 487; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 2) {
       goto __pyx_L5_argtuple_error;
@@ -8839,17 +8960,17 @@ static int __pyx_pw_10organismal_11pubsub2_ext_15CisModuleLogic2_1__cinit__(PyOb
       values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
     }
     __pyx_v_g = ((struct __pyx_obj_10organismal_11pubsub2_ext_Gene *)values[0]);
-    __pyx_v_i = __Pyx_PyInt_As_size_t(values[1]); if (unlikely((__pyx_v_i == (size_t)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 480; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+    __pyx_v_i = __Pyx_PyInt_As_size_t(values[1]); if (unlikely((__pyx_v_i == (size_t)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 487; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 480; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+  __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 487; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
   __pyx_L3_error:;
   __Pyx_AddTraceback("organismal.pubsub2_ext.CisModuleLogic2.__cinit__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_g), __pyx_ptype_10organismal_11pubsub2_ext_Gene, 1, "g", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 480; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_g), __pyx_ptype_10organismal_11pubsub2_ext_Gene, 1, "g", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 487; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_r = __pyx_pf_10organismal_11pubsub2_ext_15CisModuleLogic2___cinit__(((struct __pyx_obj_10organismal_11pubsub2_ext_CisModuleLogic2 *)__pyx_v_self), __pyx_v_g, __pyx_v_i);
 
   /* function exit code */
@@ -8870,17 +8991,17 @@ static int __pyx_pf_10organismal_11pubsub2_ext_15CisModuleLogic2___cinit__(struc
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__cinit__", 0);
 
-  /* "organismal/pubsub2_ext.pyx":481
+  /* "organismal/pubsub2_ext.pyx":488
  * 
  *     def __cinit__(self, Gene g, size_t i):
  *         self.logic2 = dynamic_cast_cCisModuleLogic2(self.ccismodule)             # <<<<<<<<<<<<<<
  * 
  *     property op:
  */
-  __pyx_t_1 = dynamic_cast<pubsub2::cCisModuleLogic2 *>(__pyx_v_self->__pyx_base.ccismodule); if (unlikely(__pyx_t_1 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 481; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = dynamic_cast<pubsub2::cCisModuleLogic2 *>(__pyx_v_self->__pyx_base.ccismodule); if (unlikely(__pyx_t_1 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 488; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_v_self->logic2 = __pyx_t_1;
 
-  /* "organismal/pubsub2_ext.pyx":480
+  /* "organismal/pubsub2_ext.pyx":487
  *         cCisModuleLogic2 *logic2
  * 
  *     def __cinit__(self, Gene g, size_t i):             # <<<<<<<<<<<<<<
@@ -8899,7 +9020,7 @@ static int __pyx_pf_10organismal_11pubsub2_ext_15CisModuleLogic2___cinit__(struc
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":484
+/* "organismal/pubsub2_ext.pyx":491
  * 
  *     property op:
  *         def __get__(self):             # <<<<<<<<<<<<<<
@@ -8929,7 +9050,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15CisModuleLogic2_2op___get
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__get__", 0);
 
-  /* "organismal/pubsub2_ext.pyx":485
+  /* "organismal/pubsub2_ext.pyx":492
  *     property op:
  *         def __get__(self):
  *             return self.logic2.op             # <<<<<<<<<<<<<<
@@ -8937,13 +9058,13 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15CisModuleLogic2_2op___get
  *     property sub1:
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_pubsub2_3a__3a_operand_t(__pyx_v_self->logic2->op); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 485; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyInt_From_pubsub2_3a__3a_operand_t(__pyx_v_self->logic2->op); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 492; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "organismal/pubsub2_ext.pyx":484
+  /* "organismal/pubsub2_ext.pyx":491
  * 
  *     property op:
  *         def __get__(self):             # <<<<<<<<<<<<<<
@@ -8962,7 +9083,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15CisModuleLogic2_2op___get
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":488
+/* "organismal/pubsub2_ext.pyx":495
  * 
  *     property sub1:
  *         def __get__(self):             # <<<<<<<<<<<<<<
@@ -8992,7 +9113,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15CisModuleLogic2_4sub1___g
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__get__", 0);
 
-  /* "organismal/pubsub2_ext.pyx":489
+  /* "organismal/pubsub2_ext.pyx":496
  *     property sub1:
  *         def __get__(self):
  *             return self.logic2.channels[0]             # <<<<<<<<<<<<<<
@@ -9000,13 +9121,13 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15CisModuleLogic2_4sub1___g
  *     property sub2:
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_pubsub2_3a__3a_signal_t((__pyx_v_self->logic2->channels[0])); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 489; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyInt_From_pubsub2_3a__3a_signal_t((__pyx_v_self->logic2->channels[0])); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 496; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "organismal/pubsub2_ext.pyx":488
+  /* "organismal/pubsub2_ext.pyx":495
  * 
  *     property sub1:
  *         def __get__(self):             # <<<<<<<<<<<<<<
@@ -9025,7 +9146,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15CisModuleLogic2_4sub1___g
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":492
+/* "organismal/pubsub2_ext.pyx":499
  * 
  *     property sub2:
  *         def __get__(self):             # <<<<<<<<<<<<<<
@@ -9055,7 +9176,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15CisModuleLogic2_4sub2___g
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__get__", 0);
 
-  /* "organismal/pubsub2_ext.pyx":493
+  /* "organismal/pubsub2_ext.pyx":500
  *     property sub2:
  *         def __get__(self):
  *             return self.logic2.channels[1]             # <<<<<<<<<<<<<<
@@ -9063,13 +9184,13 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15CisModuleLogic2_4sub2___g
  *     def __repr__(self):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_pubsub2_3a__3a_signal_t((__pyx_v_self->logic2->channels[1])); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 493; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyInt_From_pubsub2_3a__3a_signal_t((__pyx_v_self->logic2->channels[1])); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 500; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "organismal/pubsub2_ext.pyx":492
+  /* "organismal/pubsub2_ext.pyx":499
  * 
  *     property sub2:
  *         def __get__(self):             # <<<<<<<<<<<<<<
@@ -9088,7 +9209,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15CisModuleLogic2_4sub2___g
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":495
+/* "organismal/pubsub2_ext.pyx":502
  *             return self.logic2.channels[1]
  * 
  *     def __repr__(self):             # <<<<<<<<<<<<<<
@@ -9128,7 +9249,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15CisModuleLogic2_2__repr__
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__repr__", 0);
 
-  /* "organismal/pubsub2_ext.pyx":496
+  /* "organismal/pubsub2_ext.pyx":503
  * 
  *     def __repr__(self):
  *         p = self.gene.network.factory.params             # <<<<<<<<<<<<<<
@@ -9140,7 +9261,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15CisModuleLogic2_2__repr__
   __pyx_v_p = __pyx_t_1;
   __pyx_t_1 = 0;
 
-  /* "organismal/pubsub2_ext.pyx":497
+  /* "organismal/pubsub2_ext.pyx":504
  *     def __repr__(self):
  *         p = self.gene.network.factory.params
  *         return "<CisModule: {}({}, {})>".format(             # <<<<<<<<<<<<<<
@@ -9148,19 +9269,19 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15CisModuleLogic2_2__repr__
  *             p.name_for_channel(self.logic2.channels[0]),
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_kp_s_CisModule, __pyx_n_s_format); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 497; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_kp_s_CisModule, __pyx_n_s_format); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 504; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_2);
 
-  /* "organismal/pubsub2_ext.pyx":498
+  /* "organismal/pubsub2_ext.pyx":505
  *         p = self.gene.network.factory.params
  *         return "<CisModule: {}({}, {})>".format(
  *             Operand(self.op).name,             # <<<<<<<<<<<<<<
  *             p.name_for_channel(self.logic2.channels[0]),
  *             p.name_for_channel(self.logic2.channels[1]),
  */
-  __pyx_t_4 = __Pyx_GetModuleGlobalName(__pyx_n_s_Operand); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 498; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_4 = __Pyx_GetModuleGlobalName(__pyx_n_s_Operand); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 505; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_op); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 498; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_op); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 505; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_5);
   __pyx_t_6 = NULL;
   if (CYTHON_COMPILING_IN_CPYTHON && unlikely(PyMethod_Check(__pyx_t_4))) {
@@ -9173,35 +9294,35 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15CisModuleLogic2_2__repr__
     }
   }
   if (!__pyx_t_6) {
-    __pyx_t_3 = __Pyx_PyObject_CallOneArg(__pyx_t_4, __pyx_t_5); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 498; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_3 = __Pyx_PyObject_CallOneArg(__pyx_t_4, __pyx_t_5); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 505; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
     __Pyx_GOTREF(__pyx_t_3);
   } else {
-    __pyx_t_7 = PyTuple_New(1+1); if (unlikely(!__pyx_t_7)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 498; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_7 = PyTuple_New(1+1); if (unlikely(!__pyx_t_7)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 505; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_7);
     PyTuple_SET_ITEM(__pyx_t_7, 0, __pyx_t_6); __Pyx_GIVEREF(__pyx_t_6); __pyx_t_6 = NULL;
     PyTuple_SET_ITEM(__pyx_t_7, 0+1, __pyx_t_5);
     __Pyx_GIVEREF(__pyx_t_5);
     __pyx_t_5 = 0;
-    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_4, __pyx_t_7, NULL); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 498; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_4, __pyx_t_7, NULL); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 505; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
   }
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_name); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 498; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_name); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 505; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-  /* "organismal/pubsub2_ext.pyx":499
+  /* "organismal/pubsub2_ext.pyx":506
  *         return "<CisModule: {}({}, {})>".format(
  *             Operand(self.op).name,
  *             p.name_for_channel(self.logic2.channels[0]),             # <<<<<<<<<<<<<<
  *             p.name_for_channel(self.logic2.channels[1]),
  *         )
  */
-  __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_v_p, __pyx_n_s_name_for_channel); if (unlikely(!__pyx_t_7)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 499; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_v_p, __pyx_n_s_name_for_channel); if (unlikely(!__pyx_t_7)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 506; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_7);
-  __pyx_t_5 = __Pyx_PyInt_From_pubsub2_3a__3a_signal_t((__pyx_v_self->logic2->channels[0])); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 499; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_5 = __Pyx_PyInt_From_pubsub2_3a__3a_signal_t((__pyx_v_self->logic2->channels[0])); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 506; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_5);
   __pyx_t_6 = NULL;
   if (CYTHON_COMPILING_IN_CPYTHON && likely(PyMethod_Check(__pyx_t_7))) {
@@ -9214,32 +9335,32 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15CisModuleLogic2_2__repr__
     }
   }
   if (!__pyx_t_6) {
-    __pyx_t_3 = __Pyx_PyObject_CallOneArg(__pyx_t_7, __pyx_t_5); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 499; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_3 = __Pyx_PyObject_CallOneArg(__pyx_t_7, __pyx_t_5); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 506; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
     __Pyx_GOTREF(__pyx_t_3);
   } else {
-    __pyx_t_8 = PyTuple_New(1+1); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 499; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_8 = PyTuple_New(1+1); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 506; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_8);
     PyTuple_SET_ITEM(__pyx_t_8, 0, __pyx_t_6); __Pyx_GIVEREF(__pyx_t_6); __pyx_t_6 = NULL;
     PyTuple_SET_ITEM(__pyx_t_8, 0+1, __pyx_t_5);
     __Pyx_GIVEREF(__pyx_t_5);
     __pyx_t_5 = 0;
-    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_7, __pyx_t_8, NULL); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 499; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_7, __pyx_t_8, NULL); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 506; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
   }
   __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
 
-  /* "organismal/pubsub2_ext.pyx":500
+  /* "organismal/pubsub2_ext.pyx":507
  *             Operand(self.op).name,
  *             p.name_for_channel(self.logic2.channels[0]),
  *             p.name_for_channel(self.logic2.channels[1]),             # <<<<<<<<<<<<<<
  *         )
  * 
  */
-  __pyx_t_8 = __Pyx_PyObject_GetAttrStr(__pyx_v_p, __pyx_n_s_name_for_channel); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 500; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_8 = __Pyx_PyObject_GetAttrStr(__pyx_v_p, __pyx_n_s_name_for_channel); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 507; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_8);
-  __pyx_t_5 = __Pyx_PyInt_From_pubsub2_3a__3a_signal_t((__pyx_v_self->logic2->channels[1])); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 500; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_5 = __Pyx_PyInt_From_pubsub2_3a__3a_signal_t((__pyx_v_self->logic2->channels[1])); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 507; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_5);
   __pyx_t_6 = NULL;
   if (CYTHON_COMPILING_IN_CPYTHON && likely(PyMethod_Check(__pyx_t_8))) {
@@ -9252,17 +9373,17 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15CisModuleLogic2_2__repr__
     }
   }
   if (!__pyx_t_6) {
-    __pyx_t_7 = __Pyx_PyObject_CallOneArg(__pyx_t_8, __pyx_t_5); if (unlikely(!__pyx_t_7)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 500; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_7 = __Pyx_PyObject_CallOneArg(__pyx_t_8, __pyx_t_5); if (unlikely(!__pyx_t_7)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 507; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
     __Pyx_GOTREF(__pyx_t_7);
   } else {
-    __pyx_t_9 = PyTuple_New(1+1); if (unlikely(!__pyx_t_9)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 500; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_9 = PyTuple_New(1+1); if (unlikely(!__pyx_t_9)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 507; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_9);
     PyTuple_SET_ITEM(__pyx_t_9, 0, __pyx_t_6); __Pyx_GIVEREF(__pyx_t_6); __pyx_t_6 = NULL;
     PyTuple_SET_ITEM(__pyx_t_9, 0+1, __pyx_t_5);
     __Pyx_GIVEREF(__pyx_t_5);
     __pyx_t_5 = 0;
-    __pyx_t_7 = __Pyx_PyObject_Call(__pyx_t_8, __pyx_t_9, NULL); if (unlikely(!__pyx_t_7)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 500; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_7 = __Pyx_PyObject_Call(__pyx_t_8, __pyx_t_9, NULL); if (unlikely(!__pyx_t_7)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 507; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_7);
     __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
   }
@@ -9279,7 +9400,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15CisModuleLogic2_2__repr__
       __pyx_t_10 = 1;
     }
   }
-  __pyx_t_9 = PyTuple_New(3+__pyx_t_10); if (unlikely(!__pyx_t_9)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 497; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_9 = PyTuple_New(3+__pyx_t_10); if (unlikely(!__pyx_t_9)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 504; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_9);
   if (__pyx_t_8) {
     PyTuple_SET_ITEM(__pyx_t_9, 0, __pyx_t_8); __Pyx_GIVEREF(__pyx_t_8); __pyx_t_8 = NULL;
@@ -9293,7 +9414,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15CisModuleLogic2_2__repr__
   __pyx_t_4 = 0;
   __pyx_t_3 = 0;
   __pyx_t_7 = 0;
-  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_9, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 497; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_9, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 504; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
@@ -9301,7 +9422,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15CisModuleLogic2_2__repr__
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "organismal/pubsub2_ext.pyx":495
+  /* "organismal/pubsub2_ext.pyx":502
  *             return self.logic2.channels[1]
  * 
  *     def __repr__(self):             # <<<<<<<<<<<<<<
@@ -9329,7 +9450,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15CisModuleLogic2_2__repr__
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":509
+/* "organismal/pubsub2_ext.pyx":516
  *             Network network
  * 
  *     def __cinit__(self, Network net):             # <<<<<<<<<<<<<<
@@ -9365,7 +9486,7 @@ static int __pyx_pw_10organismal_11pubsub2_ext_15NetworkAnalysis_1__cinit__(PyOb
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 509; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 516; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -9376,13 +9497,13 @@ static int __pyx_pw_10organismal_11pubsub2_ext_15NetworkAnalysis_1__cinit__(PyOb
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 509; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+  __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 516; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
   __pyx_L3_error:;
   __Pyx_AddTraceback("organismal.pubsub2_ext.NetworkAnalysis.__cinit__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_net), __pyx_ptype_10organismal_11pubsub2_ext_Network, 1, "net", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 509; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_net), __pyx_ptype_10organismal_11pubsub2_ext_Network, 1, "net", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 516; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_r = __pyx_pf_10organismal_11pubsub2_ext_15NetworkAnalysis___cinit__(((struct __pyx_obj_10organismal_11pubsub2_ext_NetworkAnalysis *)__pyx_v_self), __pyx_v_net);
 
   /* function exit code */
@@ -9399,7 +9520,7 @@ static int __pyx_pf_10organismal_11pubsub2_ext_15NetworkAnalysis___cinit__(struc
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__cinit__", 0);
 
-  /* "organismal/pubsub2_ext.pyx":510
+  /* "organismal/pubsub2_ext.pyx":517
  * 
  *     def __cinit__(self, Network net):
  *         self.network = net             # <<<<<<<<<<<<<<
@@ -9412,7 +9533,7 @@ static int __pyx_pf_10organismal_11pubsub2_ext_15NetworkAnalysis___cinit__(struc
   __Pyx_DECREF(((PyObject *)__pyx_v_self->network));
   __pyx_v_self->network = __pyx_v_net;
 
-  /* "organismal/pubsub2_ext.pyx":511
+  /* "organismal/pubsub2_ext.pyx":518
  *     def __cinit__(self, Network net):
  *         self.network = net
  *         self.canalysis = new cNetworkAnalysis(net.ptr)             # <<<<<<<<<<<<<<
@@ -9421,7 +9542,7 @@ static int __pyx_pf_10organismal_11pubsub2_ext_15NetworkAnalysis___cinit__(struc
  */
   __pyx_v_self->canalysis = new pubsub2::cNetworkAnalysis(__pyx_v_net->ptr);
 
-  /* "organismal/pubsub2_ext.pyx":512
+  /* "organismal/pubsub2_ext.pyx":519
  *         self.network = net
  *         self.canalysis = new cNetworkAnalysis(net.ptr)
  *         self.canalysis.find_knockouts()             # <<<<<<<<<<<<<<
@@ -9430,7 +9551,7 @@ static int __pyx_pf_10organismal_11pubsub2_ext_15NetworkAnalysis___cinit__(struc
  */
   __pyx_v_self->canalysis->find_knockouts();
 
-  /* "organismal/pubsub2_ext.pyx":509
+  /* "organismal/pubsub2_ext.pyx":516
  *             Network network
  * 
  *     def __cinit__(self, Network net):             # <<<<<<<<<<<<<<
@@ -9444,7 +9565,7 @@ static int __pyx_pf_10organismal_11pubsub2_ext_15NetworkAnalysis___cinit__(struc
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":514
+/* "organismal/pubsub2_ext.pyx":521
  *         self.canalysis.find_knockouts()
  * 
  *     def __dealloc__(self):             # <<<<<<<<<<<<<<
@@ -9467,7 +9588,7 @@ static void __pyx_pf_10organismal_11pubsub2_ext_15NetworkAnalysis_2__dealloc__(s
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__dealloc__", 0);
 
-  /* "organismal/pubsub2_ext.pyx":515
+  /* "organismal/pubsub2_ext.pyx":522
  * 
  *     def __dealloc__(self):
  *         del self.canalysis             # <<<<<<<<<<<<<<
@@ -9476,7 +9597,7 @@ static void __pyx_pf_10organismal_11pubsub2_ext_15NetworkAnalysis_2__dealloc__(s
  */
   delete __pyx_v_self->canalysis;
 
-  /* "organismal/pubsub2_ext.pyx":514
+  /* "organismal/pubsub2_ext.pyx":521
  *         self.canalysis.find_knockouts()
  * 
  *     def __dealloc__(self):             # <<<<<<<<<<<<<<
@@ -9488,7 +9609,7 @@ static void __pyx_pf_10organismal_11pubsub2_ext_15NetworkAnalysis_2__dealloc__(s
   __Pyx_RefNannyFinishContext();
 }
 
-/* "organismal/pubsub2_ext.pyx":518
+/* "organismal/pubsub2_ext.pyx":525
  * 
  *     property knockouts:
  *         def __get__(self):             # <<<<<<<<<<<<<<
@@ -9526,7 +9647,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15NetworkAnalysis_9knockout
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__get__", 0);
 
-  /* "organismal/pubsub2_ext.pyx":521
+  /* "organismal/pubsub2_ext.pyx":528
  *             cdef:
  *                 cSiteIndex *si
  *                 vector[cSiteIndex].iterator i = self.canalysis.knockouts.begin()             # <<<<<<<<<<<<<<
@@ -9535,19 +9656,19 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15NetworkAnalysis_9knockout
  */
   __pyx_v_i = __pyx_v_self->canalysis->knockouts.begin();
 
-  /* "organismal/pubsub2_ext.pyx":523
+  /* "organismal/pubsub2_ext.pyx":530
  *                 vector[cSiteIndex].iterator i = self.canalysis.knockouts.begin()
  * 
  *             k = []             # <<<<<<<<<<<<<<
  *             while i != self.canalysis.knockouts.end():
  *                 si = &deref(i)
  */
-  __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 523; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 530; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_v_k = ((PyObject*)__pyx_t_1);
   __pyx_t_1 = 0;
 
-  /* "organismal/pubsub2_ext.pyx":524
+  /* "organismal/pubsub2_ext.pyx":531
  * 
  *             k = []
  *             while i != self.canalysis.knockouts.end():             # <<<<<<<<<<<<<<
@@ -9558,7 +9679,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15NetworkAnalysis_9knockout
     __pyx_t_2 = ((__pyx_v_i != __pyx_v_self->canalysis->knockouts.end()) != 0);
     if (!__pyx_t_2) break;
 
-    /* "organismal/pubsub2_ext.pyx":525
+    /* "organismal/pubsub2_ext.pyx":532
  *             k = []
  *             while i != self.canalysis.knockouts.end():
  *                 si = &deref(i)             # <<<<<<<<<<<<<<
@@ -9567,20 +9688,20 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15NetworkAnalysis_9knockout
  */
     __pyx_v_si = (&(*__pyx_v_i));
 
-    /* "organismal/pubsub2_ext.pyx":526
+    /* "organismal/pubsub2_ext.pyx":533
  *             while i != self.canalysis.knockouts.end():
  *                 si = &deref(i)
  *                 k.append((si.gene, si.cismod, si.site))             # <<<<<<<<<<<<<<
  *                 preinc(i)
  * 
  */
-    __pyx_t_1 = __Pyx_PyInt_From_pubsub2_3a__3a_int_t(__pyx_v_si->gene); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 526; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_1 = __Pyx_PyInt_From_pubsub2_3a__3a_int_t(__pyx_v_si->gene); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 533; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_3 = __Pyx_PyInt_From_pubsub2_3a__3a_int_t(__pyx_v_si->cismod); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 526; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_3 = __Pyx_PyInt_From_pubsub2_3a__3a_int_t(__pyx_v_si->cismod); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 533; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_4 = __Pyx_PyInt_From_pubsub2_3a__3a_int_t(__pyx_v_si->site); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 526; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_4 = __Pyx_PyInt_From_pubsub2_3a__3a_int_t(__pyx_v_si->site); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 533; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_4);
-    __pyx_t_5 = PyTuple_New(3); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 526; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_5 = PyTuple_New(3); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 533; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_5);
     PyTuple_SET_ITEM(__pyx_t_5, 0, __pyx_t_1);
     __Pyx_GIVEREF(__pyx_t_1);
@@ -9591,10 +9712,10 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15NetworkAnalysis_9knockout
     __pyx_t_1 = 0;
     __pyx_t_3 = 0;
     __pyx_t_4 = 0;
-    __pyx_t_6 = __Pyx_PyList_Append(__pyx_v_k, __pyx_t_5); if (unlikely(__pyx_t_6 == -1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 526; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_6 = __Pyx_PyList_Append(__pyx_v_k, __pyx_t_5); if (unlikely(__pyx_t_6 == -1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 533; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
 
-    /* "organismal/pubsub2_ext.pyx":527
+    /* "organismal/pubsub2_ext.pyx":534
  *                 si = &deref(i)
  *                 k.append((si.gene, si.cismod, si.site))
  *                 preinc(i)             # <<<<<<<<<<<<<<
@@ -9604,7 +9725,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15NetworkAnalysis_9knockout
     (++__pyx_v_i);
   }
 
-  /* "organismal/pubsub2_ext.pyx":529
+  /* "organismal/pubsub2_ext.pyx":536
  *                 preinc(i)
  * 
  *             return k             # <<<<<<<<<<<<<<
@@ -9616,7 +9737,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15NetworkAnalysis_9knockout
   __pyx_r = __pyx_v_k;
   goto __pyx_L0;
 
-  /* "organismal/pubsub2_ext.pyx":518
+  /* "organismal/pubsub2_ext.pyx":525
  * 
  *     property knockouts:
  *         def __get__(self):             # <<<<<<<<<<<<<<
@@ -9639,7 +9760,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15NetworkAnalysis_9knockout
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":507
+/* "organismal/pubsub2_ext.pyx":514
  *         cNetworkAnalysis *canalysis
  *         readonly:
  *             Network network             # <<<<<<<<<<<<<<
@@ -9676,7 +9797,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_15NetworkAnalysis_7network_
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":538
+/* "organismal/pubsub2_ext.pyx":545
  *         cNetworkVector cnetworks
  * 
  *     def __cinit__(self, Factory factory):             # <<<<<<<<<<<<<<
@@ -9712,7 +9833,7 @@ static int __pyx_pw_10organismal_11pubsub2_ext_17NetworkCollection_1__cinit__(Py
         else goto __pyx_L5_argtuple_error;
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 538; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 545; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
       goto __pyx_L5_argtuple_error;
@@ -9723,13 +9844,13 @@ static int __pyx_pw_10organismal_11pubsub2_ext_17NetworkCollection_1__cinit__(Py
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 538; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+  __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 545; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
   __pyx_L3_error:;
   __Pyx_AddTraceback("organismal.pubsub2_ext.NetworkCollection.__cinit__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return -1;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_factory), __pyx_ptype_10organismal_11pubsub2_ext_Factory, 1, "factory", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 538; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_factory), __pyx_ptype_10organismal_11pubsub2_ext_Factory, 1, "factory", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 545; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_r = __pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection___cinit__(((struct __pyx_obj_10organismal_11pubsub2_ext_NetworkCollection *)__pyx_v_self), __pyx_v_factory);
 
   /* function exit code */
@@ -9746,7 +9867,7 @@ static int __pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection___cinit__(str
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__cinit__", 0);
 
-  /* "organismal/pubsub2_ext.pyx":539
+  /* "organismal/pubsub2_ext.pyx":546
  * 
  *     def __cinit__(self, Factory factory):
  *         self.factory = factory             # <<<<<<<<<<<<<<
@@ -9759,7 +9880,7 @@ static int __pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection___cinit__(str
   __Pyx_DECREF(((PyObject *)__pyx_v_self->factory));
   __pyx_v_self->factory = __pyx_v_factory;
 
-  /* "organismal/pubsub2_ext.pyx":538
+  /* "organismal/pubsub2_ext.pyx":545
  *         cNetworkVector cnetworks
  * 
  *     def __cinit__(self, Factory factory):             # <<<<<<<<<<<<<<
@@ -9773,7 +9894,7 @@ static int __pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection___cinit__(str
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":541
+/* "organismal/pubsub2_ext.pyx":548
  *         self.factory = factory
  * 
  *     def add(self, Network n):             # <<<<<<<<<<<<<<
@@ -9790,7 +9911,7 @@ static PyObject *__pyx_pw_10organismal_11pubsub2_ext_17NetworkCollection_3add(Py
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("add (wrapper)", 0);
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_n), __pyx_ptype_10organismal_11pubsub2_ext_Network, 1, "n", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 541; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_n), __pyx_ptype_10organismal_11pubsub2_ext_Network, 1, "n", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 548; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_r = __pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_2add(((struct __pyx_obj_10organismal_11pubsub2_ext_NetworkCollection *)__pyx_v_self), ((struct __pyx_obj_10organismal_11pubsub2_ext_Network *)__pyx_v_n));
 
   /* function exit code */
@@ -9811,7 +9932,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_2add(st
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("add", 0);
 
-  /* "organismal/pubsub2_ext.pyx":542
+  /* "organismal/pubsub2_ext.pyx":549
  * 
  *     def add(self, Network n):
  *         assert n.factory is self.factory             # <<<<<<<<<<<<<<
@@ -9823,12 +9944,12 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_2add(st
     __pyx_t_1 = (__pyx_v_n->factory == __pyx_v_self->factory);
     if (unlikely(!(__pyx_t_1 != 0))) {
       PyErr_SetNone(PyExc_AssertionError);
-      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 542; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 549; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     }
   }
   #endif
 
-  /* "organismal/pubsub2_ext.pyx":543
+  /* "organismal/pubsub2_ext.pyx":550
  *     def add(self, Network n):
  *         assert n.factory is self.factory
  *         self.cnetworks.push_back(n.ptr)             # <<<<<<<<<<<<<<
@@ -9837,7 +9958,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_2add(st
  */
   __pyx_v_self->cnetworks.push_back(__pyx_v_n->ptr);
 
-  /* "organismal/pubsub2_ext.pyx":541
+  /* "organismal/pubsub2_ext.pyx":548
  *         self.factory = factory
  * 
  *     def add(self, Network n):             # <<<<<<<<<<<<<<
@@ -9857,7 +9978,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_2add(st
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":545
+/* "organismal/pubsub2_ext.pyx":552
  *         self.cnetworks.push_back(n.ptr)
  * 
  *     cdef object get_at(self, size_t i):             # <<<<<<<<<<<<<<
@@ -9879,7 +10000,7 @@ static PyObject *__pyx_f_10organismal_11pubsub2_ext_17NetworkCollection_get_at(s
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("get_at", 0);
 
-  /* "organismal/pubsub2_ext.pyx":546
+  /* "organismal/pubsub2_ext.pyx":553
  * 
  *     cdef object get_at(self, size_t i):
  *         if i >= self.cnetworks.size():             # <<<<<<<<<<<<<<
@@ -9889,7 +10010,7 @@ static PyObject *__pyx_f_10organismal_11pubsub2_ext_17NetworkCollection_get_at(s
   __pyx_t_1 = ((__pyx_v_i >= __pyx_v_self->cnetworks.size()) != 0);
   if (__pyx_t_1) {
 
-    /* "organismal/pubsub2_ext.pyx":547
+    /* "organismal/pubsub2_ext.pyx":554
  *     cdef object get_at(self, size_t i):
  *         if i >= self.cnetworks.size():
  *             raise IndexError             # <<<<<<<<<<<<<<
@@ -9897,10 +10018,10 @@ static PyObject *__pyx_f_10organismal_11pubsub2_ext_17NetworkCollection_get_at(s
  *         cdef:
  */
     __Pyx_Raise(__pyx_builtin_IndexError, 0, 0, 0);
-    {__pyx_filename = __pyx_f[0]; __pyx_lineno = 547; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    {__pyx_filename = __pyx_f[0]; __pyx_lineno = 554; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   }
 
-  /* "organismal/pubsub2_ext.pyx":550
+  /* "organismal/pubsub2_ext.pyx":557
  * 
  *         cdef:
  *             cNetwork_ptr ptr = self.cnetworks[i]             # <<<<<<<<<<<<<<
@@ -9909,7 +10030,7 @@ static PyObject *__pyx_f_10organismal_11pubsub2_ext_17NetworkCollection_get_at(s
  */
   __pyx_v_ptr = (__pyx_v_self->cnetworks[__pyx_v_i]);
 
-  /* "organismal/pubsub2_ext.pyx":551
+  /* "organismal/pubsub2_ext.pyx":558
  *         cdef:
  *             cNetwork_ptr ptr = self.cnetworks[i]
  *             cNetwork *net = ptr.get()             # <<<<<<<<<<<<<<
@@ -9918,7 +10039,7 @@ static PyObject *__pyx_f_10organismal_11pubsub2_ext_17NetworkCollection_get_at(s
  */
   __pyx_v_net = __pyx_v_ptr.get();
 
-  /* "organismal/pubsub2_ext.pyx":556
+  /* "organismal/pubsub2_ext.pyx":563
  *         # Note: cython automatically increments the reference count when we do
  *         # this (which is what we want)
  *         if net.pyobject:             # <<<<<<<<<<<<<<
@@ -9928,7 +10049,7 @@ static PyObject *__pyx_f_10organismal_11pubsub2_ext_17NetworkCollection_get_at(s
   __pyx_t_1 = (__pyx_v_net->pyobject != 0);
   if (__pyx_t_1) {
 
-    /* "organismal/pubsub2_ext.pyx":557
+    /* "organismal/pubsub2_ext.pyx":564
  *         # this (which is what we want)
  *         if net.pyobject:
  *             return <object>(net.pyobject)             # <<<<<<<<<<<<<<
@@ -9941,36 +10062,36 @@ static PyObject *__pyx_f_10organismal_11pubsub2_ext_17NetworkCollection_get_at(s
     goto __pyx_L0;
   }
 
-  /* "organismal/pubsub2_ext.pyx":560
+  /* "organismal/pubsub2_ext.pyx":567
  * 
  *         # Nope. So we need to create a new python wrapper object
  *         n = Network(self.factory)             # <<<<<<<<<<<<<<
  *         n.bind_to(ptr)
  *         return n
  */
-  __pyx_t_2 = PyTuple_New(1); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 560; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_2 = PyTuple_New(1); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 567; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_INCREF(((PyObject *)__pyx_v_self->factory));
   PyTuple_SET_ITEM(__pyx_t_2, 0, ((PyObject *)__pyx_v_self->factory));
   __Pyx_GIVEREF(((PyObject *)__pyx_v_self->factory));
-  __pyx_t_3 = __Pyx_PyObject_Call(((PyObject *)((PyObject*)__pyx_ptype_10organismal_11pubsub2_ext_Network)), __pyx_t_2, NULL); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 560; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_3 = __Pyx_PyObject_Call(((PyObject *)((PyObject*)__pyx_ptype_10organismal_11pubsub2_ext_Network)), __pyx_t_2, NULL); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 567; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_v_n = ((struct __pyx_obj_10organismal_11pubsub2_ext_Network *)__pyx_t_3);
   __pyx_t_3 = 0;
 
-  /* "organismal/pubsub2_ext.pyx":561
+  /* "organismal/pubsub2_ext.pyx":568
  *         # Nope. So we need to create a new python wrapper object
  *         n = Network(self.factory)
  *         n.bind_to(ptr)             # <<<<<<<<<<<<<<
  *         return n
  * 
  */
-  __pyx_t_3 = ((struct __pyx_vtabstruct_10organismal_11pubsub2_ext_Network *)__pyx_v_n->__pyx_vtab)->bind_to(__pyx_v_n, __pyx_v_ptr); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 561; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_3 = ((struct __pyx_vtabstruct_10organismal_11pubsub2_ext_Network *)__pyx_v_n->__pyx_vtab)->bind_to(__pyx_v_n, __pyx_v_ptr); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 568; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-  /* "organismal/pubsub2_ext.pyx":562
+  /* "organismal/pubsub2_ext.pyx":569
  *         n = Network(self.factory)
  *         n.bind_to(ptr)
  *         return n             # <<<<<<<<<<<<<<
@@ -9982,7 +10103,7 @@ static PyObject *__pyx_f_10organismal_11pubsub2_ext_17NetworkCollection_get_at(s
   __pyx_r = ((PyObject *)__pyx_v_n);
   goto __pyx_L0;
 
-  /* "organismal/pubsub2_ext.pyx":545
+  /* "organismal/pubsub2_ext.pyx":552
  *         self.cnetworks.push_back(n.ptr)
  * 
  *     cdef object get_at(self, size_t i):             # <<<<<<<<<<<<<<
@@ -10003,7 +10124,7 @@ static PyObject *__pyx_f_10organismal_11pubsub2_ext_17NetworkCollection_get_at(s
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":565
+/* "organismal/pubsub2_ext.pyx":572
  * 
  *     property size:
  *         def __get__(self):             # <<<<<<<<<<<<<<
@@ -10033,7 +10154,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_4size__
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__get__", 0);
 
-  /* "organismal/pubsub2_ext.pyx":566
+  /* "organismal/pubsub2_ext.pyx":573
  *     property size:
  *         def __get__(self):
  *             return self.cnetworks.size()             # <<<<<<<<<<<<<<
@@ -10041,13 +10162,13 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_4size__
  *     def __getitem__(self, size_t i):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_FromSize_t(__pyx_v_self->cnetworks.size()); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 566; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyInt_FromSize_t(__pyx_v_self->cnetworks.size()); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 573; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "organismal/pubsub2_ext.pyx":565
+  /* "organismal/pubsub2_ext.pyx":572
  * 
  *     property size:
  *         def __get__(self):             # <<<<<<<<<<<<<<
@@ -10066,7 +10187,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_4size__
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":568
+/* "organismal/pubsub2_ext.pyx":575
  *             return self.cnetworks.size()
  * 
  *     def __getitem__(self, size_t i):             # <<<<<<<<<<<<<<
@@ -10085,7 +10206,7 @@ static PyObject *__pyx_pw_10organismal_11pubsub2_ext_17NetworkCollection_5__geti
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__getitem__ (wrapper)", 0);
   assert(__pyx_arg_i); {
-    __pyx_v_i = __Pyx_PyInt_As_size_t(__pyx_arg_i); if (unlikely((__pyx_v_i == (size_t)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 568; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+    __pyx_v_i = __Pyx_PyInt_As_size_t(__pyx_arg_i); if (unlikely((__pyx_v_i == (size_t)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 575; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -10109,7 +10230,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_4__geti
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__getitem__", 0);
 
-  /* "organismal/pubsub2_ext.pyx":569
+  /* "organismal/pubsub2_ext.pyx":576
  * 
  *     def __getitem__(self, size_t i):
  *         return self.get_at(i)             # <<<<<<<<<<<<<<
@@ -10117,13 +10238,13 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_4__geti
  *     def __iter__(self):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = ((struct __pyx_vtabstruct_10organismal_11pubsub2_ext_NetworkCollection *)__pyx_v_self->__pyx_vtab)->get_at(__pyx_v_self, __pyx_v_i); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 569; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = ((struct __pyx_vtabstruct_10organismal_11pubsub2_ext_NetworkCollection *)__pyx_v_self->__pyx_vtab)->get_at(__pyx_v_self, __pyx_v_i); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 576; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "organismal/pubsub2_ext.pyx":568
+  /* "organismal/pubsub2_ext.pyx":575
  *             return self.cnetworks.size()
  * 
  *     def __getitem__(self, size_t i):             # <<<<<<<<<<<<<<
@@ -10143,7 +10264,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_4__geti
 }
 static PyObject *__pyx_gb_10organismal_11pubsub2_ext_17NetworkCollection_8generator(__pyx_GeneratorObject *__pyx_generator, PyObject *__pyx_sent_value); /* proto */
 
-/* "organismal/pubsub2_ext.pyx":571
+/* "organismal/pubsub2_ext.pyx":578
  *         return self.get_at(i)
  * 
  *     def __iter__(self):             # <<<<<<<<<<<<<<
@@ -10182,7 +10303,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_6__iter
   __Pyx_INCREF((PyObject *)__pyx_cur_scope->__pyx_v_self);
   __Pyx_GIVEREF((PyObject *)__pyx_cur_scope->__pyx_v_self);
   {
-    __pyx_GeneratorObject *gen = __Pyx_Generator_New((__pyx_generator_body_t) __pyx_gb_10organismal_11pubsub2_ext_17NetworkCollection_8generator, (PyObject *) __pyx_cur_scope, __pyx_n_s_iter, __pyx_n_s_NetworkCollection___iter); if (unlikely(!gen)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 571; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_GeneratorObject *gen = __Pyx_Generator_New((__pyx_generator_body_t) __pyx_gb_10organismal_11pubsub2_ext_17NetworkCollection_8generator, (PyObject *) __pyx_cur_scope, __pyx_n_s_iter, __pyx_n_s_NetworkCollection___iter); if (unlikely(!gen)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 578; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_DECREF(__pyx_cur_scope);
     __Pyx_RefNannyFinishContext();
     return (PyObject *) gen;
@@ -10220,32 +10341,32 @@ static PyObject *__pyx_gb_10organismal_11pubsub2_ext_17NetworkCollection_8genera
     return NULL;
   }
   __pyx_L3_first_run:;
-  if (unlikely(!__pyx_sent_value)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 571; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__pyx_sent_value)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 578; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
 
-  /* "organismal/pubsub2_ext.pyx":572
+  /* "organismal/pubsub2_ext.pyx":579
  * 
  *     def __iter__(self):
  *         for i in range(self.size):             # <<<<<<<<<<<<<<
  *             yield self.get_at(i)
  * 
  */
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_cur_scope->__pyx_v_self), __pyx_n_s_size); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 572; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_cur_scope->__pyx_v_self), __pyx_n_s_size); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 579; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = PyTuple_New(1); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 572; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_2 = PyTuple_New(1); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 579; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_2);
   PyTuple_SET_ITEM(__pyx_t_2, 0, __pyx_t_1);
   __Pyx_GIVEREF(__pyx_t_1);
   __pyx_t_1 = 0;
-  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_builtin_range, __pyx_t_2, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 572; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_builtin_range, __pyx_t_2, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 579; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   if (likely(PyList_CheckExact(__pyx_t_1)) || PyTuple_CheckExact(__pyx_t_1)) {
     __pyx_t_2 = __pyx_t_1; __Pyx_INCREF(__pyx_t_2); __pyx_t_3 = 0;
     __pyx_t_4 = NULL;
   } else {
-    __pyx_t_3 = -1; __pyx_t_2 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 572; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_3 = -1; __pyx_t_2 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 579; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_4 = Py_TYPE(__pyx_t_2)->tp_iternext; if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 572; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_4 = Py_TYPE(__pyx_t_2)->tp_iternext; if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 579; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   }
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   for (;;) {
@@ -10253,16 +10374,16 @@ static PyObject *__pyx_gb_10organismal_11pubsub2_ext_17NetworkCollection_8genera
       if (likely(PyList_CheckExact(__pyx_t_2))) {
         if (__pyx_t_3 >= PyList_GET_SIZE(__pyx_t_2)) break;
         #if CYTHON_COMPILING_IN_CPYTHON
-        __pyx_t_1 = PyList_GET_ITEM(__pyx_t_2, __pyx_t_3); __Pyx_INCREF(__pyx_t_1); __pyx_t_3++; if (unlikely(0 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 572; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        __pyx_t_1 = PyList_GET_ITEM(__pyx_t_2, __pyx_t_3); __Pyx_INCREF(__pyx_t_1); __pyx_t_3++; if (unlikely(0 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 579; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
         #else
-        __pyx_t_1 = PySequence_ITEM(__pyx_t_2, __pyx_t_3); __pyx_t_3++; if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 572; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        __pyx_t_1 = PySequence_ITEM(__pyx_t_2, __pyx_t_3); __pyx_t_3++; if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 579; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
         #endif
       } else {
         if (__pyx_t_3 >= PyTuple_GET_SIZE(__pyx_t_2)) break;
         #if CYTHON_COMPILING_IN_CPYTHON
-        __pyx_t_1 = PyTuple_GET_ITEM(__pyx_t_2, __pyx_t_3); __Pyx_INCREF(__pyx_t_1); __pyx_t_3++; if (unlikely(0 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 572; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        __pyx_t_1 = PyTuple_GET_ITEM(__pyx_t_2, __pyx_t_3); __Pyx_INCREF(__pyx_t_1); __pyx_t_3++; if (unlikely(0 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 579; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
         #else
-        __pyx_t_1 = PySequence_ITEM(__pyx_t_2, __pyx_t_3); __pyx_t_3++; if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 572; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        __pyx_t_1 = PySequence_ITEM(__pyx_t_2, __pyx_t_3); __pyx_t_3++; if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 579; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
         #endif
       }
     } else {
@@ -10271,7 +10392,7 @@ static PyObject *__pyx_gb_10organismal_11pubsub2_ext_17NetworkCollection_8genera
         PyObject* exc_type = PyErr_Occurred();
         if (exc_type) {
           if (likely(exc_type == PyExc_StopIteration || PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
-          else {__pyx_filename = __pyx_f[0]; __pyx_lineno = 572; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+          else {__pyx_filename = __pyx_f[0]; __pyx_lineno = 579; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
         }
         break;
       }
@@ -10282,15 +10403,15 @@ static PyObject *__pyx_gb_10organismal_11pubsub2_ext_17NetworkCollection_8genera
     __Pyx_GIVEREF(__pyx_t_1);
     __pyx_t_1 = 0;
 
-    /* "organismal/pubsub2_ext.pyx":573
+    /* "organismal/pubsub2_ext.pyx":580
  *     def __iter__(self):
  *         for i in range(self.size):
  *             yield self.get_at(i)             # <<<<<<<<<<<<<<
  * 
  *     def __repr__(self):
  */
-    __pyx_t_5 = __Pyx_PyInt_As_size_t(__pyx_cur_scope->__pyx_v_i); if (unlikely((__pyx_t_5 == (size_t)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 573; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __pyx_t_1 = ((struct __pyx_vtabstruct_10organismal_11pubsub2_ext_NetworkCollection *)__pyx_cur_scope->__pyx_v_self->__pyx_vtab)->get_at(__pyx_cur_scope->__pyx_v_self, __pyx_t_5); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 573; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_5 = __Pyx_PyInt_As_size_t(__pyx_cur_scope->__pyx_v_i); if (unlikely((__pyx_t_5 == (size_t)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 580; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_1 = ((struct __pyx_vtabstruct_10organismal_11pubsub2_ext_NetworkCollection *)__pyx_cur_scope->__pyx_v_self->__pyx_vtab)->get_at(__pyx_cur_scope->__pyx_v_self, __pyx_t_5); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 580; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_1);
     __pyx_r = __pyx_t_1;
     __pyx_t_1 = 0;
@@ -10309,9 +10430,9 @@ static PyObject *__pyx_gb_10organismal_11pubsub2_ext_17NetworkCollection_8genera
     __Pyx_XGOTREF(__pyx_t_2);
     __pyx_t_3 = __pyx_cur_scope->__pyx_t_1;
     __pyx_t_4 = __pyx_cur_scope->__pyx_t_2;
-    if (unlikely(!__pyx_sent_value)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 573; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    if (unlikely(!__pyx_sent_value)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 580; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
 
-    /* "organismal/pubsub2_ext.pyx":572
+    /* "organismal/pubsub2_ext.pyx":579
  * 
  *     def __iter__(self):
  *         for i in range(self.size):             # <<<<<<<<<<<<<<
@@ -10321,7 +10442,7 @@ static PyObject *__pyx_gb_10organismal_11pubsub2_ext_17NetworkCollection_8genera
   }
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "organismal/pubsub2_ext.pyx":571
+  /* "organismal/pubsub2_ext.pyx":578
  *         return self.get_at(i)
  * 
  *     def __iter__(self):             # <<<<<<<<<<<<<<
@@ -10344,7 +10465,7 @@ static PyObject *__pyx_gb_10organismal_11pubsub2_ext_17NetworkCollection_8genera
   return NULL;
 }
 
-/* "organismal/pubsub2_ext.pyx":575
+/* "organismal/pubsub2_ext.pyx":582
  *             yield self.get_at(i)
  * 
  *     def __repr__(self):             # <<<<<<<<<<<<<<
@@ -10378,7 +10499,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_9__repr
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__repr__", 0);
 
-  /* "organismal/pubsub2_ext.pyx":576
+  /* "organismal/pubsub2_ext.pyx":583
  * 
  *     def __repr__(self):
  *         return "<NetworkCollection: {}>".format(self.size)             # <<<<<<<<<<<<<<
@@ -10386,9 +10507,9 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_9__repr
  *     def mutate(self):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_kp_s_NetworkCollection, __pyx_n_s_format); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 576; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_kp_s_NetworkCollection, __pyx_n_s_format); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 583; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_size); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 576; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_size); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 583; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_3);
   __pyx_t_4 = NULL;
   if (CYTHON_COMPILING_IN_CPYTHON && likely(PyMethod_Check(__pyx_t_2))) {
@@ -10401,17 +10522,17 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_9__repr
     }
   }
   if (!__pyx_t_4) {
-    __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_3); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 576; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_3); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 583; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
     __Pyx_GOTREF(__pyx_t_1);
   } else {
-    __pyx_t_5 = PyTuple_New(1+1); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 576; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_5 = PyTuple_New(1+1); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 583; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_5);
     PyTuple_SET_ITEM(__pyx_t_5, 0, __pyx_t_4); __Pyx_GIVEREF(__pyx_t_4); __pyx_t_4 = NULL;
     PyTuple_SET_ITEM(__pyx_t_5, 0+1, __pyx_t_3);
     __Pyx_GIVEREF(__pyx_t_3);
     __pyx_t_3 = 0;
-    __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_5, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 576; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_5, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 583; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_1);
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
   }
@@ -10420,7 +10541,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_9__repr
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "organismal/pubsub2_ext.pyx":575
+  /* "organismal/pubsub2_ext.pyx":582
  *             yield self.get_at(i)
  * 
  *     def __repr__(self):             # <<<<<<<<<<<<<<
@@ -10443,7 +10564,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_9__repr
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":578
+/* "organismal/pubsub2_ext.pyx":585
  *         return "<NetworkCollection: {}>".format(self.size)
  * 
  *     def mutate(self):             # <<<<<<<<<<<<<<
@@ -10474,7 +10595,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_11mutat
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("mutate", 0);
 
-  /* "organismal/pubsub2_ext.pyx":580
+  /* "organismal/pubsub2_ext.pyx":587
  *     def mutate(self):
  *         cdef cIndexes mutated
  *         self.factory.cgenefactory.mutate_collection(self.cnetworks, mutated)             # <<<<<<<<<<<<<<
@@ -10483,7 +10604,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_11mutat
  */
   __pyx_v_self->factory->cgenefactory->mutate_collection(__pyx_v_self->cnetworks, __pyx_v_mutated);
 
-  /* "organismal/pubsub2_ext.pyx":584
+  /* "organismal/pubsub2_ext.pyx":591
  *         # Return indexes of the mutated networks. Automatic conversion (thank
  *         # you Cython)
  *         return mutated             # <<<<<<<<<<<<<<
@@ -10491,13 +10612,13 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_11mutat
  *     def select(self, Target target):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __pyx_convert_vector_to_py_size_t(__pyx_v_mutated); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 584; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __pyx_convert_vector_to_py_size_t(__pyx_v_mutated); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 591; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "organismal/pubsub2_ext.pyx":578
+  /* "organismal/pubsub2_ext.pyx":585
  *         return "<NetworkCollection: {}>".format(self.size)
  * 
  *     def mutate(self):             # <<<<<<<<<<<<<<
@@ -10516,7 +10637,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_11mutat
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":586
+/* "organismal/pubsub2_ext.pyx":593
  *         return mutated
  * 
  *     def select(self, Target target):             # <<<<<<<<<<<<<<
@@ -10534,7 +10655,7 @@ static PyObject *__pyx_pw_10organismal_11pubsub2_ext_17NetworkCollection_14selec
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("select (wrapper)", 0);
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_target), __pyx_ptype_10organismal_11pubsub2_ext_Target, 1, "target", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 586; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_target), __pyx_ptype_10organismal_11pubsub2_ext_Target, 1, "target", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 593; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_r = __pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_13select(((struct __pyx_obj_10organismal_11pubsub2_ext_NetworkCollection *)__pyx_v_self), ((struct __pyx_obj_10organismal_11pubsub2_ext_Target *)__pyx_v_target));
 
   /* function exit code */
@@ -10560,7 +10681,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_13selec
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("select", 0);
 
-  /* "organismal/pubsub2_ext.pyx":594
+  /* "organismal/pubsub2_ext.pyx":601
  *             cNetworkVector new_networks
  * 
  *         sm = new cSelectionModel(self.factory.cfactory_ptr)             # <<<<<<<<<<<<<<
@@ -10569,7 +10690,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_13selec
  */
   __pyx_v_sm = new pubsub2::cSelectionModel(__pyx_v_self->factory->cfactory_ptr);
 
-  /* "organismal/pubsub2_ext.pyx":595
+  /* "organismal/pubsub2_ext.pyx":602
  * 
  *         sm = new cSelectionModel(self.factory.cfactory_ptr)
  *         sel = sm.select(self.cnetworks, deref(target.ctarget),             # <<<<<<<<<<<<<<
@@ -10578,7 +10699,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_13selec
  */
   __pyx_v_sel = __pyx_v_sm->select(__pyx_v_self->cnetworks, (*__pyx_v_target->ctarget), __pyx_v_self->cnetworks.size(), __pyx_v_indexes);
 
-  /* "organismal/pubsub2_ext.pyx":597
+  /* "organismal/pubsub2_ext.pyx":604
  *         sel = sm.select(self.cnetworks, deref(target.ctarget),
  *                      self.cnetworks.size(), indexes)
  *         if sel:             # <<<<<<<<<<<<<<
@@ -10588,7 +10709,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_13selec
   __pyx_t_1 = (__pyx_v_sel != 0);
   if (__pyx_t_1) {
 
-    /* "organismal/pubsub2_ext.pyx":598
+    /* "organismal/pubsub2_ext.pyx":605
  *                      self.cnetworks.size(), indexes)
  *         if sel:
  *             sm.copy_using_indexes(self.cnetworks, new_networks, indexes)             # <<<<<<<<<<<<<<
@@ -10597,7 +10718,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_13selec
  */
     __pyx_v_sm->copy_using_indexes(__pyx_v_self->cnetworks, __pyx_v_new_networks, __pyx_v_indexes);
 
-    /* "organismal/pubsub2_ext.pyx":601
+    /* "organismal/pubsub2_ext.pyx":608
  * 
  *             # Replace everything -- this is fast
  *             self.cnetworks.swap(new_networks)             # <<<<<<<<<<<<<<
@@ -10609,7 +10730,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_13selec
   }
   __pyx_L3:;
 
-  /* "organismal/pubsub2_ext.pyx":604
+  /* "organismal/pubsub2_ext.pyx":611
  * 
  *         # Get rid of this
  *         del sm             # <<<<<<<<<<<<<<
@@ -10618,7 +10739,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_13selec
  */
   delete __pyx_v_sm;
 
-  /* "organismal/pubsub2_ext.pyx":606
+  /* "organismal/pubsub2_ext.pyx":613
  *         del sm
  * 
  *         return sel             # <<<<<<<<<<<<<<
@@ -10626,13 +10747,13 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_13selec
  *     def selection_indexes(self, Target target):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_2 = __Pyx_PyBool_FromLong(__pyx_v_sel); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 606; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_2 = __Pyx_PyBool_FromLong(__pyx_v_sel); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 613; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_2);
   __pyx_r = __pyx_t_2;
   __pyx_t_2 = 0;
   goto __pyx_L0;
 
-  /* "organismal/pubsub2_ext.pyx":586
+  /* "organismal/pubsub2_ext.pyx":593
  *         return mutated
  * 
  *     def select(self, Target target):             # <<<<<<<<<<<<<<
@@ -10651,7 +10772,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_13selec
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":608
+/* "organismal/pubsub2_ext.pyx":615
  *         return sel
  * 
  *     def selection_indexes(self, Target target):             # <<<<<<<<<<<<<<
@@ -10669,7 +10790,7 @@ static PyObject *__pyx_pw_10organismal_11pubsub2_ext_17NetworkCollection_16selec
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("selection_indexes (wrapper)", 0);
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_target), __pyx_ptype_10organismal_11pubsub2_ext_Target, 1, "target", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 608; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_target), __pyx_ptype_10organismal_11pubsub2_ext_Target, 1, "target", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 615; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_r = __pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_15selection_indexes(((struct __pyx_obj_10organismal_11pubsub2_ext_NetworkCollection *)__pyx_v_self), ((struct __pyx_obj_10organismal_11pubsub2_ext_Target *)__pyx_v_target));
 
   /* function exit code */
@@ -10693,7 +10814,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_15selec
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("selection_indexes", 0);
 
-  /* "organismal/pubsub2_ext.pyx":619
+  /* "organismal/pubsub2_ext.pyx":626
  *             cNetworkVector new_networks
  * 
  *         sm = new cSelectionModel(self.factory.cfactory_ptr)             # <<<<<<<<<<<<<<
@@ -10702,7 +10823,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_15selec
  */
   __pyx_v_sm = new pubsub2::cSelectionModel(__pyx_v_self->factory->cfactory_ptr);
 
-  /* "organismal/pubsub2_ext.pyx":621
+  /* "organismal/pubsub2_ext.pyx":628
  *         sm = new cSelectionModel(self.factory.cfactory_ptr)
  * 
  *         sel = sm.select(self.cnetworks, deref(target.ctarget),             # <<<<<<<<<<<<<<
@@ -10711,20 +10832,20 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_15selec
  */
   __pyx_v_sel = __pyx_v_sm->select(__pyx_v_self->cnetworks, (*__pyx_v_target->ctarget), __pyx_v_self->cnetworks.size(), __pyx_v_indexes);
 
-  /* "organismal/pubsub2_ext.pyx":624
+  /* "organismal/pubsub2_ext.pyx":631
  *                      self.cnetworks.size(), indexes)
  * 
  *         return indexes             # <<<<<<<<<<<<<<
  * 
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __pyx_convert_vector_to_py_size_t(__pyx_v_indexes); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 624; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __pyx_convert_vector_to_py_size_t(__pyx_v_indexes); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 631; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "organismal/pubsub2_ext.pyx":608
+  /* "organismal/pubsub2_ext.pyx":615
  *         return sel
  * 
  *     def selection_indexes(self, Target target):             # <<<<<<<<<<<<<<
@@ -10743,7 +10864,7 @@ static PyObject *__pyx_pf_10organismal_11pubsub2_ext_17NetworkCollection_15selec
   return __pyx_r;
 }
 
-/* "organismal/pubsub2_ext.pyx":535
+/* "organismal/pubsub2_ext.pyx":542
  *     cdef:
  *         readonly:
  *             Factory factory             # <<<<<<<<<<<<<<
@@ -24665,6 +24786,7 @@ static PyObject *__pyx_getprop_10organismal_11pubsub2_ext_7Network_dirty(PyObjec
 static PyMethodDef __pyx_methods_10organismal_11pubsub2_ext_Network[] = {
   {"cycle", (PyCFunction)__pyx_pw_10organismal_11pubsub2_ext_7Network_5cycle, METH_O, 0},
   {"mutated", (PyCFunction)__pyx_pw_10organismal_11pubsub2_ext_7Network_7mutated, METH_O, __pyx_doc_10organismal_11pubsub2_ext_7Network_6mutated},
+  {"testing", (PyCFunction)__pyx_pw_10organismal_11pubsub2_ext_7Network_11testing, METH_NOARGS, 0},
   {0, 0, 0, 0}
 };
 
@@ -26674,11 +26796,13 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_cue_channels, __pyx_k_cue_channels, sizeof(__pyx_k_cue_channels), 0, 0, 1, 1},
   {&__pyx_n_s_dtype, __pyx_k_dtype, sizeof(__pyx_k_dtype), 0, 0, 1, 1},
   {&__pyx_n_s_dtype_is_object, __pyx_k_dtype_is_object, sizeof(__pyx_k_dtype_is_object), 0, 0, 1, 1},
+  {&__pyx_n_s_end, __pyx_k_end, sizeof(__pyx_k_end), 0, 0, 1, 1},
   {&__pyx_n_s_enumerate, __pyx_k_enumerate, sizeof(__pyx_k_enumerate), 0, 0, 1, 1},
   {&__pyx_n_s_environments, __pyx_k_environments, sizeof(__pyx_k_environments), 0, 0, 1, 1},
   {&__pyx_n_s_error, __pyx_k_error, sizeof(__pyx_k_error), 0, 0, 1, 1},
   {&__pyx_n_s_f, __pyx_k_f, sizeof(__pyx_k_f), 0, 0, 1, 1},
   {&__pyx_n_s_factory, __pyx_k_factory, sizeof(__pyx_k_factory), 0, 0, 1, 1},
+  {&__pyx_n_s_file, __pyx_k_file, sizeof(__pyx_k_file), 0, 0, 1, 1},
   {&__pyx_n_s_flags, __pyx_k_flags, sizeof(__pyx_k_flags), 0, 0, 1, 1},
   {&__pyx_n_s_format, __pyx_k_format, sizeof(__pyx_k_format), 0, 0, 1, 1},
   {&__pyx_n_s_fortran, __pyx_k_fortran, sizeof(__pyx_k_fortran), 0, 0, 1, 1},
@@ -26713,6 +26837,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_net, __pyx_k_net, sizeof(__pyx_k_net), 0, 0, 1, 1},
   {&__pyx_n_s_numpy, __pyx_k_numpy, sizeof(__pyx_k_numpy), 0, 0, 1, 1},
   {&__pyx_n_s_obj, __pyx_k_obj, sizeof(__pyx_k_obj), 0, 0, 1, 1},
+  {&__pyx_n_s_one, __pyx_k_one, sizeof(__pyx_k_one), 0, 0, 1, 1},
   {&__pyx_n_s_op, __pyx_k_op, sizeof(__pyx_k_op), 0, 0, 1, 1},
   {&__pyx_n_s_operand, __pyx_k_operand, sizeof(__pyx_k_operand), 0, 0, 1, 1},
   {&__pyx_n_s_operands, __pyx_k_operands, sizeof(__pyx_k_operands), 0, 0, 1, 1},
@@ -26721,6 +26846,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_pack, __pyx_k_pack, sizeof(__pyx_k_pack), 0, 0, 1, 1},
   {&__pyx_n_s_params, __pyx_k_params, sizeof(__pyx_k_params), 0, 0, 1, 1},
   {&__pyx_n_s_parent_identifier, __pyx_k_parent_identifier, sizeof(__pyx_k_parent_identifier), 0, 0, 1, 1},
+  {&__pyx_n_s_print, __pyx_k_print, sizeof(__pyx_k_print), 0, 0, 1, 1},
   {&__pyx_n_s_pub, __pyx_k_pub, sizeof(__pyx_k_pub), 0, 0, 1, 1},
   {&__pyx_n_s_pub_range, __pyx_k_pub_range, sizeof(__pyx_k_pub_range), 0, 0, 1, 1},
   {&__pyx_n_s_pyx_getbuffer, __pyx_k_pyx_getbuffer, sizeof(__pyx_k_pyx_getbuffer), 0, 0, 1, 1},
@@ -26758,7 +26884,7 @@ static int __Pyx_InitCachedBuiltins(void) {
   __pyx_builtin_RuntimeError = __Pyx_GetBuiltinName(__pyx_n_s_RuntimeError); if (!__pyx_builtin_RuntimeError) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 52; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 82; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_builtin_enumerate = __Pyx_GetBuiltinName(__pyx_n_s_enumerate); if (!__pyx_builtin_enumerate) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 218; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_builtin_IndexError = __Pyx_GetBuiltinName(__pyx_n_s_IndexError); if (!__pyx_builtin_IndexError) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 547; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_builtin_IndexError = __Pyx_GetBuiltinName(__pyx_n_s_IndexError); if (!__pyx_builtin_IndexError) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 554; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_builtin_ValueError = __Pyx_GetBuiltinName(__pyx_n_s_ValueError); if (!__pyx_builtin_ValueError) {__pyx_filename = __pyx_f[1]; __pyx_lineno = 215; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_builtin_MemoryError = __Pyx_GetBuiltinName(__pyx_n_s_MemoryError); if (!__pyx_builtin_MemoryError) {__pyx_filename = __pyx_f[2]; __pyx_lineno = 142; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_builtin_Ellipsis = __Pyx_GetBuiltinName(__pyx_n_s_Ellipsis); if (!__pyx_builtin_Ellipsis) {__pyx_filename = __pyx_f[2]; __pyx_lineno = 357; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
@@ -27176,35 +27302,35 @@ PyMODINIT_FUNC PyInit_pubsub2_ext(void)
   if (__Pyx_SetVtable(__pyx_type_10organismal_11pubsub2_ext_Network.tp_dict, __pyx_vtabptr_10organismal_11pubsub2_ext_Network) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 237; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   if (PyObject_SetAttrString(__pyx_m, "Network", (PyObject *)&__pyx_type_10organismal_11pubsub2_ext_Network) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 237; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_ptype_10organismal_11pubsub2_ext_Network = &__pyx_type_10organismal_11pubsub2_ext_Network;
-  if (PyType_Ready(&__pyx_type_10organismal_11pubsub2_ext_Gene) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 369; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (PyType_Ready(&__pyx_type_10organismal_11pubsub2_ext_Gene) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 376; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_type_10organismal_11pubsub2_ext_Gene.tp_print = 0;
-  if (PyObject_SetAttrString(__pyx_m, "Gene", (PyObject *)&__pyx_type_10organismal_11pubsub2_ext_Gene) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 369; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (PyObject_SetAttrString(__pyx_m, "Gene", (PyObject *)&__pyx_type_10organismal_11pubsub2_ext_Gene) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 376; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_ptype_10organismal_11pubsub2_ext_Gene = &__pyx_type_10organismal_11pubsub2_ext_Gene;
   __pyx_vtabptr_10organismal_11pubsub2_ext_CisModule = &__pyx_vtable_10organismal_11pubsub2_ext_CisModule;
   __pyx_vtable_10organismal_11pubsub2_ext_CisModule.reset_network = (PyObject *(*)(struct __pyx_obj_10organismal_11pubsub2_ext_CisModule *))__pyx_f_10organismal_11pubsub2_ext_9CisModule_reset_network;
-  if (PyType_Ready(&__pyx_type_10organismal_11pubsub2_ext_CisModule) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 415; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (PyType_Ready(&__pyx_type_10organismal_11pubsub2_ext_CisModule) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 422; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_type_10organismal_11pubsub2_ext_CisModule.tp_print = 0;
-  if (__Pyx_SetVtable(__pyx_type_10organismal_11pubsub2_ext_CisModule.tp_dict, __pyx_vtabptr_10organismal_11pubsub2_ext_CisModule) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 415; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (PyObject_SetAttrString(__pyx_m, "CisModule", (PyObject *)&__pyx_type_10organismal_11pubsub2_ext_CisModule) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 415; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (__Pyx_SetVtable(__pyx_type_10organismal_11pubsub2_ext_CisModule.tp_dict, __pyx_vtabptr_10organismal_11pubsub2_ext_CisModule) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 422; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (PyObject_SetAttrString(__pyx_m, "CisModule", (PyObject *)&__pyx_type_10organismal_11pubsub2_ext_CisModule) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 422; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_ptype_10organismal_11pubsub2_ext_CisModule = &__pyx_type_10organismal_11pubsub2_ext_CisModule;
   __pyx_vtabptr_10organismal_11pubsub2_ext_CisModuleLogic2 = &__pyx_vtable_10organismal_11pubsub2_ext_CisModuleLogic2;
   __pyx_vtable_10organismal_11pubsub2_ext_CisModuleLogic2.__pyx_base = *__pyx_vtabptr_10organismal_11pubsub2_ext_CisModule;
   __pyx_type_10organismal_11pubsub2_ext_CisModuleLogic2.tp_base = __pyx_ptype_10organismal_11pubsub2_ext_CisModule;
-  if (PyType_Ready(&__pyx_type_10organismal_11pubsub2_ext_CisModuleLogic2) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 476; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (PyType_Ready(&__pyx_type_10organismal_11pubsub2_ext_CisModuleLogic2) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 483; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_type_10organismal_11pubsub2_ext_CisModuleLogic2.tp_print = 0;
-  if (__Pyx_SetVtable(__pyx_type_10organismal_11pubsub2_ext_CisModuleLogic2.tp_dict, __pyx_vtabptr_10organismal_11pubsub2_ext_CisModuleLogic2) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 476; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (PyObject_SetAttrString(__pyx_m, "CisModuleLogic2", (PyObject *)&__pyx_type_10organismal_11pubsub2_ext_CisModuleLogic2) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 476; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (__Pyx_SetVtable(__pyx_type_10organismal_11pubsub2_ext_CisModuleLogic2.tp_dict, __pyx_vtabptr_10organismal_11pubsub2_ext_CisModuleLogic2) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 483; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (PyObject_SetAttrString(__pyx_m, "CisModuleLogic2", (PyObject *)&__pyx_type_10organismal_11pubsub2_ext_CisModuleLogic2) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 483; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_ptype_10organismal_11pubsub2_ext_CisModuleLogic2 = &__pyx_type_10organismal_11pubsub2_ext_CisModuleLogic2;
-  if (PyType_Ready(&__pyx_type_10organismal_11pubsub2_ext_NetworkAnalysis) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 503; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (PyType_Ready(&__pyx_type_10organismal_11pubsub2_ext_NetworkAnalysis) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 510; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_type_10organismal_11pubsub2_ext_NetworkAnalysis.tp_print = 0;
-  if (PyObject_SetAttrString(__pyx_m, "NetworkAnalysis", (PyObject *)&__pyx_type_10organismal_11pubsub2_ext_NetworkAnalysis) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 503; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (PyObject_SetAttrString(__pyx_m, "NetworkAnalysis", (PyObject *)&__pyx_type_10organismal_11pubsub2_ext_NetworkAnalysis) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 510; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_ptype_10organismal_11pubsub2_ext_NetworkAnalysis = &__pyx_type_10organismal_11pubsub2_ext_NetworkAnalysis;
   __pyx_vtabptr_10organismal_11pubsub2_ext_NetworkCollection = &__pyx_vtable_10organismal_11pubsub2_ext_NetworkCollection;
   __pyx_vtable_10organismal_11pubsub2_ext_NetworkCollection.get_at = (PyObject *(*)(struct __pyx_obj_10organismal_11pubsub2_ext_NetworkCollection *, size_t))__pyx_f_10organismal_11pubsub2_ext_17NetworkCollection_get_at;
-  if (PyType_Ready(&__pyx_type_10organismal_11pubsub2_ext_NetworkCollection) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 532; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (PyType_Ready(&__pyx_type_10organismal_11pubsub2_ext_NetworkCollection) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 539; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_type_10organismal_11pubsub2_ext_NetworkCollection.tp_print = 0;
-  if (__Pyx_SetVtable(__pyx_type_10organismal_11pubsub2_ext_NetworkCollection.tp_dict, __pyx_vtabptr_10organismal_11pubsub2_ext_NetworkCollection) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 532; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (PyObject_SetAttrString(__pyx_m, "NetworkCollection", (PyObject *)&__pyx_type_10organismal_11pubsub2_ext_NetworkCollection) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 532; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (__Pyx_SetVtable(__pyx_type_10organismal_11pubsub2_ext_NetworkCollection.tp_dict, __pyx_vtabptr_10organismal_11pubsub2_ext_NetworkCollection) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 539; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (PyObject_SetAttrString(__pyx_m, "NetworkCollection", (PyObject *)&__pyx_type_10organismal_11pubsub2_ext_NetworkCollection) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 539; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_ptype_10organismal_11pubsub2_ext_NetworkCollection = &__pyx_type_10organismal_11pubsub2_ext_NetworkCollection;
   if (PyType_Ready(&__pyx_type_10organismal_11pubsub2_ext___pyx_scope_struct____get__) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 281; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_type_10organismal_11pubsub2_ext___pyx_scope_struct____get__.tp_print = 0;
@@ -27212,13 +27338,13 @@ PyMODINIT_FUNC PyInit_pubsub2_ext(void)
   if (PyType_Ready(&__pyx_type_10organismal_11pubsub2_ext___pyx_scope_struct_1_genexpr) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 283; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_type_10organismal_11pubsub2_ext___pyx_scope_struct_1_genexpr.tp_print = 0;
   __pyx_ptype_10organismal_11pubsub2_ext___pyx_scope_struct_1_genexpr = &__pyx_type_10organismal_11pubsub2_ext___pyx_scope_struct_1_genexpr;
-  if (PyType_Ready(&__pyx_type_10organismal_11pubsub2_ext___pyx_scope_struct_2___get__) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 403; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (PyType_Ready(&__pyx_type_10organismal_11pubsub2_ext___pyx_scope_struct_2___get__) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 410; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_type_10organismal_11pubsub2_ext___pyx_scope_struct_2___get__.tp_print = 0;
   __pyx_ptype_10organismal_11pubsub2_ext___pyx_scope_struct_2___get__ = &__pyx_type_10organismal_11pubsub2_ext___pyx_scope_struct_2___get__;
-  if (PyType_Ready(&__pyx_type_10organismal_11pubsub2_ext___pyx_scope_struct_3_genexpr) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 406; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (PyType_Ready(&__pyx_type_10organismal_11pubsub2_ext___pyx_scope_struct_3_genexpr) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 413; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_type_10organismal_11pubsub2_ext___pyx_scope_struct_3_genexpr.tp_print = 0;
   __pyx_ptype_10organismal_11pubsub2_ext___pyx_scope_struct_3_genexpr = &__pyx_type_10organismal_11pubsub2_ext___pyx_scope_struct_3_genexpr;
-  if (PyType_Ready(&__pyx_type_10organismal_11pubsub2_ext___pyx_scope_struct_4___iter__) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 571; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (PyType_Ready(&__pyx_type_10organismal_11pubsub2_ext___pyx_scope_struct_4___iter__) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 578; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_type_10organismal_11pubsub2_ext___pyx_scope_struct_4___iter__.tp_print = 0;
   __pyx_ptype_10organismal_11pubsub2_ext___pyx_scope_struct_4___iter__ = &__pyx_type_10organismal_11pubsub2_ext___pyx_scope_struct_4___iter__;
   if (PyType_Ready(&__pyx_type___pyx_array) < 0) {__pyx_filename = __pyx_f[2]; __pyx_lineno = 99; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
@@ -29888,6 +30014,173 @@ static CYTHON_INLINE PyObject* __Pyx_PyInt_From_pubsub2_3a__3a_int_t(pubsub2::in
     }
 }
 
+#if !CYTHON_COMPILING_IN_PYPY && PY_MAJOR_VERSION < 3
+static PyObject *__Pyx_GetStdout(void) {
+    PyObject *f = PySys_GetObject((char *)"stdout");
+    if (!f) {
+        PyErr_SetString(PyExc_RuntimeError, "lost sys.stdout");
+    }
+    return f;
+}
+static int __Pyx_Print(PyObject* f, PyObject *arg_tuple, int newline) {
+    int i;
+    if (!f) {
+        if (!(f = __Pyx_GetStdout()))
+            return -1;
+    }
+    Py_INCREF(f);
+    for (i=0; i < PyTuple_GET_SIZE(arg_tuple); i++) {
+        PyObject* v;
+        if (PyFile_SoftSpace(f, 1)) {
+            if (PyFile_WriteString(" ", f) < 0)
+                goto error;
+        }
+        v = PyTuple_GET_ITEM(arg_tuple, i);
+        if (PyFile_WriteObject(v, f, Py_PRINT_RAW) < 0)
+            goto error;
+        if (PyString_Check(v)) {
+            char *s = PyString_AsString(v);
+            Py_ssize_t len = PyString_Size(v);
+            if (len > 0) {
+                switch (s[len-1]) {
+                    case ' ': break;
+                    case '\f': case '\r': case '\n': case '\t': case '\v':
+                        PyFile_SoftSpace(f, 0);
+                        break;
+                    default:  break;
+                }
+            }
+        }
+    }
+    if (newline) {
+        if (PyFile_WriteString("\n", f) < 0)
+            goto error;
+        PyFile_SoftSpace(f, 0);
+    }
+    Py_DECREF(f);
+    return 0;
+error:
+    Py_DECREF(f);
+    return -1;
+}
+#else
+static int __Pyx_Print(PyObject* stream, PyObject *arg_tuple, int newline) {
+    PyObject* kwargs = 0;
+    PyObject* result = 0;
+    PyObject* end_string;
+    if (unlikely(!__pyx_print)) {
+        __pyx_print = PyObject_GetAttr(__pyx_b, __pyx_n_s_print);
+        if (!__pyx_print)
+            return -1;
+    }
+    if (stream) {
+        kwargs = PyDict_New();
+        if (unlikely(!kwargs))
+            return -1;
+        if (unlikely(PyDict_SetItem(kwargs, __pyx_n_s_file, stream) < 0))
+            goto bad;
+        if (!newline) {
+            end_string = PyUnicode_FromStringAndSize(" ", 1);
+            if (unlikely(!end_string))
+                goto bad;
+            if (PyDict_SetItem(kwargs, __pyx_n_s_end, end_string) < 0) {
+                Py_DECREF(end_string);
+                goto bad;
+            }
+            Py_DECREF(end_string);
+        }
+    } else if (!newline) {
+        if (unlikely(!__pyx_print_kwargs)) {
+            __pyx_print_kwargs = PyDict_New();
+            if (unlikely(!__pyx_print_kwargs))
+                return -1;
+            end_string = PyUnicode_FromStringAndSize(" ", 1);
+            if (unlikely(!end_string))
+                return -1;
+            if (PyDict_SetItem(__pyx_print_kwargs, __pyx_n_s_end, end_string) < 0) {
+                Py_DECREF(end_string);
+                return -1;
+            }
+            Py_DECREF(end_string);
+        }
+        kwargs = __pyx_print_kwargs;
+    }
+    result = PyObject_Call(__pyx_print, arg_tuple, kwargs);
+    if (unlikely(kwargs) && (kwargs != __pyx_print_kwargs))
+        Py_DECREF(kwargs);
+    if (!result)
+        return -1;
+    Py_DECREF(result);
+    return 0;
+bad:
+    if (kwargs != __pyx_print_kwargs)
+        Py_XDECREF(kwargs);
+    return -1;
+}
+#endif
+
+#if !CYTHON_COMPILING_IN_PYPY && PY_MAJOR_VERSION < 3
+static int __Pyx_PrintOne(PyObject* f, PyObject *o) {
+    if (!f) {
+        if (!(f = __Pyx_GetStdout()))
+            return -1;
+    }
+    Py_INCREF(f);
+    if (PyFile_SoftSpace(f, 0)) {
+        if (PyFile_WriteString(" ", f) < 0)
+            goto error;
+    }
+    if (PyFile_WriteObject(o, f, Py_PRINT_RAW) < 0)
+        goto error;
+    if (PyFile_WriteString("\n", f) < 0)
+        goto error;
+    Py_DECREF(f);
+    return 0;
+error:
+    Py_DECREF(f);
+    return -1;
+    /* the line below is just to avoid C compiler
+     * warnings about unused functions */
+    return __Pyx_Print(f, NULL, 0);
+}
+#else
+static int __Pyx_PrintOne(PyObject* stream, PyObject *o) {
+    int res;
+    PyObject* arg_tuple = PyTuple_Pack(1, o);
+    if (unlikely(!arg_tuple))
+        return -1;
+    res = __Pyx_Print(stream, arg_tuple, 1);
+    Py_DECREF(arg_tuple);
+    return res;
+}
+#endif
+
+static CYTHON_INLINE PyObject* __Pyx_PyInt_From_pubsub2_3a__3a_operand_t(pubsub2::operand_t value) {
+    const pubsub2::operand_t neg_one = (pubsub2::operand_t) -1, const_zero = 0;
+    const int is_unsigned = neg_one > const_zero;
+    if (is_unsigned) {
+        if (sizeof(pubsub2::operand_t) < sizeof(long)) {
+            return PyInt_FromLong((long) value);
+        } else if (sizeof(pubsub2::operand_t) <= sizeof(unsigned long)) {
+            return PyLong_FromUnsignedLong((unsigned long) value);
+        } else if (sizeof(pubsub2::operand_t) <= sizeof(unsigned long long)) {
+            return PyLong_FromUnsignedLongLong((unsigned long long) value);
+        }
+    } else {
+        if (sizeof(pubsub2::operand_t) <= sizeof(long)) {
+            return PyInt_FromLong((long) value);
+        } else if (sizeof(pubsub2::operand_t) <= sizeof(long long)) {
+            return PyLong_FromLongLong((long long) value);
+        }
+    }
+    {
+        int one = 1; int little = (int)*(unsigned char *)&one;
+        unsigned char *bytes = (unsigned char *)&value;
+        return _PyLong_FromByteArray(bytes, sizeof(pubsub2::operand_t),
+                                     little, !is_unsigned);
+    }
+}
+
 static CYTHON_INLINE PyObject* __Pyx_PyInt_From_pubsub2_3a__3a_sequence_t(pubsub2::sequence_t value) {
     const pubsub2::sequence_t neg_one = (pubsub2::sequence_t) -1, const_zero = 0;
     const int is_unsigned = neg_one > const_zero;
@@ -29936,32 +30229,6 @@ static CYTHON_INLINE PyObject* __Pyx_PyInt_From_pubsub2_3a__3a_signal_t(pubsub2:
         int one = 1; int little = (int)*(unsigned char *)&one;
         unsigned char *bytes = (unsigned char *)&value;
         return _PyLong_FromByteArray(bytes, sizeof(pubsub2::signal_t),
-                                     little, !is_unsigned);
-    }
-}
-
-static CYTHON_INLINE PyObject* __Pyx_PyInt_From_pubsub2_3a__3a_operand_t(pubsub2::operand_t value) {
-    const pubsub2::operand_t neg_one = (pubsub2::operand_t) -1, const_zero = 0;
-    const int is_unsigned = neg_one > const_zero;
-    if (is_unsigned) {
-        if (sizeof(pubsub2::operand_t) < sizeof(long)) {
-            return PyInt_FromLong((long) value);
-        } else if (sizeof(pubsub2::operand_t) <= sizeof(unsigned long)) {
-            return PyLong_FromUnsignedLong((unsigned long) value);
-        } else if (sizeof(pubsub2::operand_t) <= sizeof(unsigned long long)) {
-            return PyLong_FromUnsignedLongLong((unsigned long long) value);
-        }
-    } else {
-        if (sizeof(pubsub2::operand_t) <= sizeof(long)) {
-            return PyInt_FromLong((long) value);
-        } else if (sizeof(pubsub2::operand_t) <= sizeof(long long)) {
-            return PyLong_FromLongLong((long long) value);
-        }
-    }
-    {
-        int one = 1; int little = (int)*(unsigned char *)&one;
-        unsigned char *bytes = (unsigned char *)&value;
-        return _PyLong_FromByteArray(bytes, sizeof(pubsub2::operand_t),
                                      little, !is_unsigned);
     }
 }

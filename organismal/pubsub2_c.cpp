@@ -2,6 +2,7 @@
 #include "pubsub2_c.h"
 #include <cmath>
 #include <stdexcept>
+// #include <iostream>
 
 using namespace pubsub2;
 
@@ -31,6 +32,14 @@ cGene::cGene(sequence_t seq, signal_t p)
 {
 }
 
+cGene *cGene::clone()
+{
+    cGene *g = new cGene(sequence, pub);
+    for (auto m : modules)
+        g->modules.push_back(m->clone());
+    return g;
+}
+
 cGene::~cGene()
 {
     for (auto m : modules)
@@ -51,15 +60,14 @@ cNetwork::cNetwork(const cFactory_ptr &f, bool no_ident)
         identifier = -1;
 }
 
-// cNetwork::~cNetwork()
-// {
-//     for (auto g : genes)
-//         delete g;
-// }
-//
+cNetwork::~cNetwork()
+{
+    for (auto g : genes)
+        delete g;
+}
 
 // This is the inner-inner loop!
-void cNetwork::cycle(cChannelState &c)
+void cNetwork::cycle(cChannelState &c) const
 {
     cChannelState next(c.size());
     for (auto g : genes)
@@ -73,6 +81,12 @@ void cNetwork::cycle(cChannelState &c)
 
     // Update the "return" value.
     c.swap(next);
+}
+
+void cNetwork::clone_genes(cGeneVector &gv) const
+{
+    for (auto g : genes)
+        gv.push_back(g->clone());
 }
 
 // This is the inner loop, where we find the attractors. We should tune this.
@@ -182,7 +196,7 @@ cNetworkAnalysis::cNetworkAnalysis(const cNetwork_ptr &n)
     , modified(n->factory, true)
 {
     // Just copy the genes for now. Don't bother doing anything else.
-    modified.genes = original->genes;
+    original->clone_genes(modified.genes);
 }
 
 void cNetworkAnalysis::find_knockouts()
@@ -333,7 +347,7 @@ cNetwork_ptr cGeneFactory::copy_and_mutate_network(cNetwork_ptr &n, size_t mutat
 {
     cNetwork_ptr copy(new cNetwork(n->factory));
     // The copy constructor of vector does the hard work here...
-    copy->genes = n->genes;
+    n->clone_genes(copy->genes);
     copy->parent_identifier = n->identifier;
 
     // Now mutate it and calculate the attractors
@@ -352,6 +366,7 @@ void cGeneFactory::mutate_collection(cNetworkVector &networks,
     // gene_count. We multiply this by the number of networks in the collection
     // to get the expected number of mutations. Then we generate a number using
     // a poisson distribution.
+    // std::cout << "rate per" << rate_per_gene;
     double expected = rate_per_gene * networks.size() * factory->gene_count;
     poisson_t r_pop(expected);
     size_t mutations = r_pop(factory->random_engine);
@@ -362,6 +377,7 @@ void cGeneFactory::mutate_collection(cNetworkVector &networks,
     // If we're not generating any mutations, let's just bail.
     if (mutations == 0)
         return;
+
 
     // Now we need to assign these to individual networks. Only these networks 
     // will change. The rest remain constant.
@@ -410,6 +426,9 @@ void cGeneFactory::mutate_collection(cNetworkVector &networks,
 
 void cGeneFactory::mutate_gene(cGene *g)
 {
+    if (g->modules.size() == 0)
+        throw std::runtime_error("no cis modules");
+
     // First, decide what cis module we're using.
     size_t cis_i = 0; 
 
@@ -486,7 +505,7 @@ void cSelectionModel::copy_using_indexes(
 }
 
 cGeneFactoryLogic2::cGeneFactoryLogic2(cFactory *f, double rate_per_gene_)
-    : cGeneFactory(f, rate_per_gene)
+    : cGeneFactory(f, rate_per_gene_)
     , r_oper(0, f->operands.size()-1)
 {
 }
@@ -505,7 +524,7 @@ cCisModule *cGeneFactoryLogic2::construct_cis()
 // This is where the action really is.
 void cGeneFactoryLogic2::mutate_cis(cCisModule *m)
 {
-    cCisModuleLogic2 *cis = dynamic_cast<cCisModuleLogic2 *>(m);
+    cCisModuleLogic2 *cis = static_cast<cCisModuleLogic2 *>(m);
     // TODO: This is shite; just a start.
     double p = r_uniform_01(factory->random_engine);
     if (p < .5)

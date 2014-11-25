@@ -365,6 +365,13 @@ cdef class Network:
     def __repr__(self):
         return "<Network id:{} pt:{}>".format(self.identifier, self.parent_identifier)
 
+    def testing(self):
+        cdef cGene *g = self.cnetwork.genes[0];
+        cdef cCisModule *m = g.modules[0];
+        print 'one'
+        cdef cCisModuleLogic2 *ml = dynamic_cast_cCisModuleLogic2(m)
+        print ml.op
+
 
 cdef class Gene:
     """A proxy to a gene.
@@ -564,6 +571,9 @@ cdef class NetworkCollection:
     property size:
         def __get__(self):
             return self.cnetworks.size()
+
+    # def get_max_fitness(self):
+    #     return max_fitness(self.cnetworks);
 
     def __getitem__(self, size_t i):
         return self.get_at(i)
