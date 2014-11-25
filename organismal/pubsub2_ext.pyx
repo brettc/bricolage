@@ -119,7 +119,7 @@ cdef class Factory:
     cdef:
         cFactory_ptr cfactory_ptr
         cFactory *cfactory
-        cMutationModel *cmutator
+        cGeneFactory *cgenefactory
         readonly:
             object params
 
@@ -145,11 +145,11 @@ cdef class Factory:
         self.cfactory.init_environments()
 
         # Create a mutator
-        self.cmutator = new cMutationModel(self.cfactory, 
+        self.cgenefactory = new cGeneFactoryLogic2(self.cfactory, 
                                          params.gene_mutation_rate)
 
     def __dealloc__(self):
-        del self.cmutator
+        del self.cgenefactory
 
     def create_state(self):
         c = ChannelState()
@@ -159,7 +159,7 @@ cdef class Factory:
 
     def create_network(self):
         cdef cNetwork_ptr ptr = cNetwork_ptr(new cNetwork(self.cfactory_ptr))
-        self.cmutator.construct_network(deref(ptr.get()))
+        self.cgenefactory.construct_network(deref(ptr.get()))
         n = Network(self)
         n.bind_to(ptr)
         return n
@@ -172,7 +172,7 @@ cdef class Factory:
         nc = NetworkCollection(self)
         for i in range(size):
             ptr = cNetwork_ptr(new cNetwork(self.cfactory_ptr))
-            self.cmutator.construct_network(deref(ptr.get()))
+            self.cgenefactory.construct_network(deref(ptr.get()))
             nc.cnetworks.push_back(ptr)
 
         return nc
@@ -289,10 +289,10 @@ cdef class Network:
     def mutated(self, size_t nmutations):
         """Return a mutated version..."""
         cdef:
-            cMutationModel *mutator = self.factory.cmutator
+            cGeneFactory *gf = self.factory.cgenefactory
             cNetwork_ptr new_ptr
 
-        new_ptr = mutator.copy_and_mutate_network(self.ptr, nmutations)
+        new_ptr = gf.copy_and_mutate_network(self.ptr, nmutations)
         new_net = Network(self.factory)
         new_net.bind_to(new_ptr)
         return new_net
@@ -385,7 +385,7 @@ cdef class Gene:
         """This should never be called publicly"""
         self.network = n
         self.gene_number = g
-        self.cgene = &self.network.cnetwork.genes[g]
+        self.cgene = self.network.cnetwork.genes[g]
 
     property sequence:
         def __get__(self):
@@ -403,7 +403,7 @@ cdef class Gene:
         def __get__(self):
             # Lazy construction
             if self._modules is None:
-                self._modules = tuple(CisModule(self, i) 
+                self._modules = tuple(CisModuleLogic2(self, i) 
                                       for i in range(self.module_count))
             return self._modules
 
@@ -424,55 +424,81 @@ cdef class CisModule:
     def __cinit__(self, Gene g, size_t i):
         self.gene = g
         assert i < g.cgene.modules.size()
-        self.ccismodule = &g.cgene.modules[i]
+        self.ccismodule = g.cgene.modules[i]
+
+    def site_count(self):
+        return self.ccismodule.site_count()
+
+    def get_site(self, size_t i):
+        assert i < self.ccismodule.site_count()
+        return self.ccismodule.get_site_channel(i)
 
     cdef reset_network(self):
         self.gene.network._attractors = None
         self.gene.network._rates = None
         self.gene.network.cnetwork.calc_attractors()
 
-    property op:
-        def __get__(self):
-            return self.ccismodule.op
+    # property op:
+    #     def __get__(self):
+    #         return self.ccismodule.op
+    #
+    # property sub1:
+    #     def __get__(self):
+    #         return self.ccismodule.sub1
+    #     def __set__(self, size_t c):
+    #         self.ccismodule.sub1 = c
+    #         self.reset_network()
+    #
+    # property sub2:
+    #     def __get__(self):
+    #         return self.ccismodule.sub2
+    #     def __set__(self, size_t c):
+    #         self.ccismodule.sub2 = c
+    #         self.reset_network()
 
-    property sub1:
-        def __get__(self):
-            return self.ccismodule.sub1
-        def __set__(self, size_t c):
-            self.ccismodule.sub1 = c
-            self.reset_network()
+    # def __cmp__(self, CisModule other):
+    #     cdef int retval 
+    #     retval = c_cmp(self.ccismodule.op, other.ccismodule.op)
+    #     if retval != 0:
+    #         return retval
+    #     retval = c_cmp(self.ccismodule.sub1, other.ccismodule.sub1)
+    #     if retval != 0:
+    #         return retval
+    #     return c_cmp(self.ccismodule.sub2, other.ccismodule.sub2)
 
-    property sub2:
-        def __get__(self):
-            return self.ccismodule.sub2
-        def __set__(self, size_t c):
-            self.ccismodule.sub2 = c
-            self.reset_network()
-
-    def __cmp__(self, CisModule other):
-        cdef int retval 
-        retval = c_cmp(self.ccismodule.op, other.ccismodule.op)
-        if retval != 0:
-            return retval
-        retval = c_cmp(self.ccismodule.sub1, other.ccismodule.sub1)
-        if retval != 0:
-            return retval
-        return c_cmp(self.ccismodule.sub2, other.ccismodule.sub2)
-
-    def test(self, unsigned int a, unsigned int b):
-        return self.ccismodule.test(a, b)
+    # def test(self, unsigned int a, unsigned int b):
+    #     return self.ccismodule.test(a, b)
 
     def is_active(self, ChannelState p):
         return self.ccismodule.is_active(p.cchannel_state)
+
+    
+cdef class CisModuleLogic2(CisModule):
+    cdef:
+        cCisModuleLogic2 *logic2
+
+    def __cinit__(self, Gene g, size_t i):
+        self.logic2 = dynamic_cast_cCisModuleLogic2(self.ccismodule)
+
+    property op:
+        def __get__(self):
+            return self.logic2.op
+
+    property sub1:
+        def __get__(self):
+            return self.logic2.channels[0]
+
+    property sub2:
+        def __get__(self):
+            return self.logic2.channels[1]
 
     def __repr__(self):
         p = self.gene.network.factory.params
         return "<CisModule: {}({}, {})>".format(
             Operand(self.op).name,
-            p.name_for_channel(self.sub1),
-            p.name_for_channel(self.sub2),
+            p.name_for_channel(self.logic2.channels[0]),
+            p.name_for_channel(self.logic2.channels[1]),
         )
-    
 
 cdef class NetworkAnalysis:
     cdef:
@@ -551,7 +577,7 @@ cdef class NetworkCollection:
 
     def mutate(self):
         cdef cIndexes mutated
-        self.factory.cmutator.mutate_collection(self.cnetworks, mutated)
+        self.factory.cgenefactory.mutate_collection(self.cnetworks, mutated)
 
         # Return indexes of the mutated networks. Automatic conversion (thank
         # you Cython)

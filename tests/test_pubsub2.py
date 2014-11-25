@@ -64,11 +64,13 @@ def test_network_construction(params3x2):
     for n in pop:
         assert len(n.genes) == p.gene_count
         for g in n.genes:
+            print g.modules
             assert len(g.modules) == p.cis_count
             assert g.pub in p.pub_signals
             for c in g.modules:
                 assert T.Operand(c.op) in p.operands
-                assert p.sub_range[0] <= c.sub1 < p.sub_range[1]
+                for i in range(c.site_count()):
+                    assert p.sub_range[0] <= c.get_site(i) < p.sub_range[1]
 
 def test_referencing(basic_params):
     f = T.Factory(basic_params)
@@ -141,9 +143,10 @@ def construct_attractor(net, env):
                 return tuple(path[i:])
         path.append(cur)
 
-def test_attractors(params3x2):
-    f = T.Factory(params3x2)
-    nc = f.create_collection(100)
+def test_attractors(params3x2, basic_params):
+    f = T.Factory(basic_params)
+    # f = T.Factory(params3x2)
+    nc = f.create_collection(1)
     for net in nc:
         pattractors = [construct_attractor(net, env) for env in f.environments]
         # Make sure the attractors created in C++ are the same
@@ -291,26 +294,26 @@ def test_play(target_3x3):
         cue_channels=3,
     )
 
-    factory = T.Factory(p)
-    target = T.Target(factory, target_3x3)
-    pop = factory.create_collection(1000)
-    for i in range(10000):
-        pop.select(target)
-        pop.mutate()
-
-    winners = []
-    for net in pop:
-        if net.fitness == 1.0:
-            winners.append(net)
-
-    for net in winners:
-        for g in net.genes:
-            print g
-            for m in g.modules:
-                print '   ', m
-        ana = T.NetworkAnalysis(net)
-        for k in ana.knockouts:
-            print k
-
-        print '--'
-
+    # factory = T.Factory(p)
+    # target = T.Target(factory, target_3x3)
+    # pop = factory.create_collection(1000)
+    # for i in range(10000):
+    #     pop.select(target)
+    #     pop.mutate()
+    #
+    # winners = []
+    # for net in pop:
+    #     if net.fitness == 1.0:
+    #         winners.append(net)
+    #
+    # for net in winners:
+    #     for g in net.genes:
+    #         print g
+    #         for m in g.modules:
+    #             print '   ', m
+    #     ana = T.NetworkAnalysis(net)
+    #     for k in ana.knockouts:
+    #         print k
+    #
+    #     print '--'
+    #

@@ -5,10 +5,36 @@
 
 using namespace pubsub2;
 
+signal_t cCisModule::get_site_channel(size_t index) const
+{
+    // TODO: Fix runtime error?
+    if (index >= site_count())
+        throw std::runtime_error("illegal site index");
+
+    return _channels[index];
+}
+
+signal_t cCisModule::set_site_channel(size_t index, signal_t c)
+{
+    // TODO: Fix runtime error?
+    if (index >= site_count())
+        throw std::runtime_error("illegal site index");
+
+    signal_t old = _channels[index];
+    _channels[index] = c;
+    return old;
+}
+
 cGene::cGene(sequence_t seq, signal_t p)
     : sequence(seq)
     , pub(p)
 {
+}
+
+cGene::~cGene()
+{
+    for (auto m : modules)
+        delete m;
 }
 
 cNetwork::cNetwork(const cFactory_ptr &f, bool no_ident)
@@ -25,15 +51,22 @@ cNetwork::cNetwork(const cFactory_ptr &f, bool no_ident)
         identifier = -1;
 }
 
+// cNetwork::~cNetwork()
+// {
+//     for (auto g : genes)
+//         delete g;
+// }
+//
+
 // This is the inner-inner loop!
 void cNetwork::cycle(cChannelState &c)
 {
     cChannelState next(c.size());
-    for (auto &g : genes)
-        for (auto &cis : g.modules)
-            if (cis.is_active(c))
+    for (auto g : genes)
+        for (auto cis : g->modules)
+            if (cis->is_active(c))
             {
-                next.set(g.pub);
+                next.set(g->pub);
                 // The gene is active, no use looking further
                 break;
             }
@@ -158,14 +191,14 @@ void cNetworkAnalysis::find_knockouts()
     // perfect, but it will do for now.
     for (size_t i=0; i < modified.gene_count(); ++i)
     {
-        cGene &g = modified.genes[i];
-        for (size_t j=0; j < g.module_count(); ++j)
+        cGene *g = modified.genes[i];
+        for (size_t j=0; j < g->module_count(); ++j)
         {
-            cCisModule &m = g.modules[j];
-            for (size_t k=0; k < m.site_count(); ++k)
+            cCisModule *m = g->modules[j];
+            for (size_t k=0; k < m->site_count(); ++k)
             {
                 // Knock this out by setting it to ZERO channel
-                signal_t old = m.set_site_channel(k, 0);
+                signal_t old = m->set_site_channel(k, 0);
                 modified.calc_attractors();
 
                 // Did it change? 
@@ -174,7 +207,7 @@ void cNetworkAnalysis::find_knockouts()
                     knockouts.push_back(cSiteIndex(i, j, k));
                 else
                     // Reset it
-                    m.set_site_channel(k, old);
+                    m->set_site_channel(k, old);
             }
         }
     }
@@ -254,29 +287,27 @@ double cTarget::assess(const cNetwork &net)
     return score;
 }
 
-cMutationModel::cMutationModel(cFactory *f, double rate_per_gene_)
+cGeneFactory::cGeneFactory(cFactory *f, double rate_per_gene_)
     : factory(f)
     , rate_per_gene(rate_per_gene_)
     // Construct a bunch of useful random number generators
     , r_gene(0, f->gene_count-1)
     , r_mod(0, f->cis_count-1)
     , r_sub(f->sub_range.first, f->sub_range.second-1)
-    , r_oper(0, f->operands.size()-1)
 {
 }
 
-void cMutationModel::construct_network(cNetwork &network)
+void cGeneFactory::construct_network(cNetwork &network)
 {
     for (size_t i=0; i < factory->gene_count; ++i)
     {
-        network.genes.push_back(cGene(i, factory->pub_range.first + i));
-        // genes.emplace_back(i, rpub(rng));
-        // Get a reference to it
-        cGene &g = network.genes.back();
+        // TODO: genes.emplace_back(...)
+        cGene *g = new cGene(i, factory->pub_range.first + i);
+        network.genes.push_back(g);
+
         for (size_t j=0; j < factory->cis_count; ++j)
         {
-            g.modules.push_back(cCisModule());
-            construct_cis(g.modules.back());
+            g->modules.push_back(construct_cis());
         }
     }
 
@@ -284,15 +315,7 @@ void cMutationModel::construct_network(cNetwork &network)
     network.calc_attractors();
 }
 
-void cMutationModel::construct_cis(cCisModule &cis)
-{
-    random_engine_t &re = factory->random_engine;
-    cis.op = factory->operands[r_oper(re)];
-    cis.sub1 = r_sub(re);
-    cis.sub2 = r_sub(re);
-}
-
-void cMutationModel::mutate_network(cNetwork_ptr &n, size_t mutations)
+void cGeneFactory::mutate_network(cNetwork_ptr &n, size_t mutations)
 {
     // NOTE: This done INPLACE mutation. It should never be called on a network
     // that has already had its attractors calculated! 
@@ -306,7 +329,7 @@ void cMutationModel::mutate_network(cNetwork_ptr &n, size_t mutations)
     }
 }
 
-cNetwork_ptr cMutationModel::copy_and_mutate_network(cNetwork_ptr &n, size_t mutations)
+cNetwork_ptr cGeneFactory::copy_and_mutate_network(cNetwork_ptr &n, size_t mutations)
 {
     cNetwork_ptr copy(new cNetwork(n->factory));
     // The copy constructor of vector does the hard work here...
@@ -321,7 +344,7 @@ cNetwork_ptr cMutationModel::copy_and_mutate_network(cNetwork_ptr &n, size_t mut
 
 typedef std::poisson_distribution<> poisson_t;
 
-void cMutationModel::mutate_collection(cNetworkVector &networks,
+void cGeneFactory::mutate_collection(cNetworkVector &networks,
                                      cIndexes &mutated)
 {
     // How many mutations are we going to have? That depends on the total
@@ -385,7 +408,7 @@ void cMutationModel::mutate_collection(cNetworkVector &networks,
     }
 }
 
-void cMutationModel::mutate_gene(cGene &g)
+void cGeneFactory::mutate_gene(cGene *g)
 {
     // First, decide what cis module we're using.
     size_t cis_i = 0; 
@@ -395,22 +418,10 @@ void cMutationModel::mutate_gene(cGene &g)
         cis_i = r_mod(factory->random_engine);
 
     // Grab this and mutate it.
-    cCisModule &m = g.modules[cis_i];
+    cCisModule *m = g->modules[cis_i];
     mutate_cis(m);
 }
 
-// This is where the action really is.
-void cMutationModel::mutate_cis(cCisModule &m)
-{
-    // TODO: This is shite; just a start.
-    double p = r_uniform_01(factory->random_engine);
-    if (p < .5)
-        m.op = factory->operands[r_oper(factory->random_engine)];
-    else if (p < .75)
-        m.sub1 = r_sub(factory->random_engine);
-    else
-        m.sub2 = r_sub(factory->random_engine);
-}
 
 cSelectionModel::cSelectionModel(cFactory_ptr &f)
     : factory(f)
@@ -474,34 +485,42 @@ void cSelectionModel::copy_using_indexes(
         to.push_back(from[i]);
 }
 
-signal_t cCisModule::get_site_channel(size_t index) const
+cGeneFactoryLogic2::cGeneFactoryLogic2(cFactory *f, double rate_per_gene_)
+    : cGeneFactory(f, rate_per_gene)
+    , r_oper(0, f->operands.size()-1)
 {
-    // TODO: Fix runtime error?
-    if (index >= site_count())
-        throw std::runtime_error("illegal site index");
-
-    if (index == 0)
-        return sub1;
-    return sub2;
 }
 
-signal_t cCisModule::set_site_channel(size_t index, signal_t channel)
+cCisModule *cGeneFactoryLogic2::construct_cis()
 {
-    // TODO: Fix runtime error?
-    if (index >= site_count())
-        throw std::runtime_error("illegal site index");
+    cCisModuleLogic2 *cis = new cCisModuleLogic2();
 
-    signal_t old;
-    if (index == 0)
-    {
-        old = sub1;
-        sub1 = channel;
-    }
+    random_engine_t &re = factory->random_engine;
+    cis->op = factory->operands[r_oper(re)];
+    cis->channels[0] = r_sub(re);
+    cis->channels[1] = r_sub(re);
+    return cis;
+}
+
+// This is where the action really is.
+void cGeneFactoryLogic2::mutate_cis(cCisModule *m)
+{
+    cCisModuleLogic2 *cis = dynamic_cast<cCisModuleLogic2 *>(m);
+    // TODO: This is shite; just a start.
+    double p = r_uniform_01(factory->random_engine);
+    if (p < .5)
+        cis->op = factory->operands[r_oper(factory->random_engine)];
+    else if (p < .75)
+        cis->channels[0] = r_sub(factory->random_engine);
     else
-    {
-        old = sub2;
-        sub2 = channel;
-    }
+        cis->channels[1] = r_sub(factory->random_engine);
+}
 
-    return old;
+cCisModule *cCisModuleLogic2::clone() const
+{
+    cCisModuleLogic2 *cis = new cCisModuleLogic2();
+    cis->op = op;
+    cis->channels[0] = channels[0];
+    cis->channels[1] = channels[1];
+    return cis;
 }
