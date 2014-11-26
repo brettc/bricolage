@@ -3,11 +3,13 @@
 
 #include <cstdint>
 #include <vector>
+#include <set>
 
 // #include <tr1/memory> Another shared_ptr?
 #include <boost/shared_ptr.hpp>
 #include <boost/dynamic_bitset.hpp>
 #include <boost/multi_array.hpp>
+#include <tuple>
 #include <random>
 
 namespace pubsub2
@@ -119,19 +121,16 @@ struct cFactory
 
 typedef boost::shared_ptr<cFactory> cFactory_ptr;
 
-struct cSiteIndex 
+// By inheriting from tuple we get relational operators for free
+struct cSiteIndex : public std::tuple<size_t, size_t, size_t> 
 {
-    cSiteIndex(int_t g=0, int_t c=0, int_t s=0)
-        : gene(g), cismod(c), site(s) {}
-    int_t gene, cismod, site;
+    cSiteIndex(size_t g, size_t c, size_t s) : tuple(g, c, s) {}
+    inline size_t gene() const { return std::get<0>(*this); }
+    inline size_t cis() const { return std::get<1>(*this); }
+    inline size_t site() const { return std::get<2>(*this); }
 };
-typedef std::vector<cSiteIndex> cSiteLocations;
 
-// struct cSiteLocator
-// {
-//     cSiteLocator(const cFactory_ptr &f);
-//     bool next_site(Network_ptr, cSiteIndex &x, bool init=false);
-// };
+typedef std::vector<cSiteIndex> cSiteLocations;
 
 class cNetwork
 {
@@ -178,6 +177,10 @@ private:
 //     return cNetwork_ptr(copy);
 // }
 
+typedef std::pair<char, size_t> Node_t;
+typedef std::pair<Node_t, Node_t> Edge_t;
+typedef std::set<Edge_t> cEdgeList;
+
 struct cNetworkAnalysis
 {
     cNetworkAnalysis(const cNetwork_ptr &n);
@@ -187,6 +190,7 @@ struct cNetworkAnalysis
 
     // Go through and change everything.
     void find_knockouts();
+    void make_edges(cEdgeList &edges);
 };
 
 struct cTarget

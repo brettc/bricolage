@@ -173,26 +173,6 @@ void cNetwork::calc_attractors()
     }
 }
 
-// void cNetwork::make_graph_edges(cEdgeList &edges)
-// {
-//     // We're building a bipartite graph 
-//     // Gene -> Channel
-//     // Channel -> Gene
-//
-//     for g in genes:
-//         add g -> pub
-//
-//         for m in mod:
-//             for c in mod:
-//                 add c -> g (Label with index = CISMOD/SITE)
-//
-//     // Now if required FILTER By find_knockouts
-// }
-//
-// void cNetwork::find_knockouts()
-// {
-//     // return positions GENE -> CISMOD -> SITE
-// }
 
 // cNetwork_ptr cNetwork::get_detached_copy() const
 // {
@@ -228,8 +208,10 @@ void cNetworkAnalysis::find_knockouts()
 
                 // Did it change? 
                 if (modified.attractors == original->attractors)
+                {
                     // Record it
-                    knockouts.push_back(cSiteIndex(i, j, k));
+                    knockouts.emplace_back(i, j, k);
+                }
                 else
                     // Reset it
                     m->set_site_channel(k, old);
@@ -237,6 +219,26 @@ void cNetworkAnalysis::find_knockouts()
         }
     }
 }
+
+void cNetworkAnalysis::make_edges(cEdgeList &edges)
+{
+    for (size_t i=0; i < modified.gene_count(); ++i)
+    {
+        cGene *g = modified.genes[i];
+        Node_t gnode = std::make_pair('G', i);
+        Node_t cnode = std::make_pair('C', g->pub);
+        edges.emplace(gnode, cnode);
+        for (size_t j=0; j < g->module_count(); ++j)
+        {
+            cCisModule *m = g->modules[j];
+            for (size_t k=0; k < m->site_count(); ++k)
+            {
+                ;
+            }
+        }
+    }
+}
+
 
 cFactory::cFactory(size_t seed)
     : random_engine(seed)
@@ -358,8 +360,8 @@ cNetwork_ptr cGeneFactory::copy_and_mutate_network(cNetwork_ptr &n, size_t mutat
 {
     cNetwork_ptr copy(new cNetwork(n->factory));
     // The copy constructor of vector does the hard work here...
-    n->clone_genes(copy->genes);
     copy->parent_identifier = n->identifier;
+    n->clone_genes(copy->genes);
 
     // Now mutate it and calculate the attractors
     mutate_network(copy, mutations);

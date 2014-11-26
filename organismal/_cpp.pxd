@@ -2,8 +2,10 @@
 Definitions for c++ or boost classes
 """
 from libcpp.vector cimport vector
+from libcpp.set cimport set
 from libcpp.string cimport string
 from libcpp.utility cimport pair
+from libcpp.cast import dynamic_cast, static_cast
 
 
 cdef extern from "<random>" namespace "std":

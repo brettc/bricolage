@@ -530,11 +530,16 @@ cdef class NetworkAnalysis:
             k = []
             while i != self.canalysis.knockouts.end():
                 si = &deref(i)
-                k.append((si.gene, si.cismod, si.site))
+                k.append((si.gene(), si.cis(), si.site()))
                 preinc(i)
 
             return k
 
+    def get_edges(self):
+        cdef:
+            cEdgeList edges
+        self.canalysis.make_edges(edges)
+        return edges
 
 cdef class NetworkCollection:
     cdef:

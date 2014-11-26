@@ -300,7 +300,7 @@ def test_play(target_3x3):
     factory = T.Factory(p)
     target = T.Target(factory, target_3x3)
     pop = factory.create_collection(1000)
-    for i in range(1000):
+    for i in range(100):
         pop.select(target)
         pop.mutate()
 
@@ -317,6 +317,11 @@ def test_play(target_3x3):
         ana = T.NetworkAnalysis(net)
         for k in ana.knockouts:
             print k
+
+        # print '--edges'
+        # for e in ana.get_edges():
+        #     print e
+
         break
 
         print '--'

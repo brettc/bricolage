@@ -76,13 +76,19 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
         bint is_detached()
 
     cdef cppclass cSiteIndex:
-        int_t gene, cismod, site
+        int_t gene()
+        int_t cis()
+        int_t site()
 
     ctypedef vector[cSiteIndex] cSiteLocations
+    ctypedef pair[char, size_t] Node_t
+    ctypedef pair[Node_t, Node_t] Edge_t
+    ctypedef set[Edge_t] cEdgeList
 
     cdef cppclass cNetworkAnalysis:
         cNetworkAnalysis(const cNetwork_ptr &n)
         void find_knockouts()
+        void make_edges(cEdgeList e)
         cSiteLocations knockouts
 
     # ctypedef shared_ptr[cNetwork] cNetwork_ptr
