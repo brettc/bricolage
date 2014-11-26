@@ -3,11 +3,13 @@
 
 #include <cstdint>
 #include <vector>
+#include <set>
 
 // #include <tr1/memory> Another shared_ptr?
 #include <boost/shared_ptr.hpp>
 #include <boost/dynamic_bitset.hpp>
 #include <boost/multi_array.hpp>
+#include <tuple>
 #include <random>
 
 namespace pubsub2
@@ -46,35 +48,28 @@ inline int bitset_cmp(cChannelState &a, cChannelState &b)
     return 1;
 }
 
-struct cCisModule
+class cCisModule
 {
-    // Default constructor is fine
-    operand_t op;
-    signal_t sub1, sub2;
-
-    size_t site_count() const { return 2; }
+public:
     signal_t get_site_channel(size_t index) const;
     signal_t set_site_channel(size_t index, signal_t channel);
 
-    // Inline this stuff. It won't change.
-    inline bool test(unsigned int a, unsigned int b) const 
-    { 
-        // Note: C++ standard guarantees integral conversion from bool results
-        // in 0 or 1.
-        return op & (8 >> ((a << 1) | b)); 
-    }
-
-    inline bool is_active(cChannelState const &state) const 
-    {
-        return test(state.test(sub1), state.test(sub2));
-    }
+    virtual size_t site_count() const = 0;
+    virtual bool is_active(cChannelState const &state) const = 0;
+    virtual cCisModule* clone() const = 0;
+    virtual ~cCisModule() {}
+protected:
+    signal_t *_channels;
 };
 
-typedef std::vector<cCisModule> cCisModules;
+typedef std::vector<cCisModule *> cCisModules;
+
 
 struct cGene
 {
     cGene(sequence_t sequence, signal_t p);
+    ~cGene();
+    cGene *clone();
 
     size_t module_count() { return modules.size(); }
 
@@ -83,10 +78,10 @@ struct cGene
     signal_t pub;
 };
 
-typedef std::vector<cGene> cGeneVector;
+typedef std::vector<cGene *> cGeneVector;
 typedef std::vector<operand_t> cOperands;
 
-struct cNetwork;
+class cNetwork;
 typedef boost::shared_ptr<cNetwork> cNetwork_ptr;
 typedef std::vector<cNetwork_ptr> cNetworkVector;
 
@@ -126,24 +121,29 @@ struct cFactory
 
 typedef boost::shared_ptr<cFactory> cFactory_ptr;
 
-struct cSiteIndex 
+// By inheriting from tuple we get relational operators for free
+struct cSiteIndex : public std::tuple<size_t, size_t, size_t> 
 {
-    cSiteIndex(int_t g=0, int_t c=0, int_t s=0)
-        : gene(g), cismod(c), site(s) {}
-    int_t gene, cismod, site;
+    cSiteIndex(size_t g, size_t c, size_t s) : tuple(g, c, s) {}
+    inline size_t gene() const { return std::get<0>(*this); }
+    inline size_t cis() const { return std::get<1>(*this); }
+    inline size_t site() const { return std::get<2>(*this); }
 };
+
 typedef std::vector<cSiteIndex> cSiteLocations;
 
-// struct cSiteLocator
-// {
-//     cSiteLocator(const cFactory_ptr &f);
-//     bool next_site(Network_ptr, cSiteIndex &x, bool init=false);
-// };
-
-struct cNetwork
+class cNetwork
 {
+public:
     cNetwork(const cFactory_ptr &f, bool no_ident=false);
+    ~cNetwork();
+
     size_t gene_count() { return genes.size(); }
+    void cycle(cChannelState &c) const;
+    void calc_attractors();
+    void clone_genes(cGeneVector &gv) const;
+    bool is_detached() const { return identifier < 0; }
+    cNetwork_ptr get_detached_copy() const;
 
     mutable void *pyobject;
     
@@ -155,17 +155,15 @@ struct cNetwork
     cAttractors attractors;
     cRatesVector rates;
 
-    void cycle(cChannelState &c);
-    void calc_attractors();
-
     // Record the fitness and the target against which it was calculated. 
     // This means we don't need to recalc the fitness if the target has not
     // changed.
     mutable int_t target;
     mutable double fitness;
 
-    bool is_detached() const { return identifier < 0; }
-    cNetwork_ptr get_detached_copy() const;
+private:
+    // Don't allow copying
+    cNetwork(const cNetwork &);
 
 };
 
@@ -179,6 +177,10 @@ struct cNetwork
 //     return cNetwork_ptr(copy);
 // }
 
+typedef std::pair<char, size_t> Node_t;
+typedef std::pair<Node_t, Node_t> Edge_t;
+typedef std::set<Edge_t> cEdgeList;
+
 struct cNetworkAnalysis
 {
     cNetworkAnalysis(const cNetwork_ptr &n);
@@ -188,6 +190,7 @@ struct cNetworkAnalysis
 
     // Go through and change everything.
     void find_knockouts();
+    void make_edges(cEdgeList &edges);
 };
 
 struct cTarget
@@ -201,31 +204,30 @@ struct cTarget
     // TODO: per output weighting
     double assess(const cNetwork &net);
 
-
 };
 
 // TODO: Eventually this will be a base class, then have different types of
 // generators.
-struct cMutationModel
+struct cGeneFactory
 {
-    cMutationModel(cFactory *f, double rate_per_gene_);
+    cGeneFactory(cFactory *f, double rate_per_gene_);
+    virtual ~cGeneFactory() {};
     cFactory *factory;
     double rate_per_gene;
 
     // Not sure whether this is worth it, but still...
-    randint_t r_gene, r_mod;
-    randint_t r_sub, r_oper, r_cis;
+    randint_t r_gene, r_mod, r_sub;
 
     // default constructed [0, 1]
     randreal_t r_uniform_01;
 
     // This is where the constructors and mutators for networks live
-    void construct_cis(cCisModule &m);
+    virtual cCisModule *construct_cis() = 0;
     void construct_network(cNetwork &network);
 
     // Mutates the gene in place
-    void mutate_cis(cCisModule &m);
-    void mutate_gene(cGene &g);
+    virtual void mutate_cis(cCisModule *m) = 0;
+    void mutate_gene(cGene *g);
     void mutate_network(cNetwork_ptr &n, size_t mutations);
 
     cNetwork_ptr copy_and_mutate_network(cNetwork_ptr &n, size_t mutations);
@@ -243,6 +245,46 @@ struct cSelectionModel
 
     void copy_using_indexes(
         const cNetworkVector &from, cNetworkVector &to, const cIndexes &selected);
+};
+
+
+struct cGeneFactoryLogic2 : public cGeneFactory
+{
+    cGeneFactoryLogic2(cFactory *f, double rate_per_gene_);
+    randint_t r_oper;
+
+    // Overrides
+    cCisModule *construct_cis();
+    void mutate_cis(cCisModule *m);
+};
+
+class cCisModuleLogic2 : public cCisModule
+{
+public:
+    cCisModuleLogic2() { _channels = channels; }
+
+    size_t site_count() const { return 2; }
+    virtual cCisModule* clone() const;
+    void mutate();
+
+    // Inline this stuff. It won't change.
+    inline bool test(unsigned int a, unsigned int b) const 
+    { 
+        // Note: C++ standard guarantees integral conversion from bool results
+        // in 0 or 1.
+        return op & (8 >> ((a << 1) | b)); 
+    }
+
+    inline bool is_active(cChannelState const &state) const 
+    {
+        return test(state.test(channels[0]), state.test(channels[1]));
+    }
+// protected:
+    // Default constructor is fine
+    operand_t op;
+    signal_t channels[2];
+
+    friend cGeneFactoryLogic2;
 };
 
 // struct cSimpleMutationModel : public cMutationModel

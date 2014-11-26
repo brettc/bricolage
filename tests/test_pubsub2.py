@@ -64,11 +64,13 @@ def test_network_construction(params3x2):
     for n in pop:
         assert len(n.genes) == p.gene_count
         for g in n.genes:
+            print g.modules
             assert len(g.modules) == p.cis_count
             assert g.pub in p.pub_signals
             for c in g.modules:
                 assert T.Operand(c.op) in p.operands
-                assert p.sub_range[0] <= c.sub1 < p.sub_range[1]
+                for i in range(c.site_count()):
+                    assert p.sub_range[0] <= c.get_site(i) < p.sub_range[1]
 
 def test_referencing(basic_params):
     f = T.Factory(basic_params)
@@ -141,9 +143,10 @@ def construct_attractor(net, env):
                 return tuple(path[i:])
         path.append(cur)
 
-def test_attractors(params3x2):
-    f = T.Factory(params3x2)
-    nc = f.create_collection(100)
+def test_attractors(params3x2, basic_params):
+    f = T.Factory(basic_params)
+    # f = T.Factory(params3x2)
+    nc = f.create_collection(1)
     for net in nc:
         pattractors = [construct_attractor(net, env) for env in f.environments]
         # Make sure the attractors created in C++ are the same
@@ -155,23 +158,26 @@ def test_attractors(params3x2):
 
 def test_collection(params3x2):
     f = T.Factory(params3x2)
-    nets = f.create_collection(100)
+
+    nets = f.create_collection(1000)
 
     old_nets = [_ for _ in nets]
     mutated = nets.mutate()
 
+    nmutations = 0
     for i, n in enumerate(nets):
         if i in mutated:
+            nmutations += 1
             assert n is not old_nets[i]
         else:
             assert n is old_nets[i]
+
+    assert nmutations > 0
 
 def test_mutation(params3x2):
     f = T.Factory(params3x2)
     orig = f.create_network()
     mute = orig.mutated(1)
-    print orig.identifier, orig.parent_identifier
-    print mute.identifier, mute.parent_identifier
     print orig, mute
     for g1, g2 in zip(orig.genes, mute.genes):
         for m1, m2 in zip(g1.modules, g2.modules):
@@ -294,7 +300,7 @@ def test_play(target_3x3):
     factory = T.Factory(p)
     target = T.Target(factory, target_3x3)
     pop = factory.create_collection(1000)
-    for i in range(10000):
+    for i in range(100):
         pop.select(target)
         pop.mutate()
 
@@ -311,6 +317,12 @@ def test_play(target_3x3):
         ana = T.NetworkAnalysis(net)
         for k in ana.knockouts:
             print k
+
+        # print '--edges'
+        # for e in ana.get_edges():
+        #     print e
+
+        break
 
         print '--'
 

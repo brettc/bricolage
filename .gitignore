@@ -4,3 +4,5 @@ __pycache__/*
 build/*
 .cache/*
 .ipynb_checkpoints/*
+pubsub2_ext.cpp
+test.py

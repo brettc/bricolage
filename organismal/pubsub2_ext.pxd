@@ -45,13 +45,13 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
     ctypedef vector[cCisModule] cCisModules
 
     cdef cppclass cCisModule:
-        bint test(unsigned int a, unsigned int b)
+        # bint test(unsigned int a, unsigned int b)
         bint is_active(dynamic_bitset[size_t] s)
-        operand_t op
-        signal_t sub1, sub2
-        # bint silenced
-
-    ctypedef vector[cCisModule] cCisModules
+        signal_t get_site_channel(size_t index)
+        signal_t set_site_channel(size_t index, signal_t channel);
+        size_t site_count()
+        
+    ctypedef vector[cCisModule *] cCisModules
 
     cdef cppclass cGene:
         sequence_t sequence;
@@ -64,7 +64,7 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
     cdef cppclass cNetwork:
         cNetwork(cFactory_ptr)
         void *pyobject
-        vector[cGene] genes
+        vector[cGene *] genes
         int_t identifier, parent_identifier
         size_t gene_count
         void cycle(cChannelState c)
@@ -76,13 +76,19 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
         bint is_detached()
 
     cdef cppclass cSiteIndex:
-        int_t gene, cismod, site
+        int_t gene()
+        int_t cis()
+        int_t site()
 
     ctypedef vector[cSiteIndex] cSiteLocations
+    ctypedef pair[char, size_t] Node_t
+    ctypedef pair[Node_t, Node_t] Edge_t
+    ctypedef set[Edge_t] cEdgeList
 
     cdef cppclass cNetworkAnalysis:
         cNetworkAnalysis(const cNetwork_ptr &n)
         void find_knockouts()
+        void make_edges(cEdgeList e)
         cSiteLocations knockouts
 
     # ctypedef shared_ptr[cNetwork] cNetwork_ptr
@@ -98,15 +104,12 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
         int_t identifier
         cRatesVector optimal_rates
 
-    cdef cppclass cMutationModel:
-        cMutationModel(cFactory *f, double rate)
+    cdef cppclass cGeneFactory:
+        cGeneFactory()
+        cGeneFactory(cFactory *f, double rate)
         cFactory *factory
 
-        void construct_cis(cCisModule &m);
         void construct_network(cNetwork &network);
-
-        void mutate_cis(cCisModule &m)
-        void mutate_gene(cGene &g)
         void mutate_network(cNetwork_ptr &n, size_t n)
 
         cNetwork_ptr copy_and_mutate_network(cNetwork_ptr &n, size_t mutations)
@@ -122,3 +125,14 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
 
         void copy_using_indexes(
             const cNetworkVector &fr, cNetworkVector &to, const cIndexes &selected)
+
+    cdef cppclass cGeneFactoryLogic2(cGeneFactory):
+        cGeneFactoryLogic2(cFactory *f, double rate)
+
+    cdef cppclass cCisModuleLogic2(cCisModule):
+        operand_t op
+        signal_t *channels
+
+    cCisModuleLogic2 * dynamic_cast_cCisModuleLogic2 \
+        "dynamic_cast<pubsub2::cCisModuleLogic2 *>" (cCisModule *) except NULL
+
