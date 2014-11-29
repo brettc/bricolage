@@ -190,50 +190,75 @@ cNetworkAnalysis::cNetworkAnalysis(const cNetwork_ptr &n)
     original->clone_genes(modified.genes);
 }
 
-void cNetworkAnalysis::find_knockouts()
+void cNetworkAnalysis::make_edges(cEdgeList &edges)
 {
-    // Incrementally add site knockouts that have no effect. This isn't
-    // perfect, but it will do for now.
-    for (size_t i=0; i < modified.gene_count(); ++i)
+    // Generate three types of edges
+    // Gene -> Channel
+    // Channel -> Module
+    // Module -> Gene
+    for (size_t i=0; i < original->gene_count(); ++i)
     {
-        cGene *g = modified.genes[i];
+        const cGene *g = original->genes[i];
+        Node_t gnode = std::make_pair(NT_GENE, i);
+        Node_t cnode = std::make_pair(NT_CHANNEL, g->pub);
+        edges.emplace(gnode, cnode);
         for (size_t j=0; j < g->module_count(); ++j)
         {
-            cCisModule *m = g->modules[j];
+            const cCisModule *m = g->modules[j];
+            Node_t mnode = std::make_pair(NT_MODULE, 
+                                          make_module_node_id(i, j));
+            edges.emplace(mnode, gnode);
             for (size_t k=0; k < m->site_count(); ++k)
             {
-                // Knock this out by setting it to ZERO channel
-                signal_t old = m->set_site_channel(k, 0);
-                modified.calc_attractors();
-
-                // Did it change? 
-                if (modified.attractors == original->attractors)
-                {
-                    // Record it
-                    knockouts.emplace_back(i, j, k);
-                }
-                else
-                    // Reset it
-                    m->set_site_channel(k, old);
+                Node_t cnode = std::make_pair(NT_CHANNEL, m->get_site_channel(k));
+                edges.emplace(cnode, mnode);
             }
         }
     }
 }
 
-void cNetworkAnalysis::make_edges(cEdgeList &edges)
+
+void cNetworkAnalysis::make_knockouts(cEdgeList &edges)
 {
+    // Incrementally add site knockouts that have no effect. The knockouts are
+    // only occur in the cis binding sites (not the genes). So the edges
+    // consist of an incoming TF channel and a module + binding site.
+    //
+    // This isn't perfect, but it will do for now.  TODO: Fix this so it handle
+    // double knockouts etc.
     for (size_t i=0; i < modified.gene_count(); ++i)
     {
         cGene *g = modified.genes[i];
-        Node_t gnode = std::make_pair('G', i);
-        Node_t cnode = std::make_pair('C', g->pub);
-        edges.emplace(gnode, cnode);
         for (size_t j=0; j < g->module_count(); ++j)
         {
             cCisModule *m = g->modules[j];
+            Node_t mnode = std::make_pair(NT_MODULE, make_module_node_id(i, j));
+
             for (size_t k=0; k < m->site_count(); ++k)
             {
-                ;
+                // Knock this out by setting it to ZERO channel. Nothing ever
+                // publishes to the ZERO channel!
+                signal_t old = m->set_site_channel(k, 0);
+                Node_t cnode = std::make_pair(NT_CHANNEL, old);
+
+                // It was already zero?
+                if (old == 0)
+                {
+                    // We can definitely knock it out!
+                    edges.emplace(cnode, mnode);
+                    continue;
+                }
+
+                // Otherwise, we need to test to see if it changed anything
+                modified.calc_attractors();
+
+                // Did it change? 
+                if (modified.attractors == original->attractors)
+                    // Nope: We can knock it out.
+                    edges.emplace(cnode, mnode); 
+                else
+                    // It changed, we need to reset it
+                    m->set_site_channel(k, old);
             }
         }
     }
