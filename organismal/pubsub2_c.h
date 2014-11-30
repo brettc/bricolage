@@ -41,6 +41,15 @@ typedef std::vector<size_t> cIndexes;
 typedef std::vector<double> cRates;
 typedef std::vector<cRates> cRatesVector;
 
+// Allows us to intervene on the state of genes and modules, forcing them on or
+// off to ascertain what causal role they have.
+enum InterventionState
+{
+    INTERVENE_NONE = 0,
+    INTERVENE_ON = 1,
+    INTERVENE_OFF = 2,
+};
+
 
 inline int bitset_cmp(cChannelState &a, cChannelState &b)
 {
@@ -52,6 +61,7 @@ inline int bitset_cmp(cChannelState &a, cChannelState &b)
 class cCisModule
 {
 public:
+    cCisModule() : intervene(INTERVENE_NONE) {}
     signal_t get_site_channel(size_t index) const;
     signal_t set_site_channel(size_t index, signal_t channel);
 
@@ -59,6 +69,8 @@ public:
     virtual bool is_active(cChannelState const &state) const = 0;
     virtual cCisModule* clone() const = 0;
     virtual ~cCisModule() {}
+
+    InterventionState intervene;
 protected:
     signal_t *_channels;
 };
@@ -76,6 +88,7 @@ struct cGene
 
     sequence_t sequence;
     cCisModules modules;
+    InterventionState intervene;
     signal_t pub;
 };
 
@@ -198,7 +211,7 @@ struct cNetworkAnalysis
     cNetwork modified;
 
     void make_edges(cEdgeList &edges);
-    void make_knockouts(cEdgeList &edges);
+    void make_active_edges(cEdgeList &edges);
 };
 
 struct cTarget

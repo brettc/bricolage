@@ -500,13 +500,16 @@ cdef class CisModuleLogic2(CisModule):
         def __get__(self):
             return self.logic2.channels[1]
 
-    def __repr__(self):
+    def __str__(self):
         p = self.gene.network.factory.params
-        return "<CisModule: {}({}, {})>".format(
+        return "{}({}, {})".format(
             Operand(self.op).name,
             p.name_for_channel(self.logic2.channels[0]),
             p.name_for_channel(self.logic2.channels[1]),
         )
+
+    def __repr__(self):
+        return "<CisModule: {}>".format(self.__str__())
 
 cdef class NetworkAnalysis:
     cdef:
@@ -541,10 +544,10 @@ cdef class NetworkAnalysis:
         self.canalysis.make_edges(edges)
         return edges
 
-    def get_knockouts(self):
+    def get_active_edges(self):
         cdef:
             cEdgeList edges
-        self.canalysis.make_knockouts(edges)
+        self.canalysis.make_active_edges(edges)
         return edges
 
 cdef class NetworkCollection:

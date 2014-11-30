@@ -87,7 +87,7 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
 
     cdef cppclass cNetworkAnalysis:
         cNetworkAnalysis(const cNetwork_ptr &n)
-        void make_knockouts(cEdgeList e)
+        void make_active_edges(cEdgeList e)
         void make_edges(cEdgeList e)
 
     # ctypedef shared_ptr[cNetwork] cNetwork_ptr

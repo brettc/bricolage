@@ -1,6 +1,7 @@
 from enum import IntEnum
 import networkx as nx
 from pygraphviz import AGraph
+from operand import Operand
 
 class NodeType(IntEnum):
     # NOTE: These should be the same as those defined in pubsub2_c.h
@@ -86,13 +87,26 @@ class FullGraph(BaseGraph):
     def __init__(self, analysis, knockouts=True):
         BaseGraph.__init__(self, analysis)
         # Build the nx_graph
-        edges = analysis.get_edges()
         if knockouts:
-            ko = analysis.get_knockouts()
-            edges -= ko
+            edges = analysis.get_active_edges()
+        else:
+            edges = analysis.get_edges()
 
         for nfrom, nto in edges:
             self.nx_graph.add_edge(nfrom, nto)
+
+    def get_gene_label(self, i):
+        mods = self.network.genes[i].modules
+        # return "|".join([str(j) for j, m in enumerate(mods)])
+        return str(self.network.genes[i])
+    
+    def get_module_label(self, i):
+        gi, mi = _decode_module_id(i)
+        m = self.network.genes[gi].modules[mi]
+        return str(m)
+
+    def get_channel_label(self, i):
+        return self.params.name_for_channel(i)
 
 class GCGraph(FullGraph):
     def __init__(self, analysis, knockouts=True):
@@ -133,13 +147,13 @@ class DotMaker(object):
             # color = 'green' if self.graph.is_inert(node) else 'black'
             shape = 'hexagon' if self.graph.is_structural(node) else 'box'
             attrs = {
-                # 'label': self.get_gene_description(i),
-                'color': 'black',
                 'shape': shape,
+                'label': self.graph.get_gene_label(i),
             }
         elif t == NodeType.MODULE:
             attrs = {
                 'shape': 'oval',
+                'label': self.graph.get_module_label(i),
             }
 
         elif t == NodeType.CHANNEL:
@@ -152,7 +166,7 @@ class DotMaker(object):
 
             attrs = {
                 'shape': shape,
-                # 'label': self.graph.params.char_for_signal[i]
+                'label': self.graph.get_channel_label(i),
             }
         return name, attrs
 

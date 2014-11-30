@@ -33,3 +33,25 @@ def calculate(op, a, b):
 
 def calc_all(op):
     return [calculate(op, a, b) for a, b in ((0, 0), (0, 1), (1, 0), (1, 1))]
+
+# TODO: Sort out short descriptions
+# _short_desc = 
+# {
+#     FALSE = 0
+#     AND = 1
+#     A_AND_NOT_B = 2
+#     A = 3 
+#     NOT_A_AND_B = 4
+#     B = 5
+#     XOR = 6
+#     OR = 7
+#     NOR = 8
+#     XNOR = 9
+#     NOT_B = 10
+#     A_OR_NOT_B = 11
+#     NOT_A = 12
+#     NOT_A_OR_B = 13
+#     NAND = 14
+#     TRUE = 15
+# }
+
