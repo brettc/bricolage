@@ -28,6 +28,7 @@ signal_t cCisModule::set_site_channel(size_t index, signal_t c)
 
 cGene::cGene(sequence_t seq, signal_t p)
     : sequence(seq)
+    , intervene(INTERVENE_NONE)
     , pub(p)
 {
 }
@@ -82,13 +83,25 @@ void cNetwork::cycle(cChannelState &c) const
 {
     cChannelState next(c.size());
     for (auto g : genes)
-        for (auto cis : g->modules)
-            if (cis->is_active(c))
-            {
-                next.set(g->pub);
-                // The gene is active, no use looking further
-                break;
-            }
+        switch (g->intervene)
+        {
+        case INTERVENE_ON:
+            // If it is forced ON, don't both checking anything
+            next.set(g->pub);
+            break;
+        case INTERVENE_NONE:
+            for (auto m : g->modules)
+                if (m->intervene == INTERVENE_ON || 
+                    (m->intervene == INTERVENE_NONE && m->is_active(c)))
+                {
+                    next.set(g->pub);
+                    // The gene is active, no use looking further
+                    break;
+                }
+        case INTERVENE_OFF:
+            // Whatever...
+            ;
+        }
     // Update the "return" value.
     c.swap(next);
 }
@@ -190,50 +203,97 @@ cNetworkAnalysis::cNetworkAnalysis(const cNetwork_ptr &n)
     original->clone_genes(modified.genes);
 }
 
-void cNetworkAnalysis::find_knockouts()
+void cNetworkAnalysis::make_edges(cEdgeList &edges)
 {
-    // Incrementally add site knockouts that have no effect. This isn't
-    // perfect, but it will do for now.
-    for (size_t i=0; i < modified.gene_count(); ++i)
+    // Generate three types of edges
+    // Gene -> Channel
+    // Channel -> Module
+    // Module -> Gene
+    edges.clear();
+    for (size_t i=0; i < original->gene_count(); ++i)
     {
-        cGene *g = modified.genes[i];
+        const cGene *g = original->genes[i];
+        Node_t gnode = std::make_pair(NT_GENE, i);
+        Node_t cnode = std::make_pair(NT_CHANNEL, g->pub);
+        edges.emplace(gnode, cnode);
         for (size_t j=0; j < g->module_count(); ++j)
         {
-            cCisModule *m = g->modules[j];
+            const cCisModule *m = g->modules[j];
+            Node_t mnode = std::make_pair(NT_MODULE, make_module_node_id(i, j));
+            edges.emplace(mnode, gnode);
             for (size_t k=0; k < m->site_count(); ++k)
             {
-                // Knock this out by setting it to ZERO channel
-                signal_t old = m->set_site_channel(k, 0);
-                modified.calc_attractors();
-
-                // Did it change? 
-                if (modified.attractors == original->attractors)
-                {
-                    // Record it
-                    knockouts.emplace_back(i, j, k);
-                }
-                else
-                    // Reset it
-                    m->set_site_channel(k, old);
+                Node_t cnode = std::make_pair(NT_CHANNEL, m->get_site_channel(k));
+                edges.emplace(cnode, mnode);
             }
         }
     }
 }
 
-void cNetworkAnalysis::make_edges(cEdgeList &edges)
+
+void cNetworkAnalysis::make_active_edges(cEdgeList &edges)
 {
+    // Incrementally add knockouts that have no effect on the rates. Start big,
+    // at the gene level and then move down.
+    //
+    // This isn't perfect, but it will do for now.  TODO: Fix this so it handle
+    // double knockouts etc.
+    edges.clear();
     for (size_t i=0; i < modified.gene_count(); ++i)
     {
         cGene *g = modified.genes[i];
-        Node_t gnode = std::make_pair('G', i);
-        Node_t cnode = std::make_pair('C', g->pub);
+
+        // Can we knock this gene out?
+        g->intervene = INTERVENE_OFF;
+        modified.calc_attractors();
+
+        // If this makes no diff, then no edges attached to this Gene make any
+        // difference. Let's skip to the next one.
+        if (modified.rates == original->rates)
+            continue;
+
+        // Ok, it does something ...
+        g->intervene = INTERVENE_NONE;
+        Node_t gnode = std::make_pair(NT_GENE, i);
+        Node_t cnode = std::make_pair(NT_CHANNEL, g->pub);
         edges.emplace(gnode, cnode);
+        
         for (size_t j=0; j < g->module_count(); ++j)
         {
             cCisModule *m = g->modules[j];
+            m->intervene = INTERVENE_OFF;
+            modified.calc_attractors();
+            if (modified.rates == original->rates)
+                continue;
+
+            // Reset and add edge
+            m->intervene = INTERVENE_NONE;
+            Node_t mnode = std::make_pair(NT_MODULE, make_module_node_id(i, j));
+            edges.emplace(mnode, gnode);
+
             for (size_t k=0; k < m->site_count(); ++k)
             {
-                ;
+                // Knock this out by setting it to ZERO channel. Nothing ever
+                // publishes to the ZERO channel!
+                signal_t old = m->set_site_channel(k, 0);
+                Node_t cnode = std::make_pair(NT_CHANNEL, old);
+
+                // It was already zero?
+                if (old == 0)
+                    continue;
+
+                // Otherwise, we need to test to see if it changed anything
+                modified.calc_attractors();
+
+                // Did it change? 
+                if (modified.rates != original->rates)
+                {
+                    // It did, so this channel makes a difference to the module
+                    edges.emplace(cnode, mnode); 
+
+                    // ... and we need to reset it
+                    m->set_site_channel(k, old);
+                }
             }
         }
     }
@@ -320,6 +380,7 @@ cGeneFactory::cGeneFactory(cFactory *f, double rate_per_gene_)
     // Construct a bunch of useful random number generators
     , r_gene(0, f->gene_count-1)
     , r_mod(0, f->cis_count-1)
+    // , r_sub(0, f->sub_range.second-1)
     , r_sub(f->sub_range.first, f->sub_range.second-1)
 {
 }

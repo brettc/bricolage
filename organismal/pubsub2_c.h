@@ -41,6 +41,16 @@ typedef std::vector<size_t> cIndexes;
 typedef std::vector<double> cRates;
 typedef std::vector<cRates> cRatesVector;
 
+// Allows us to intervene on the state of genes and modules, forcing them on or
+// off to ascertain what causal role they have.
+enum InterventionState
+{
+    INTERVENE_NONE = 0,
+    INTERVENE_ON = 1,
+    INTERVENE_OFF = 2,
+};
+
+
 inline int bitset_cmp(cChannelState &a, cChannelState &b)
 {
     if (a < b) return -1;
@@ -51,6 +61,7 @@ inline int bitset_cmp(cChannelState &a, cChannelState &b)
 class cCisModule
 {
 public:
+    cCisModule() : intervene(INTERVENE_NONE) {}
     signal_t get_site_channel(size_t index) const;
     signal_t set_site_channel(size_t index, signal_t channel);
 
@@ -58,6 +69,8 @@ public:
     virtual bool is_active(cChannelState const &state) const = 0;
     virtual cCisModule* clone() const = 0;
     virtual ~cCisModule() {}
+
+    InterventionState intervene;
 protected:
     signal_t *_channels;
 };
@@ -71,10 +84,11 @@ struct cGene
     ~cGene();
     cGene *clone();
 
-    size_t module_count() { return modules.size(); }
+    size_t module_count() const { return modules.size(); }
 
     sequence_t sequence;
     cCisModules modules;
+    InterventionState intervene;
     signal_t pub;
 };
 
@@ -121,16 +135,16 @@ struct cFactory
 
 typedef boost::shared_ptr<cFactory> cFactory_ptr;
 
-// By inheriting from tuple we get relational operators for free
-struct cSiteIndex : public std::tuple<size_t, size_t, size_t> 
-{
-    cSiteIndex(size_t g, size_t c, size_t s) : tuple(g, c, s) {}
-    inline size_t gene() const { return std::get<0>(*this); }
-    inline size_t cis() const { return std::get<1>(*this); }
-    inline size_t site() const { return std::get<2>(*this); }
-};
-
-typedef std::vector<cSiteIndex> cSiteLocations;
+// // By inheriting from tuple we get relational operators for free
+// struct cSiteIndex : public std::tuple<size_t, size_t, size_t> 
+// {
+//     cSiteIndex(size_t g, size_t c, size_t s) : tuple(g, c, s) {}
+//     inline size_t gene() const { return std::get<0>(*this); }
+//     inline size_t cis() const { return std::get<1>(*this); }
+//     inline size_t site() const { return std::get<2>(*this); }
+// };
+//
+// typedef std::vector<cSiteIndex> cSiteLocations;
 
 class cNetwork
 {
@@ -138,7 +152,7 @@ public:
     cNetwork(const cFactory_ptr &f, bool no_ident=false);
     ~cNetwork();
 
-    size_t gene_count() { return genes.size(); }
+    size_t gene_count() const { return genes.size(); }
     void cycle(cChannelState &c) const;
     void calc_attractors();
     void clone_genes(cGeneVector &gv) const;
@@ -177,20 +191,27 @@ private:
 //     return cNetwork_ptr(copy);
 // }
 
-typedef std::pair<char, size_t> Node_t;
+enum NodeType { NT_GENE=0, NT_MODULE, NT_CHANNEL };
+typedef std::pair<NodeType, size_t> Node_t;
 typedef std::pair<Node_t, Node_t> Edge_t;
 typedef std::set<Edge_t> cEdgeList;
+
+// TODO: Should really make this into a union, but not sure if it makes life
+// harder...
+inline size_t make_module_node_id(size_t g, size_t m)
+{
+    // Combine gene and module id
+    return g << 8 | m;
+}
 
 struct cNetworkAnalysis
 {
     cNetworkAnalysis(const cNetwork_ptr &n);
     cNetwork_ptr original;
     cNetwork modified;
-    cSiteLocations knockouts;
 
-    // Go through and change everything.
-    void find_knockouts();
     void make_edges(cEdgeList &edges);
+    void make_active_edges(cEdgeList &edges);
 };
 
 struct cTarget

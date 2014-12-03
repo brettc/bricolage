@@ -5,7 +5,7 @@
 
 import cython
 import numpy
-from operand import Operand
+from .operand import Operand
 
 # cimports
 cimport numpy as np
@@ -216,7 +216,8 @@ cdef class Target:
 
         # Slow and cumbersome, but it doesn't matter
         for i, e in enumerate(f.environments):
-            outputs = init_func(e.as_array()[:f.params.cue_channels])
+            # TODO: Clean up the refs here
+            outputs = init_func(e.as_array()[1:f.params.cue_channels+1])
             if len(outputs) != f.params.out_channels:
                 raise RuntimeError
 
@@ -499,13 +500,16 @@ cdef class CisModuleLogic2(CisModule):
         def __get__(self):
             return self.logic2.channels[1]
 
-    def __repr__(self):
+    def __str__(self):
         p = self.gene.network.factory.params
-        return "<CisModule: {}({}, {})>".format(
+        return "{}({}, {})".format(
             Operand(self.op).name,
             p.name_for_channel(self.logic2.channels[0]),
             p.name_for_channel(self.logic2.channels[1]),
         )
+
+    def __repr__(self):
+        return "<CisModule: {}>".format(self.__str__())
 
 cdef class NetworkAnalysis:
     cdef:
@@ -516,29 +520,34 @@ cdef class NetworkAnalysis:
     def __cinit__(self, Network net):
         self.network = net
         self.canalysis = new cNetworkAnalysis(net.ptr)
-        self.canalysis.find_knockouts()
+        # self.canalysis.find_knockouts()
 
     def __dealloc__(self):
         del self.canalysis
 
-    property knockouts:
-        def __get__(self):
-            cdef:
-                cSiteIndex *si
-                vector[cSiteIndex].iterator i = self.canalysis.knockouts.begin()
-
-            k = []
-            while i != self.canalysis.knockouts.end():
-                si = &deref(i)
-                k.append((si.gene(), si.cis(), si.site()))
-                preinc(i)
-
-            return k
+    # property knockouts:
+    #     def __get__(self):
+    #         cdef:
+    #             cSiteIndex *si
+    #             vector[cSiteIndex].iterator i = self.canalysis.knockouts.begin()
+    #
+    #         k = []
+    #         while i != self.canalysis.knockouts.end():
+    #             si = &deref(i)
+    #             k.append((si.gene(), si.cis(), si.site()))
+    #             preinc(i)
+            # return k
 
     def get_edges(self):
         cdef:
             cEdgeList edges
         self.canalysis.make_edges(edges)
+        return edges
+
+    def get_active_edges(self):
+        cdef:
+            cEdgeList edges
+        self.canalysis.make_active_edges(edges)
         return edges
 
 cdef class NetworkCollection:

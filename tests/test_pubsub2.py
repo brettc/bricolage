@@ -260,7 +260,7 @@ def test_random_engine(params3x2, target_3x2):
     assert first_time == second_time
         
 def test_selection(params3x2, target_3x2):
-    # TODO: Test selection
+    # TODO: Finish testing selection by python
     factory = T.Factory(params3x2)
     target = T.Target(factory, target_3x2)
     population = factory.create_collection(1000)
@@ -280,7 +280,19 @@ def test_selection(params3x2, target_3x2):
 
     indexes = []
 
-def test_play(target_3x3):
+
+def test_analysis(params3x3, target_3x3):
+    factory = T.Factory(params3x3)
+    target = T.Target(factory, target_3x3)
+    net = factory.create_network()
+    ana = T.NetworkAnalysis(net)
+    edges = ana.get_edges()
+    ko = ana.get_knockouts()
+    # TODO: Extend this to a large selection 
+    for e in ko:
+        assert e in edges
+
+def nottest_play(target_3x3):
     p = T.Parameters(
         seed=4,
         operands = [
@@ -300,8 +312,11 @@ def test_play(target_3x3):
     factory = T.Factory(p)
     target = T.Target(factory, target_3x3)
     pop = factory.create_collection(1000)
-    for i in range(100):
+    while 1:
         pop.select(target)
+        maxf = max([n.fitness for n in pop])
+        if maxf == 1.0:
+            break
         pop.mutate()
 
     winners = []
@@ -318,9 +333,9 @@ def test_play(target_3x3):
         for k in ana.knockouts:
             print k
 
-        # print '--edges'
-        # for e in ana.get_edges():
-        #     print e
+        print '--edges'
+        for e in ana.get_edges():
+            print e
 
         break
 
