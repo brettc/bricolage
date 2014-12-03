@@ -1,5 +1,5 @@
-from operand import Operand
-from pubsub2_ext import Factory, NetworkCollection, Target, NetworkAnalysis
+from .operand import Operand
+from .pubsub2_ext import Factory, NetworkCollection, Target, NetworkAnalysis
 
 
 class Parameters(object):

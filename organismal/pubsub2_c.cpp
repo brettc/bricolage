@@ -247,14 +247,17 @@ void cNetworkAnalysis::make_active_edges(cEdgeList &edges)
         g->intervene = INTERVENE_OFF;
         modified.calc_attractors();
 
-        // If this makes no diff, then no edges make any difference
+        // If this makes no diff, then no edges attached to this Gene make any
+        // difference. Let's skip to the next one.
         if (modified.rates == original->rates)
             continue;
 
+        // Ok, it does something ...
         g->intervene = INTERVENE_NONE;
         Node_t gnode = std::make_pair(NT_GENE, i);
         Node_t cnode = std::make_pair(NT_CHANNEL, g->pub);
         edges.emplace(gnode, cnode);
+        
         for (size_t j=0; j < g->module_count(); ++j)
         {
             cCisModule *m = g->modules[j];
