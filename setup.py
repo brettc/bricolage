@@ -89,7 +89,6 @@ class build_pubsub(Command):
             # gives problem with function pointer to the sdtlib free function
             # we also have to use -fno-omit-frame-pointer
             compiler_preargs += ['-mrtd', '-O3', '-shared', '-fno-omit-frame-pointer'] 
-        
         if arch == 64 and platform.system() in ('Windows', 'Microsoft'):
             compiler_preargs += ['-m64']
         if arch == 32 and platform.system() in ('Windows', 'Microsoft'):
