@@ -1,3 +1,4 @@
+# vim: ft=python
 top = '.'
 out = 'build'
 
@@ -5,6 +6,11 @@ import os
 import numpy
 import os.path
 import glob
+
+from waflib.Tools.ccroot import USELIB_VARS
+USELIB_VARS['pyext'] = USELIB_VARS['cxxshlib'] = \
+        set(['LIBPATH', 'STLIBPATH', 'LINKFLAGS', 'LINKDEPS'])
+        # set(['LIB', 'STLIB', 'LIBPATH', 'STLIBPATH', 'LINKFLAGS', 'LINKDEPS'])
 
 def options(ctx):
     ctx.load('compiler_cxx')
@@ -19,55 +25,12 @@ def configure(ctx):
 
     # This appears to be a bug in waf -- it should know this from the cxx
     # setting. I don't see why it doesn't yet
-    ctx.env.append_unique('CYTHONFLAGS', '--cplus')
     ctx.env.append_value('CXXFLAGS', ['-O3', '-Wno-unknown-pragmas',
                                       '-Wno-unused-function',
                                       '-stdlib=libc++', 
                                       '-std=c++11',
                                       '-mmacosx-version-min=10.8'])
-    # ctx.env.append_value('LIBFLAGS', ['-O3', '-Wno-unknown-pragmas',
-    #                                   '-Wno-unused-function',
-    #                                   '-stdlib=libc++', 
-    #                                   '-std=c++11',
-    #                                   '-mmacosx-version-min=10.8'])
-
-def cybox_core(ctx, nm, additional=[]):
-    source = 'cybox2d/%s.pyx' % nm
-    if additional:
-        addit = [source] + ['cybox2d/%s' % a for a in additional]
-        source = ' '.join(addit)
-
-    ctx(features = 'cxx cxxshlib pyext',
-        source   = source,
-        target   = "./organismal/%s" % nm,
-        includes = '. ./organismal',
-        # use      = 'cybox2d/box2d'
-       )
-
-def cybox_ext(ctx, nm):
-    source = '%s.pyx' % nm
-
-    # The build happens in the same folder as the file. So we need to append
-    # an include that references the parent. NOT sure why it doesn't pick this
-    # up from the "includes"
-    ctx.env.append_unique('CYTHONFLAGS', '-I../')
-    ctx.env.append_unique('CCFLAGS', '-mmacosx-version-min=10.8')
-    ctx(features = 'cxx cxxshlib pyext',
-        source   = source,
-        target   = nm,
-        includes = '. cybox2d',
-        use      = 'cybox2d/box2d'
-       )
-    # start_dir = bld.path.find_dir('src/bar')
-    # ctx.install_files('.', ['%s.so' % nm], relative_trick=True) 
-
-def numpy_ext(ctx, nm):
-    source = '%s.pyx' % nm
-    ctx(features = 'cxx cxxshlib pyext',
-        source   = source,
-        target   = nm,
-        includes = numpy.get_include()
-       )
+    ctx.env.PREFIX = '.'
 
 def build(ctx):
     # The Box2D library
@@ -79,7 +42,9 @@ def build(ctx):
 
     # ctx.install_as('cybox2d/box2d.dylib', 'cybox2d/libbox2d.dylib')
     ctx(features = 'cxx cxxshlib pyext',
+        # source   = ['organismal/pubsub2_ext.pyx'],
         source   = ['organismal/pubsub2_ext.pyx', 'organismal/pubsub2_c.cpp'],
+        depends_on=['organismal/pubsub2_c.h'],
         target   = "./organismal/pubsub2_ext",
         includes = [
             '.', 
@@ -89,6 +54,7 @@ def build(ctx):
         # includes = '/usr/loc'
         # use      = 'cybox2d/box2d'
        )
+    ctx.install_files('./organismal', ['./organismal/pubsub2_ext.so'])
 
     # Extension classes
     # cybox_core(ctx, '_core')
