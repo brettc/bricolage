@@ -134,8 +134,9 @@ class build_pubsub(Command):
 extensions = [
     Extension(
         "organismal/pubsub2_ext", 
-        ["organismal/pubsub2_ext.pyx", "organismal/pubsub2_c.cpp"],
         # ["organismal/pubsub2_ext.pyx"],
+        # ["organismal/pubsub2_ext.pyx", "organismal/pubsub2_c.cpp"],
+        ["organismal/pubsub2_ext.pyx", "organismal/pubsub2_c.cpp", "organismal/scheme_cooperative.cpp"],
         extra_compile_args = [
             # '-ffast-math',
             '-Wno-unused-function', 

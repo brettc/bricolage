@@ -119,7 +119,6 @@ struct cFactory
         return std::uniform_int_distribution<int>(low, high)(random_engine); }
 
     size_t gene_count, cis_count;
-    size_t reg_gene_count;
     size_t cue_channels, reg_channels, out_channels;
     std::pair<size_t, size_t> sub_range;
     std::pair<size_t, size_t> pub_range;

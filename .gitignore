@@ -11,3 +11,4 @@ test.py
 config.log
 .wafpickle*
 c4che
+*.o
