@@ -6,3 +6,4 @@ build/*
 .ipynb_checkpoints/*
 pubsub2_ext.cpp
 test.py
+*.o
