@@ -111,7 +111,13 @@ class build_pubsub(Command):
             libname = compiler.library_filename(libname, lib_type='dylib')
             # compiler.set_executable('linker_so', ['cc', '-dynamiclib', '-arch', 'i386', '-arch', 'x86_64'])
             # compiler.set_executable('linker_so', ['cc', '-dynamiclib', '-arch', 'x86_64', '-mmacosx-version-min=10.8', '-stdlib=libc++', '-L/Users/brett/anaconda/lib', '-lpython2.7', '-lstdc++'])
-            compiler.set_executable('linker_so', ['cc', '-dynamiclib', '-arch', 'x86_64', '-mmacosx-version-min=10.8', '-std=c++11', '-stdlib=libc++', '-L/Users/brett/anaconda/lib', '-lpython2.7', '-lstdc++'])
+            compiler.set_executable('linker_so', ['cc', '-dynamiclib',
+                                                  '-arch', 'x86_64',
+                                                  '-mmacosx-version-min=10.8',
+                                                  '-std=c++11',
+                                                  '-stdlib=libc++',
+                                                  '-L/Users/brett/anaconda/lib',
+                                                  '-lpython2.7', '-lstdc++'])
         else:
             libname = compiler.library_filename(libname, lib_type='shared')
         linker_preargs = []

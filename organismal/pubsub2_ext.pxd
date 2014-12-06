@@ -1,7 +1,8 @@
 from _cpp cimport *
 
-cdef extern from "pubsub2_c.h" namespace "pubsub2":
+cdef extern from "<pubsub2_c.h>" namespace "pubsub2":
     ctypedef unsigned int signal_t
+
     ctypedef unsigned int operand_t
     ctypedef unsigned int sequence_t
     ctypedef int int_t
