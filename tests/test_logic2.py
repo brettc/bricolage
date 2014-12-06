@@ -1,6 +1,6 @@
 import pytest
 import numpy
-from organismal import pubsub2 as T
+from organismal import logic2 as T
 from organismal import operand
 
 @pytest.fixture

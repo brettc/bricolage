@@ -1,4 +1,4 @@
-#include "pubsub2_c.h"
+#include "pubsub.hpp"
 
 namespace pubsub2 {
 

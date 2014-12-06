@@ -10,17 +10,11 @@ from .operand import Operand
 # cimports
 cimport numpy as np
 from cython.operator import dereference as deref, preincrement as preinc
-from _cpp cimport *
-from pubsub2_ext cimport *
 
 import random
 cdef int magic_number = random.randint(0, 100000)
 
 cdef class ChannelStateFrozen:
-    cdef:
-        cChannelState cchannel_state
-        cFactory_ptr cfactory_ptr
-
     def __cinit__(self):
         pass
 
@@ -116,15 +110,6 @@ cdef class ChannelState(ChannelStateFrozen):
 
 
 cdef class Factory:
-    cdef:
-        cFactory_ptr cfactory_ptr
-        cFactory *cfactory
-        cGeneFactory *cgenefactory
-        readonly:
-            object params
-
-        object _environments
-
     def __cinit__(self, params):
         self.params = params
         self.cfactory_ptr = cFactory_ptr(new cFactory(params.seed))
@@ -144,9 +129,6 @@ cdef class Factory:
 
         self.cfactory.init_environments()
 
-        # Create a mutator
-        self.cgenefactory = new cGeneFactoryLogic2(self.cfactory, 
-                                         params.gene_mutation_rate)
 
     def __dealloc__(self):
         del self.cgenefactory
@@ -205,11 +187,6 @@ cdef class Factory:
 
 
 cdef class Target:
-    cdef:
-        cTarget *ctarget
-        readonly:
-            Factory factory
-
     def __cinit__(self, Factory f, init_func):
         self.factory = f
         self.ctarget = new cTarget(f.cfactory)
@@ -236,19 +213,6 @@ cdef class Target:
 
 
 cdef class Network:
-    cdef:
-        readonly:
-            Factory factory
-            bint ready
-            bint dirty
-
-        # Because we hold a reference to the shared_ptr, we know we can always
-        # safely access the ACTUAL pointer. We keep the pointer around too, as
-        # it makes our life easier. The cost is a tiny bit of space.
-        cNetwork_ptr ptr
-        cNetwork *cnetwork
-        object _genes, _attractors, _rates
-
     # Networks take two stages. You need to create the python object and then
     # bind it to a cNetwork_ptr.
     def __cinit__(self, Factory factory):
@@ -366,29 +330,17 @@ cdef class Network:
     def __repr__(self):
         return "<Network id:{} pt:{}>".format(self.identifier, self.parent_identifier)
 
-    def testing(self):
-        cdef cGene *g = self.cnetwork.genes[0];
-        cdef cCisModule *m = g.modules[0];
-        print 'one'
-        cdef cCisModuleLogic2 *ml = dynamic_cast_cCisModuleLogic2(m)
-        print ml.op
+    # def testing(self):
+    #     cdef cGene *g = self.cnetwork.genes[0];
+    #     cdef cCisModule *m = g.modules[0];
+    #     print 'one'
+    #     cdef cCisModuleLogic2 *ml = dynamic_cast_cCisModuleLogic2(m)
+    #     print ml.op
 
 
 cdef class Gene:
     """A proxy to a gene.
     """
-    cdef:
-        # Assumption: Networks CANNOT mess with genes number once a network
-        # has been established (You must copy and mutate a network).
-        cGene *cgene
-        object _modules
-
-        readonly:
-            # By holding this ref, we ensure the pointer is always valid (pace
-            # what I said above. DON'T mess with the genes!)
-            Network network
-            size_t gene_number
-
     def __cinit__(self, Network n, size_t g):
         """This should never be called publicly"""
         self.network = n
@@ -411,8 +363,8 @@ cdef class Gene:
         def __get__(self):
             # Lazy construction
             if self._modules is None:
-                self._modules = tuple(CisModuleLogic2(self, i) 
-                                      for i in range(self.module_count))
+                self._modules = tuple(self.network.factory.cis_class(self, i) 
+                    for i in range(self.module_count))
             return self._modules
 
     def __repr__(self):
@@ -423,11 +375,6 @@ cdef class Gene:
 cdef class CisModule:
     """A proxy to a CisModule.
     """
-    cdef:
-        cCisModule *ccismodule
-    
-        readonly:
-            Gene gene
 
     def __cinit__(self, Gene g, size_t i):
         self.gene = g
@@ -480,43 +427,8 @@ cdef class CisModule:
     def is_active(self, ChannelState p):
         return self.ccismodule.is_active(p.cchannel_state)
 
-    
-cdef class CisModuleLogic2(CisModule):
-    cdef:
-        cCisModuleLogic2 *logic2
-
-    def __cinit__(self, Gene g, size_t i):
-        self.logic2 = dynamic_cast_cCisModuleLogic2(self.ccismodule)
-
-    property op:
-        def __get__(self):
-            return self.logic2.op
-
-    property sub1:
-        def __get__(self):
-            return self.logic2.channels[0]
-
-    property sub2:
-        def __get__(self):
-            return self.logic2.channels[1]
-
-    def __str__(self):
-        p = self.gene.network.factory.params
-        return "{}({}, {})".format(
-            Operand(self.op).name,
-            p.name_for_channel(self.logic2.channels[0]),
-            p.name_for_channel(self.logic2.channels[1]),
-        )
-
-    def __repr__(self):
-        return "<CisModule: {}>".format(self.__str__())
 
 cdef class NetworkAnalysis:
-    cdef:
-        cNetworkAnalysis *canalysis
-        readonly:
-            Network network
-
     def __cinit__(self, Network net):
         self.network = net
         self.canalysis = new cNetworkAnalysis(net.ptr)
@@ -524,19 +436,6 @@ cdef class NetworkAnalysis:
 
     def __dealloc__(self):
         del self.canalysis
-
-    # property knockouts:
-    #     def __get__(self):
-    #         cdef:
-    #             cSiteIndex *si
-    #             vector[cSiteIndex].iterator i = self.canalysis.knockouts.begin()
-    #
-    #         k = []
-    #         while i != self.canalysis.knockouts.end():
-    #             si = &deref(i)
-    #             k.append((si.gene(), si.cis(), si.site()))
-    #             preinc(i)
-            # return k
 
     def get_edges(self):
         cdef:
@@ -550,12 +449,8 @@ cdef class NetworkAnalysis:
         self.canalysis.make_active_edges(edges)
         return edges
 
-cdef class NetworkCollection:
-    cdef:
-        readonly: 
-            Factory factory
-        cNetworkVector cnetworks
 
+cdef class NetworkCollection:
     def __cinit__(self, Factory factory):
         self.factory = factory
 
