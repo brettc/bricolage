@@ -12,3 +12,5 @@ config.log
 .wafpickle*
 c4che
 *.o
+*.d
+*.dylib
