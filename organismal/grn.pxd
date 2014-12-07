@@ -1,7 +1,9 @@
-from _cpp cimport *
+# Define everything in the external library
+from utility cimport *
 
-cdef extern from "pubsub2_c.h" namespace "pubsub2":
+cdef extern from "<src/core.hpp>" namespace "pubsub2":
     ctypedef unsigned int signal_t
+
     ctypedef unsigned int operand_t
     ctypedef unsigned int sequence_t
     ctypedef int int_t
@@ -125,6 +127,7 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
         void copy_using_indexes(
             const cNetworkVector &fr, cNetworkVector &to, const cIndexes &selected)
 
+cdef extern from "<src/logic2.hpp>" namespace "pubsub2":
     cdef cppclass cGeneFactoryLogic2(cGeneFactory):
         cGeneFactoryLogic2(cFactory *f, double rate)
 
@@ -134,4 +137,15 @@ cdef extern from "pubsub2_c.h" namespace "pubsub2":
 
     cCisModuleLogic2 * dynamic_cast_cCisModuleLogic2 \
         "dynamic_cast<pubsub2::cCisModuleLogic2 *>" (cCisModule *) except NULL
+
+cdef extern from "<src/threshold3.hpp>" namespace "pubsub2":
+    cdef cppclass cGeneFactoryThreshold3(cGeneFactory):
+        cGeneFactoryThreshold3(cFactory *f, double rate)
+
+    cdef cppclass cCisModuleThreshold3(cCisModule):
+        signal_t channels[3]
+        int_t binding[3]
+
+    cCisModuleThreshold3 * dynamic_cast_cCisModuleThreshold3 \
+        "dynamic_cast<pubsub2::cCisModuleThreshold3*>" (cCisModule *) except NULL
 

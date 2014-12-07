@@ -1,6 +1,6 @@
 from .operand import Operand
-from .pubsub2_ext import Factory, NetworkCollection, Target, NetworkAnalysis
-
+from .core_ext import NetworkCollection, Target, NetworkAnalysis
+from .logic2_ext import Factory
 
 class Parameters(object):
     def __init__(self, **kwargs):
