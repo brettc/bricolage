@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pubsub.hpp"
+#include "core.hpp"
 
 namespace pubsub2 {
 

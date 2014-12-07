@@ -5,7 +5,7 @@
 
 import cython
 import numpy
-from .operand import Operand
+from operand import Operand
 
 # cimports
 cimport numpy as np

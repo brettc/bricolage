@@ -1,23 +1,26 @@
-#include "pubsub.hpp"
+#include "core.hpp"
 
 namespace pubsub2 {
 
-struct cSchemeCoop3 : public cGeneFactory
+struct cGeneFactoryThreshold3 : public cGeneFactory
 {
-    cSchemeCoop3(cFactory *f, double rate_per_gene_);
+    cGeneFactoryThreshold3(cFactory *f, double rate_per_gene_);
 
     // Randomize binding
     randint_t r_binding;
+    randint_t r_direction;
+    randint_t r_site;
+
 
     // virtual overrides
     cCisModule *construct_cis();
     void mutate_cis(cCisModule *m);
 };
 
-class cCisModuleCoop3 : public cCisModule
+class cCisModuleThreshold3 : public cCisModule
 {
 public:
-    cCisModuleCoop3() { _channels = channels; }
+    cCisModuleThreshold3() { _channels = channels; }
 
     // Overrides
     size_t site_count() const { return 3; }

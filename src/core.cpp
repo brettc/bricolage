@@ -1,5 +1,5 @@
 // vim: path=.,/usr/include/c++/4.2.1,/usr/include/c++/4.2.1/tr1 fdm=syntax
-#include "pubsub.hpp"
+#include "core.hpp"
 #include <cmath>
 #include <stdexcept>
 // #include <iostream>
