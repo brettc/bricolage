@@ -46,6 +46,7 @@ cdef class Gene:
     cdef:
         # Assumption: Networks CANNOT mess with genes number once a network
         # has been established (You must copy and mutate a network).
+        # TODO: ensure this using point to const!
         cGene *cgene
         object _modules
 
@@ -58,7 +59,6 @@ cdef class Gene:
 cdef class CisModule:
     cdef:
         cCisModule *ccismodule
-    
         readonly:
             Gene gene
 

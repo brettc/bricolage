@@ -14,3 +14,4 @@ c4che
 *.o
 *.d
 *.dylib
+organismal/*.cpp

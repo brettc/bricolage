@@ -44,6 +44,9 @@ GRN_DYLIB = $(PYSRC)/libgrn.dylib
 
 all: $(CY_EXTS)
 
+# This is useful for invoking via vim
+cython: $(CY_SRCS:.pyx=.cpp)
+
 # Build the shared libary of all c++ code
 $(GRN_DYLIB): $(GRN_OBJS)
 	$(CC) $(DYLIB_FLAGS) $(LIBINC) $(GRN_OBJS) -o $(GRN_DYLIB)

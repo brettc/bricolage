@@ -9,7 +9,6 @@ cimport core_ext
 
 cdef class Factory(core_ext.Factory):
     def __cinit__(self, params):
-
         # Create a mutator
         self.cgenefactory = new cGeneFactoryThreshold3(self.cfactory, 
                                          params.gene_mutation_rate)
@@ -28,5 +27,5 @@ cdef class CisModule(core_ext.CisModule):
         return ",".join([str(self.threshold3.binding[i]) for i in range(3)])
 
     def __repr__(self):
-        return "<CisModule: {}>".format(self.__str__())
+        return "<threshold3.CisModule: {}>".format(self.__str__())
 
