@@ -7,10 +7,7 @@ struct cGeneFactoryThreshold3 : public cGeneFactory
     cGeneFactoryThreshold3(cFactory *f, double rate_per_gene_);
 
     // Randomize binding
-    randint_t r_binding;
-    randint_t r_direction;
-    randint_t r_site;
-
+    randint_t r_binding, r_direction, r_site, r_input;
 
     // virtual overrides
     cCisModule *construct_cis();

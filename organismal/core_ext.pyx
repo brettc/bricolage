@@ -14,6 +14,19 @@ from cython.operator import dereference as deref, preincrement as preinc
 import random
 cdef int magic_number = random.randint(0, 100000)
 
+cdef class ChannelDef:
+    cdef cChannelDef cchanneldef;
+    def __init__(self, size_t cue, size_t reg, size_t out):
+        self.cchanneldef.set(cue, reg, out)
+
+    property cue_channels:
+        def __get__(self):
+            return self.cchanneldef.cue_channels
+    property cue_range:
+        def __get__(self):
+            return self.cchanneldef.cue_range
+
+
 cdef class ChannelStateFrozen:
     def __cinit__(self):
         pass
@@ -50,9 +63,9 @@ cdef class ChannelStateFrozen:
         to_string(self.cchannel_state, cstr)
 
         # I think it is much easier to understand if we reverse it
-        # Also, clip the "silencing" channel 0
+        # Also, clip the reserved channels 
         # TODO: fix this nasty hack
-        s = cstr[::-1][1:]
+        s = cstr[::-1][2:]
         env = s[:f.cue_channels]
         reg = s[f.cue_channels:cuereg]
         out = s[cuereg:]
@@ -194,7 +207,7 @@ cdef class Target:
         # Slow and cumbersome, but it doesn't matter
         for i, e in enumerate(f.environments):
             # TODO: Clean up the refs here
-            outputs = init_func(e.as_array()[1:f.params.cue_channels+1])
+            outputs = init_func(e.as_array()[2:f.params.cue_channels+2])
             if len(outputs) != f.params.out_channels:
                 raise RuntimeError
 
@@ -392,6 +405,16 @@ cdef class CisModule:
         self.gene.network._attractors = None
         self.gene.network._rates = None
         self.gene.network.cnetwork.calc_attractors()
+
+    property channels:
+        def __get__(self):
+            return tuple(self.ccismodule.get_site_channel(i)
+                         for i in range(self.ccismodule.site_count()))
+
+    property channel_names:
+        def __get__(self):
+            p = self.gene.network.factory.params
+            return [p.name_for_channel(c) for c in self.channels]
 
     # property op:
     #     def __get__(self):

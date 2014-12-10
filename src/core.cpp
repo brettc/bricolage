@@ -6,6 +6,34 @@
 
 using namespace pubsub2;
 
+const size_t reserved_channels = 2;
+
+void cChannelDef::set(size_t cue, size_t reg, size_t out)
+{
+    // Calculate the total number of elements given the overlap
+    // Given cue = 2, reg = 2, out = 2
+    //             0 = ALWAYS OFF
+    //               1 = ALWAYS ON
+    // reserved  [ 0 1 ]
+    // cue_range     [ 2 3 ]
+    // sub_range     [ 2 3 4 5 ]
+    // pub_range         [ 4 5 6 7 8 ]
+    // out_range             [ 6 7 8 ]
+    // reg_range         [ 4 5 ] 
+    cue_channels = cue;
+    reg_channels = reg;
+    out_channels = out;
+
+    channel_count = cue + reg + out + reserved_channels;
+
+    cue_range.first = reserved_channels;
+    cue_range.second = cue_range.first + cue;
+
+    sub_range.first = cue_range.first;
+    sub_range.second = cue_range.second + reg;
+    //
+}
+
 signal_t cCisModule::get_site_channel(size_t index) const
 {
     // TODO: Fix runtime error?
@@ -91,6 +119,9 @@ void cNetwork::cycle(cChannelState &c) const
             break;
         case INTERVENE_NONE:
             for (auto m : g->modules)
+                // NOTE: is_active is what does all the work here. It is
+                // virtual, and we call it a lot. Hence the ideas above about a
+                // better solution.
                 if (m->intervene == INTERVENE_ON || 
                     (m->intervene == INTERVENE_NONE && m->is_active(c)))
                 {
@@ -99,7 +130,7 @@ void cNetwork::cycle(cChannelState &c) const
                     break;
                 }
         case INTERVENE_OFF:
-            // Whatever...
+            // Do nothing 
             ;
         }
     // Update the "return" value.
@@ -312,14 +343,16 @@ cFactory::cFactory(size_t seed)
 void cFactory::init_environments()
 {   
     // Remember: Channel 0 is reserved, so we need to add 1.
-    total_channels = cue_channels + reg_channels + out_channels + 1;
+    total_channels = cue_channels + reg_channels + out_channels + reserved_channels;
 
     // Number of environments is 2^cue_channels. Use some binary math...
     size_t env_count = 1 << cue_channels;
     for (size_t i = 0; i < env_count; ++i)
     {
         // Shift one, to account for channel 0
-        cChannelState c = cChannelState(total_channels, i << 1);
+        cChannelState c = cChannelState(total_channels, i << reserved_channels);
+        // Turn on bias channel
+        c.set(1); 
         environments.push_back(c);
     }
 }
@@ -370,6 +403,9 @@ double cTarget::assess(const cNetwork &net)
 
     // Must be greater 0 >= n <= 1.0
     net.fitness = score;
+
+    // Record the target we've been used to assess. We can skip doing every
+    // time then.
     net.target = identifier;
     return score;
 }
@@ -452,7 +488,6 @@ void cGeneFactory::mutate_collection(cNetworkVector &networks,
     if (mutations == 0)
         return;
 
-
     // Now we need to assign these to individual networks. Only these networks 
     // will change. The rest remain constant.
     randint_t r_network(0, networks.size()-1);
@@ -503,10 +538,11 @@ void cGeneFactory::mutate_gene(cGene *g)
     if (g->modules.size() == 0)
         throw std::runtime_error("no cis modules");
 
-    // First, decide what cis module we're using.
+    // First, decide what cis module we're using. Account for the fact that
+    // there might be only one cis module.
     size_t cis_i = 0; 
 
-    // Account for the fact that there might be only one cis module.
+    // More than? We need to pick one...
     if (factory->cis_count > 0)
         cis_i = r_mod(factory->random_engine);
 
