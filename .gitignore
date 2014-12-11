@@ -15,3 +15,4 @@ c4che
 *.d
 *.dylib
 organismal/*.cpp
+cruft-*
