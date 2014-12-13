@@ -7,6 +7,7 @@ cGeneFactoryThreshold3::cGeneFactoryThreshold3(cFactory *f, double rate_per_gene
     , r_binding(-3, 3)
     , r_direction(0, 1)
     , r_site(0, 2)
+    , r_input(0, f->sub_range.second-1)
 {
 }
 
@@ -17,7 +18,7 @@ cCisModule *cGeneFactoryThreshold3::construct_cis()
 
     for (size_t i = 0; i < cis->site_count(); ++i)
     {
-        cis->channels[i] = r_sub(re);
+        cis->channels[i] = r_input(re);
         cis->binding[i] = r_binding(re);
     }
     return cis;
@@ -41,7 +42,7 @@ void cGeneFactoryThreshold3::mutate_cis(cCisModule *m)
 
     // If we're at zero, possibly change into a different binding 
     if (current == 0)
-        cis->channels[site] = r_sub(re);
+        cis->channels[site] = r_input(re);
 
     cis->binding[site] += mutate;
 }

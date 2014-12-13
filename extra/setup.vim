@@ -10,5 +10,5 @@ fun! BuildCython()
     make
 endf
 
-map <F5> :call Build()<cr>
-map <s-F5> :call BuildCython()<cr>
+map <F10> :call Build()<cr>
+map <s-F10> :call BuildCython()<cr>

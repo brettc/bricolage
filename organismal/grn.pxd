@@ -23,6 +23,16 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
     cdef int c_sgn(int)
     cdef int c_cmp(int, int)
 
+    cdef cppclass cChannelDef:
+        cChannelDef()
+        void set(size_t cue, size_t reg, size_t out)
+        size_t cue_channels, reg_channels, out_channels
+        size_t channel_count
+        pair[size_t, size_t] cue_range
+        pair[size_t, size_t] sub_range
+        pair[size_t, size_t] pub_range
+        pair[size_t, size_t] out_range
+        
     cdef cppclass cFactory:
         cFactory(size_t seed)
 
@@ -85,7 +95,7 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
     # ctypedef vector[cSiteIndex] cSiteLocations
     ctypedef pair[char, size_t] Node_t
     ctypedef pair[Node_t, Node_t] Edge_t
-    ctypedef set[Edge_t] cEdgeList
+    ctypedef std_set[Edge_t] cEdgeList
 
     cdef cppclass cNetworkAnalysis:
         cNetworkAnalysis(const cNetwork_ptr &n)

@@ -41,6 +41,19 @@ typedef std::vector<size_t> cIndexes;
 typedef std::vector<double> cRates;
 typedef std::vector<cRates> cRatesVector;
 
+struct cChannelDef
+{
+    cChannelDef() {}
+    cChannelDef(size_t cue, size_t reg, size_t out) { set(cue, reg, out); }
+    void set(size_t cue, size_t reg, size_t out);
+    size_t cue_channels, reg_channels, out_channels;
+    size_t channel_count;
+    std::pair<size_t, size_t> cue_range;
+    std::pair<size_t, size_t> sub_range;
+    std::pair<size_t, size_t> pub_range;
+    std::pair<size_t, size_t> out_range;
+};
+
 // Allows us to intervene on the state of genes and modules, forcing them on or
 // off to ascertain what causal role they have.
 enum InterventionState
@@ -76,7 +89,6 @@ protected:
 };
 
 typedef std::vector<cCisModule *> cCisModules;
-
 
 struct cGene
 {
@@ -134,16 +146,6 @@ struct cFactory
 
 typedef boost::shared_ptr<cFactory> cFactory_ptr;
 
-// // By inheriting from tuple we get relational operators for free
-// struct cSiteIndex : public std::tuple<size_t, size_t, size_t> 
-// {
-//     cSiteIndex(size_t g, size_t c, size_t s) : tuple(g, c, s) {}
-//     inline size_t gene() const { return std::get<0>(*this); }
-//     inline size_t cis() const { return std::get<1>(*this); }
-//     inline size_t site() const { return std::get<2>(*this); }
-// };
-//
-// typedef std::vector<cSiteIndex> cSiteLocations;
 
 class cNetwork
 {
