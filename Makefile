@@ -82,4 +82,4 @@ clean:
 cleanall:
 	rm -rf **/*.o
 
-.PHONY: all clean cleanlib
+.PHONY: all clean cleanall

@@ -1,7 +1,12 @@
 # import pytest
-from organismal import core_ext
+from organismal import core_ext as T
 
-def test_channels():
-    c = core_ext.ChannelDef(2, 2, 2)
-    print c.cue_channels
-    print c.cue_range
+# class Container(object):
+#     def __init__(self, **kw)
+#     self.__dict__.update(**kw)
+
+# def test_params():
+#     p = Container(
+#         seed=1
+
+

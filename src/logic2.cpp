@@ -5,34 +5,36 @@
 
 using namespace pubsub2;
 
-cGeneFactoryLogic2::cGeneFactoryLogic2(cFactory *f, double rate_per_gene_)
-    : cGeneFactory(f, rate_per_gene_)
-    , r_oper(0, f->operands.size()-1)
+cConstructorLogic2::cConstructorLogic2(
+    cFactory &f, size_t gc, size_t cc, const cOperands &ops
+    )
+    : cConstructor(f, gc, cc)
+    , operands(ops)
+    , r_oper(0, ops.size()-1)
 {
 }
 
-cCisModule *cGeneFactoryLogic2::construct_cis()
+cCisModule *cConstructorLogic2::construct_cis()
 {
     cCisModuleLogic2 *cis = new cCisModuleLogic2();
-    random_engine_t &re = factory->random_engine;
-    cis->op = factory->operands[r_oper(re)];
-    cis->channels[0] = r_sub(re);
-    cis->channels[1] = r_sub(re);
+    cis->op = operands[r_oper(factory.rand)];
+    cis->channels[0] = r_sub(factory.rand);
+    cis->channels[1] = r_sub(factory.rand);
     return cis;
 }
 
 // This is where the action really is.
-void cGeneFactoryLogic2::mutate_cis(cCisModule *m)
+void cConstructorLogic2::mutate_cis(cCisModule *m)
 {
     cCisModuleLogic2 *cis = static_cast<cCisModuleLogic2 *>(m);
     // TODO: This is shite; just a start.
-    double p = r_uniform_01(factory->random_engine);
+    double p = r_uniform_01(factory.rand);
     if (p < .5)
-        cis->op = factory->operands[r_oper(factory->random_engine)];
+        cis->op = operands[r_oper(factory.rand)];
     else if (p < .75)
-        cis->channels[0] = r_sub(factory->random_engine);
+        cis->channels[0] = r_sub(factory.rand);
     else
-        cis->channels[1] = r_sub(factory->random_engine);
+        cis->channels[1] = r_sub(factory.rand);
 }
 
 cCisModule *cCisModuleLogic2::clone() const
