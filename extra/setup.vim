@@ -6,7 +6,8 @@ endf
 
 fun! BuildCython()
     compiler cython
-    set makeprg=make\ -j4\ cython
+    echo "set makeprg=make ".expand("%:p:r").cpp
+    " exe "set makeprg=make ".expand("%:p:r").cpp
     make
 endf
 
