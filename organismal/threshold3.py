@@ -1,4 +1,5 @@
 from .threshold3_ext import Factory
+from .operand import Operand
 
 class Parameters(object):
     def __init__(self, **kwargs):
@@ -10,6 +11,7 @@ class Parameters(object):
         self.reg_channels = 3
         self.out_channels = 1
         self.gene_mutation_rate = .01
+        self.operands = [Operand.AND, Operand.OR, Operand.A_AND_NOT_B]
 
         self._override(kwargs)
 

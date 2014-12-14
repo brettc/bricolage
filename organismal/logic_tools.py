@@ -20,8 +20,6 @@ def boolean_func_from_coop_binding(params, channels, bindings):
     unique = list(set(channels))
     indexes = {unique[i]: i for i in range(len(unique))}
 
-    print channels, bindings
-
     # Generate all possible states 
     all_states = [_ for _ in itertools.product([0, 1], repeat=len(bindings))]
 

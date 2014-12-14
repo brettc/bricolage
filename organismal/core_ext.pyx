@@ -14,18 +14,6 @@ from cython.operator import dereference as deref, preincrement as preinc
 import random
 cdef int magic_number = random.randint(0, 100000)
 
-cdef class ChannelDef:
-    cdef cChannelDef cchanneldef;
-    def __init__(self, size_t cue, size_t reg, size_t out):
-        self.cchanneldef.set(cue, reg, out)
-
-    property cue_channels:
-        def __get__(self):
-            return self.cchanneldef.cue_channels
-    property cue_range:
-        def __get__(self):
-            return self.cchanneldef.cue_range
-
 
 cdef class ChannelStateFrozen:
     def __cinit__(self):
@@ -124,37 +112,21 @@ cdef class ChannelState(ChannelStateFrozen):
 
 cdef class Factory:
     def __cinit__(self, params):
-        self.params = params
-        self.cfactory_ptr = cFactory_ptr(new cFactory(params.seed))
+        self.cfactory_ptr = cFactory_ptr(new cFactory(
+            params.seed, 
+            params.cue_channels, 
+            params.reg_channels, 
+            params.out_channels,
+        ))
         self.cfactory = self.cfactory_ptr.get()
-
-        # Now translate everything to cpp -- this needs to be done first.
-        # There is automatic conversion for most of this (stl::vector etc)
-        self.cfactory.gene_count = params.gene_count
-        self.cfactory.cis_count = params.cis_count
-        self.cfactory.operands = params.operands
-        self.cfactory.sub_range = params.sub_range
-        self.cfactory.pub_range = params.pub_range
-        self.cfactory.out_range = params.out_range
-        self.cfactory.cue_channels = params.cue_channels
-        self.cfactory.reg_channels = params.reg_channels
-        self.cfactory.out_channels = params.out_channels
-
-        self.cfactory.init_environments()
-
-
-    def __dealloc__(self):
-        del self.cgenefactory
-
-    def create_state(self):
-        c = ChannelState()
-        c.cchannel_state.resize(self.cfactory.total_channels)
-        c.cfactory_ptr = self.cfactory_ptr
-        return c
+        self.params = params
 
     def create_network(self):
-        cdef cNetwork_ptr ptr = cNetwork_ptr(new cNetwork(self.cfactory_ptr))
-        self.cgenefactory.construct_network(deref(ptr.get()))
+        cdef:
+            cNetwork *net = new cNetwork(self.cfactory_ptr)
+            cNetwork_ptr ptr = cNetwork_ptr(net)
+
+        self.cfactory.constructor.construct_network(deref(net))
         n = Network(self)
         n.bind_to(ptr)
         return n
@@ -167,10 +139,16 @@ cdef class Factory:
         nc = NetworkCollection(self)
         for i in range(size):
             ptr = cNetwork_ptr(new cNetwork(self.cfactory_ptr))
-            self.cgenefactory.construct_network(deref(ptr.get()))
+            self.cfactory.constructor.construct_network(deref(ptr.get()))
             nc.cnetworks.push_back(ptr)
 
         return nc
+
+    def create_state(self):
+        c = ChannelState()
+        c.cchannel_state.resize(self.cfactory.channel_count)
+        c.cfactory_ptr = self.cfactory_ptr
+        return c
 
     property environments:
         def __get__(self):
@@ -190,13 +168,48 @@ cdef class Factory:
 
     # Some routines just for testing, mainly for testing (NOT fast)
     def seed_random_engine(self, int s):
-        self.cfactory.random_engine.seed(s)
+        self.cfactory.rand.seed(s)
 
     def get_random_double(self, double low, double high):
         return self.cfactory.get_random_double(low, high)
 
     def get_random_int(self, int low, int high):
         return self.cfactory.get_random_int(low, high)
+
+    property cue_channels:
+        def __get__(self):
+            return self.cfactory.cue_channels
+    property reg_channels:
+        def __get__(self):
+            return self.cfactory.reg_channels
+    property out_channels:
+        def __get__(self):
+            return self.cfactory.out_channels
+    property channel_count:
+        def __get__(self):
+            return self.cfactory.channel_count
+    # property off_channel:
+    #     def __get__(self):
+    #         return off_channel
+    # property on_channel:
+    #     def __get__(self):
+    #         return off_channel
+
+    property cue_range:
+        def __get__(self):
+            return self.cfactory.cue_range
+    property reg_range:
+        def __get__(self):
+            return self.cfactory.reg_range
+    property out_range:
+        def __get__(self):
+            return self.cfactory.out_range
+    property sub_range:
+        def __get__(self):
+            return self.cfactory.sub_range
+    property pub_range:
+        def __get__(self):
+            return self.cfactory.pub_range
 
 
 cdef class Target:
@@ -267,10 +280,10 @@ cdef class Network:
     def mutated(self, size_t nmutations):
         """Return a mutated version..."""
         cdef:
-            cGeneFactory *gf = self.factory.cgenefactory
+            cConstructor *c = self.factory.cfactory.constructor
             cNetwork_ptr new_ptr
 
-        new_ptr = gf.copy_and_mutate_network(self.ptr, nmutations)
+        new_ptr = c.copy_and_mutate_network(self.ptr, nmutations)
         new_net = Network(self.factory)
         new_net.bind_to(new_ptr)
         return new_net
@@ -517,10 +530,10 @@ cdef class NetworkCollection:
     def __repr__(self):
         return "<NetworkCollection: {}>".format(self.size)
 
-    def mutate(self):
+    def mutate(self, double site_rate):
         cdef cIndexes mutated
-        self.factory.cgenefactory.mutate_collection(self.cnetworks, mutated)
-
+        self.factory.cfactory.constructor.mutate_collection(
+            self.cnetworks, mutated, site_rate)
         # Return indexes of the mutated networks. Automatic conversion (thank
         # you Cython)
         return mutated

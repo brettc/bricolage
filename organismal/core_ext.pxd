@@ -14,7 +14,6 @@ cdef class Factory:
     cdef:
         cFactory_ptr cfactory_ptr
         cFactory *cfactory
-        cGeneFactory *cgenefactory
         readonly:
             object params
             object cis_class

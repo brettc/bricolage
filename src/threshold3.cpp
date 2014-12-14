@@ -2,34 +2,33 @@
 
 using namespace pubsub2;
 
-cGeneFactoryThreshold3::cGeneFactoryThreshold3(cFactory *f, double rate_per_gene_)
-    : cGeneFactory(f, rate_per_gene_)
+cConstructorThreshold3::cConstructorThreshold3(
+    cFactory &f, size_t gc, size_t cc)
+    : cConstructor(f, gc, cc)
     , r_binding(-3, 3)
     , r_direction(0, 1)
     , r_site(0, 2)
-    , r_input(0, f->sub_range.second-1)
+    , r_input(0, f.sub_range.second)
 {
 }
 
-cCisModule *cGeneFactoryThreshold3::construct_cis()
+cCisModule *cConstructorThreshold3::construct_cis()
 {
     cCisModuleThreshold3 *cis = new cCisModuleThreshold3();
-    random_engine_t &re = factory->random_engine;
 
     for (size_t i = 0; i < cis->site_count(); ++i)
     {
-        cis->channels[i] = r_input(re);
-        cis->binding[i] = r_binding(re);
+        cis->channels[i] = r_input(factory.rand);
+        cis->binding[i] = r_binding(factory.rand);
     }
     return cis;
 }
 
 // This is where the action really is.
-void cGeneFactoryThreshold3::mutate_cis(cCisModule *m)
+void cConstructorThreshold3::mutate_cis(cCisModule *m)
 {
-    random_engine_t &re = factory->random_engine;
     cCisModuleThreshold3 *cis = static_cast<cCisModuleThreshold3 *>(m);
-    size_t site = r_site(re);
+    size_t site = r_site(factory.rand);
     int_t current = cis->binding[site];
 
     int_t mutate;
@@ -38,11 +37,11 @@ void cGeneFactoryThreshold3::mutate_cis(cCisModule *m)
     else if (current == -3)
         mutate = 1;
     else
-        mutate = r_direction(re) * 2 - 1;
+        mutate = r_direction(factory.rand) * 2 - 1;
 
     // If we're at zero, possibly change into a different binding 
     if (current == 0)
-        cis->channels[site] = r_input(re);
+        cis->channels[site] = r_input(factory.rand);
 
     cis->binding[site] += mutate;
 }

@@ -11,8 +11,11 @@ from .logic_tools import boolean_func_from_coop_binding
 cdef class Factory(core_ext.Factory):
     def __cinit__(self, params):
         # Create a mutator
-        self.cgenefactory = new cGeneFactoryThreshold3(self.cfactory, 
-                                         params.gene_mutation_rate)
+        self.cfactory.constructor = new cConstructorThreshold3(
+            deref(self.cfactory),
+            params.gene_count,
+            params.cis_count,
+        )
         self.cis_class = CisModule
 
     

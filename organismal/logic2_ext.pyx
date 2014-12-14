@@ -10,10 +10,14 @@ cimport core_ext
 
 cdef class Factory(core_ext.Factory):
     def __cinit__(self, params):
-
         # Create a mutator
-        self.cgenefactory = new cGeneFactoryLogic2(self.cfactory, 
-                                         params.gene_mutation_rate)
+        self.cfactory.constructor = new cConstructorLogic2(
+            deref(self.cfactory),
+            params.gene_count,
+            params.cis_count,
+            params.operands
+        )
+
         self.cis_class = CisModule
 
     

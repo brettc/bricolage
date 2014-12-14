@@ -4,9 +4,11 @@
 
 namespace pubsub2 {
 
-struct cGeneFactoryLogic2 : public cGeneFactory
+struct cConstructorLogic2 : public cConstructor
 {
-    cGeneFactoryLogic2(cFactory *f, double rate_per_gene_);
+    cConstructorLogic2(cFactory &f, size_t gene_count_, size_t cis_count,
+                       const cOperands &ops);
+    cOperands operands;
     randint_t r_oper;
 
     // Overrides
@@ -39,8 +41,6 @@ public:
     // Default constructor is fine
     operand_t op;
     signal_t channels[2];
-
-    friend cGeneFactoryLogic2;
 };
 
 }

@@ -2,9 +2,9 @@
 
 namespace pubsub2 {
 
-struct cGeneFactoryThreshold3 : public cGeneFactory
+struct cConstructorThreshold3 : public cConstructor
 {
-    cGeneFactoryThreshold3(cFactory *f, double rate_per_gene_);
+    cConstructorThreshold3(cFactory &f, size_t gene_count_, size_t cis_count);
 
     // Randomize binding
     randint_t r_binding, r_direction, r_site, r_input;

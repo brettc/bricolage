@@ -41,18 +41,10 @@ typedef std::vector<size_t> cIndexes;
 typedef std::vector<double> cRates;
 typedef std::vector<cRates> cRatesVector;
 
-struct cChannelDef
-{
-    cChannelDef() {}
-    cChannelDef(size_t cue, size_t reg, size_t out) { set(cue, reg, out); }
-    void set(size_t cue, size_t reg, size_t out);
-    size_t cue_channels, reg_channels, out_channels;
-    size_t channel_count;
-    std::pair<size_t, size_t> cue_range;
-    std::pair<size_t, size_t> sub_range;
-    std::pair<size_t, size_t> pub_range;
-    std::pair<size_t, size_t> out_range;
-};
+const size_t reserved_channels = 2;
+const size_t off_channel = 0;
+const size_t on_channel = 1;
+
 
 // Allows us to intervene on the state of genes and modules, forcing them on or
 // off to ascertain what causal role they have.
@@ -62,7 +54,6 @@ enum InterventionState
     INTERVENE_ON = 1,
     INTERVENE_OFF = 2,
 };
-
 
 inline int bitset_cmp(cChannelState &a, cChannelState &b)
 {
@@ -115,37 +106,79 @@ typedef std::mt19937 random_engine_t;
 typedef std::uniform_int_distribution<size_t> randint_t;
 typedef std::uniform_real_distribution<> randreal_t;
 
-struct cFactory
-{
-    cFactory(size_t seed);
+class cConstructor;
 
-    random_engine_t random_engine;
-    sequence_t next_network_identifier, next_target_identifier;
+class cFactory //: std::enable_shared_from_this<cFactory>
+{
+public:
+    cFactory(size_t seed, size_t cue, size_t reg, size_t out);
+    ~cFactory();
 
     sequence_t get_next_network_ident() { return next_network_identifier++; }
     sequence_t get_next_target_ident() { return next_target_identifier++; }
 
-    double get_random_double(double low, double high) {
-        return std::uniform_real_distribution<double>(low, high)(random_engine); }
-    double get_random_int(int low, int high) {
-        return std::uniform_int_distribution<int>(low, high)(random_engine); }
+    // Counters
+    sequence_t next_network_identifier, next_target_identifier;
 
-    size_t gene_count, cis_count;
+    // Channel definitions
     size_t cue_channels, reg_channels, out_channels;
-    std::pair<size_t, size_t> sub_range;
-    std::pair<size_t, size_t> pub_range;
+    size_t channel_count;
+
+    std::pair<size_t, size_t> cue_range;
+    std::pair<size_t, size_t> reg_range;
     std::pair<size_t, size_t> out_range;
 
-    cOperands operands;
+    std::pair<size_t, size_t> sub_range;
+    std::pair<size_t, size_t> pub_range;
 
     // Once all the values are in place we call this
-    void init_environments();
     cChannelStateVector environments;
-    size_t total_channels;
-};
 
+    // Randomising stuff
+    random_engine_t rand;
+
+    // The specialised constructor for networks
+    cConstructor *constructor;
+protected:
+    void init_channels();
+    void init_environments();
+public:
+    // Extra cruft down here-----
+    // Mainly just for testing
+    double get_random_double(double low, double high) {
+        return std::uniform_real_distribution<double>(low, high)(rand); }
+    double get_random_int(int low, int high) {
+        return std::uniform_int_distribution<int>(low, high)(rand); }
+
+};
 typedef boost::shared_ptr<cFactory> cFactory_ptr;
 
+// Base class for overriding factory operations
+class cConstructor
+{
+public:
+    cConstructor(cFactory &f, size_t gene_count_, size_t cis_count_);
+    virtual ~cConstructor() {};
+
+    // This is where the constructors and mutators for networks live
+    virtual cCisModule *construct_cis() = 0;
+    void construct_network(cNetwork &network);
+
+    // Mutates the gene in place
+    virtual void mutate_cis(cCisModule *m) = 0;
+    void mutate_gene(cGene *g);
+    void mutate_network(cNetwork_ptr &n, size_t mutations);
+
+    cNetwork_ptr copy_and_mutate_network(cNetwork_ptr &n, size_t mutations);
+    void mutate_collection(cNetworkVector &networks, cIndexes &mutated, double site_rate);
+
+    cFactory &factory;
+
+    // Basic parameters
+    size_t gene_count, cis_count;
+    randint_t r_gene, r_cis, r_sub;
+    randreal_t r_uniform_01;
+};
 
 class cNetwork
 {
@@ -159,8 +192,6 @@ public:
     void clone_genes(cGeneVector &gv) const;
     bool is_detached() const { return identifier < 0; }
     cNetwork_ptr get_detached_copy() const;
-
-    mutable void *pyobject;
     
     cFactory_ptr factory;
     int_t identifier, parent_identifier;
@@ -175,6 +206,9 @@ public:
     // changed.
     mutable int_t target;
     mutable double fitness;
+
+    // This is where we store the Python object for easy recall.
+    mutable void *pyobject;
 
 private:
     // Don't allow copying
@@ -225,35 +259,12 @@ struct cTarget
     // TODO: per env weighting
     // TODO: per output weighting
     double assess(const cNetwork &net);
-
 };
 
 // TODO: Eventually this will be a base class, then have different types of
 // generators.
 struct cGeneFactory
 {
-    cGeneFactory(cFactory *f, double rate_per_gene_);
-    virtual ~cGeneFactory() {};
-    cFactory *factory;
-    double rate_per_gene;
-
-    // Not sure whether this is worth it, but still...
-    randint_t r_gene, r_mod, r_sub;
-
-    // default constructed [0, 1]
-    randreal_t r_uniform_01;
-
-    // This is where the constructors and mutators for networks live
-    virtual cCisModule *construct_cis() = 0;
-    void construct_network(cNetwork &network);
-
-    // Mutates the gene in place
-    virtual void mutate_cis(cCisModule *m) = 0;
-    void mutate_gene(cGene *g);
-    void mutate_network(cNetwork_ptr &n, size_t mutations);
-
-    cNetwork_ptr copy_and_mutate_network(cNetwork_ptr &n, size_t mutations);
-    void mutate_collection(cNetworkVector &networks, cIndexes &mutated);
 };
 
 struct cSelectionModel

@@ -23,38 +23,39 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
     cdef int c_sgn(int)
     cdef int c_cmp(int, int)
 
-    cdef cppclass cChannelDef:
-        cChannelDef()
-        void set(size_t cue, size_t reg, size_t out)
+    cdef cppclass cConstructor
+    cdef cppclass cNetwork
+    ctypedef shared_ptr[cNetwork] cNetwork_ptr
+    ctypedef vector[cNetwork_ptr] cNetworkVector
+        
+    cdef cppclass cFactory:
+        cFactory(size_t seed, size_t cue, size_t reg, size_t out)
+        mt19937 rand
         size_t cue_channels, reg_channels, out_channels
         size_t channel_count
         pair[size_t, size_t] cue_range
+        pair[size_t, size_t] out_range
+        pair[size_t, size_t] reg_range
         pair[size_t, size_t] sub_range
         pair[size_t, size_t] pub_range
-        pair[size_t, size_t] out_range
-        
-    cdef cppclass cFactory:
-        cFactory(size_t seed)
-
-        mt19937 random_engine
+        cChannelStateVector environments
+        cConstructor *constructor
         double get_random_double(double low, double high)
         double get_random_int(int low, int high)
 
-        sequence_t next_identifier
-        size_t pop_count, gene_count, cis_count
-        size_t cue_channels, reg_channels, out_channels
-        size_t total_channels
-        cOperands operands
-        pair[size_t, size_t] sub_range
-        pair[size_t, size_t] pub_range
-        pair[size_t, size_t] out_range
-
-        cChannelStateVector environments
-        void init_environments()
-
     ctypedef shared_ptr[cFactory] cFactory_ptr
 
-    ctypedef vector[cCisModule] cCisModules
+    cdef cppclass cConstructor:
+        cConstructor()
+        cConstructor(cFactory &f, size_t gene_count_, size_t cis_count_)
+        void construct_network(cNetwork &network);
+        void mutate_network(cNetwork_ptr &n, size_t n)
+        cNetwork_ptr copy_and_mutate_network(
+            cNetwork_ptr &n, size_t mutations)
+        void mutate_collection(
+            cNetworkVector &networks, cIndexes &mutated, double site_rate)
+        size_t gene_count, cis_count;
+        randint_t r_gene, r_cis, r_sub;
 
     cdef cppclass cCisModule:
         # bint test(unsigned int a, unsigned int b)
@@ -70,9 +71,6 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         cCisModules modules;
         signal_t pub
 
-    cdef cppclass cNetwork
-    ctypedef shared_ptr[cNetwork] cNetwork_ptr
-
     cdef cppclass cNetwork:
         cNetwork(cFactory_ptr)
         void *pyobject
@@ -87,12 +85,6 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         void calc_attractors()
         bint is_detached()
 
-    # cdef cppclass cSiteIndex:
-    #     int_t gene()
-    #     int_t cis()
-    #     int_t site()
-    #
-    # ctypedef vector[cSiteIndex] cSiteLocations
     ctypedef pair[char, size_t] Node_t
     ctypedef pair[Node_t, Node_t] Edge_t
     ctypedef std_set[Edge_t] cEdgeList
@@ -115,17 +107,6 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         int_t identifier
         cRatesVector optimal_rates
 
-    cdef cppclass cGeneFactory:
-        cGeneFactory()
-        cGeneFactory(cFactory *f, double rate)
-        cFactory *factory
-
-        void construct_network(cNetwork &network);
-        void mutate_network(cNetwork_ptr &n, size_t n)
-
-        cNetwork_ptr copy_and_mutate_network(cNetwork_ptr &n, size_t mutations)
-        void mutate_collection(cNetworkVector &networks, cIndexes &mutated)
-
     cdef cppclass cSelectionModel:
         cSelectionModel(cFactory_ptr &factory)
         cFactory_ptr factory
@@ -138,8 +119,8 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
             const cNetworkVector &fr, cNetworkVector &to, const cIndexes &selected)
 
 cdef extern from "<src/logic2.hpp>" namespace "pubsub2":
-    cdef cppclass cGeneFactoryLogic2(cGeneFactory):
-        cGeneFactoryLogic2(cFactory *f, double rate)
+    cdef cppclass cConstructorLogic2(cConstructor):
+        cConstructorLogic2(cFactory &f, size_t gc, size_t cc, cOperands &ops)
 
     cdef cppclass cCisModuleLogic2(cCisModule):
         operand_t op
@@ -149,8 +130,8 @@ cdef extern from "<src/logic2.hpp>" namespace "pubsub2":
         "dynamic_cast<pubsub2::cCisModuleLogic2 *>" (cCisModule *) except NULL
 
 cdef extern from "<src/threshold3.hpp>" namespace "pubsub2":
-    cdef cppclass cGeneFactoryThreshold3(cGeneFactory):
-        cGeneFactoryThreshold3(cFactory *f, double rate)
+    cdef cppclass cConstructorThreshold3(cConstructor):
+        cConstructorThreshold3(cFactory &f, size_t gc, size_t cc)
 
     cdef cppclass cCisModuleThreshold3(cCisModule):
         signal_t channels[3]
