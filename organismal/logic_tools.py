@@ -13,7 +13,7 @@ def detex(term):
     rt = " ".join(rt.strip().split())
     return rt
 
-def boolean_func_from_coop_binding(params, channels, bindings):
+def boolean_func_from_coop_binding(factory, channels, bindings):
     """Convert a coop binding into a boolean function"""
     # Can't assume all sites are unique, so we need to reconstruct a the truth
     # table entries to pool together sites that are the same.
@@ -60,7 +60,7 @@ def boolean_func_from_coop_binding(params, channels, bindings):
 
     text = detex(sop)
     for i, n in enumerate(names): 
-        text = text.replace(n, params.name_for_channel(unique[i]))
+        text = text.replace(n, factory.name_for_channel(unique[i]))
 
     return text
 

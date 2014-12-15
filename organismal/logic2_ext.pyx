@@ -41,11 +41,11 @@ cdef class CisModule(core_ext.CisModule):
             return self.logic2.channels[1]
 
     def __str__(self):
-        p = self.gene.network.factory.params
+        f = self.gene.network.factory
         return "{}({}, {})".format(
             Operand(self.op).name,
-            p.name_for_channel(self.logic2.channels[0]),
-            p.name_for_channel(self.logic2.channels[1]),
+            f.name_for_channel(self.logic2.channels[0]),
+            f.name_for_channel(self.logic2.channels[1]),
         )
 
     def __repr__(self):

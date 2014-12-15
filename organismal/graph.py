@@ -23,7 +23,7 @@ class BaseGraph(object):
     def __init__(self, analysis):
         self.analysis = analysis
         self.network = analysis.network
-        self.params = self.network.factory.params
+        self.factory = self.network.factory
         self.nx_graph = nx.DiGraph()
 
     def is_inert(self, node):
@@ -41,19 +41,19 @@ class BaseGraph(object):
 
     def is_input(self, node):
         t, n = node
-        if t == NodeType.CHANNEL and n in self.params.cue_signals:
+        if t == NodeType.CHANNEL and n in self.factory.cue_signals:
             return True
         return False
 
     def is_structural(self, node):
         t, n = node
-        if t == NodeType.GENE and n >= self.params.reg_channels:
+        if t == NodeType.GENE and n >= self.factory.reg_channels:
             return True
         return False
 
     def is_output(self, node):
         t, n = node
-        if t == NodeType.CHANNEL and n in self.params.out_signals:
+        if t == NodeType.CHANNEL and n in self.factory.out_signals:
             return True
         return False
 
@@ -106,7 +106,7 @@ class FullGraph(BaseGraph):
         return str(m)
 
     def get_channel_label(self, i):
-        return self.params.name_for_channel(i)
+        return self.factory.name_for_channel(i)
 
 class GCGraph(FullGraph):
     def __init__(self, analysis, knockouts=True):

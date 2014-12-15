@@ -72,16 +72,6 @@ class Parameters(object):
         else:
             self.char_size = 3
 
-    def name_for_channel(self, s):
-        sz = self.char_size - 1
-        # We use "mathematical" number, starting at 1.0
-        if s >= self.out_range[0]:
-            return "P{0:0{1:}d}".format(s + 1 - self.out_range[0], sz)
-
-        if s >= self.reg_range[0]:
-            return "T{0:0{1:}d}".format(s + 1 - self.reg_range[0], sz)
-
-        return "E{0:0{1:}d}".format(s + 1 - self.cue_range[0], sz)
 
     def _validate(self):
         pass

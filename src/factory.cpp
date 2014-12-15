@@ -56,8 +56,8 @@ void cFactory::init_channels()
     // pubs              [ 4 5 6 7 8 ]
     channel_count = cue_channels + reg_channels + out_channels + reserved_channels;
 
-    // These are python-like *ranges*, thus the interval is [first, second)
-    // or first <= v < second
+    // These are python-like *ranges*, thus the interval is [first, second) or
+    // first <= v < second
     cue_range.first = reserved_channels;
     cue_range.second = cue_range.first + cue_channels;
 

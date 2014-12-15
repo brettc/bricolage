@@ -86,7 +86,6 @@ def test_referencing(basic_params):
 
     assert a is b
     assert a.factory is b.factory
-    assert a.factory.params is b.factory.params
 
 def test_bad_access(params3x2):
     f = T.Factory(params3x2)

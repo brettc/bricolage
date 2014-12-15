@@ -32,8 +32,8 @@ cdef class CisModule(core_ext.CisModule):
 
     property operation:
         def __get__(self):
-            params = self.gene.network.factory.params
-            return boolean_func_from_coop_binding(params, self.channels, self.bindings)
+            factory = self.gene.network.factory
+            return boolean_func_from_coop_binding(factory, self.channels, self.bindings)
 
     def __str__(self):
         return self.operation

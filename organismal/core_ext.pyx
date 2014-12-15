@@ -12,8 +12,10 @@ cimport numpy as np
 from cython.operator import dereference as deref, preincrement as preinc
 
 import random
-cdef int magic_number = random.randint(0, 100000)
 
+reserved_channels = 2
+off_channel = 0
+on_channel = 1
 
 cdef class ChannelStateFrozen:
     def __cinit__(self):
@@ -119,7 +121,13 @@ cdef class Factory:
             params.out_channels,
         ))
         self.cfactory = self.cfactory_ptr.get()
-        self.params = params
+
+        self.reserved_signals = set([on_channel, off_channel])
+        self.cue_signals = set(range(*self.cfactory.cue_range))
+        self.reg_signals = set(range(*self.cfactory.reg_range))
+        self.out_signals = set(range(*self.cfactory.out_range))
+        self.sub_signals = set(range(*self.cfactory.sub_range))
+        self.pub_signals = set(range(*self.cfactory.pub_range))
 
     def create_network(self):
         cdef:
@@ -210,18 +218,35 @@ cdef class Factory:
     property pub_range:
         def __get__(self):
             return self.cfactory.pub_range
+    
+    def name_for_channel(self, c):
+        sz = 1
+        if c == off_channel:
+            return "OFF"
+        if c == on_channel:
+            return "ON"
+        # We use "mathematical" number, starting at 1.0
+        if c in self.out_signals:
+            return "P{0:0{1:}d}".format(
+                c + 1 - self.cfactory.out_range.first, sz)
+        if c in self.reg_signals:
+            return "T{0:0{1:}d}".format(
+                c + 1 - self.cfactory.reg_range.first, sz)
+        return "E{0:0{1:}d}".format(
+            c + 1 - self.cfactory.cue_range.first, sz)
 
 
 cdef class Target:
     def __cinit__(self, Factory f, init_func):
         self.factory = f
         self.ctarget = new cTarget(f.cfactory)
+        a, b = f.cfactory.cue_range
 
         # Slow and cumbersome, but it doesn't matter
         for i, e in enumerate(f.environments):
             # TODO: Clean up the refs here
-            outputs = init_func(e.as_array()[2:f.params.cue_channels+2])
-            if len(outputs) != f.params.out_channels:
+            outputs = init_func(e.as_array()[a:b])
+            if len(outputs) != f.out_channels:
                 raise RuntimeError
 
             for j, val in enumerate(outputs):
@@ -394,8 +419,8 @@ cdef class Gene:
             return self._modules
 
     def __repr__(self):
-        p = self.network.factory.params
-        return "<Gene[{}]: {}>".format(self.sequence, p.name_for_channel(self.pub))
+        f = self.network.factory
+        return "<Gene[{}]: {}>".format(self.sequence, f.name_for_channel(self.pub))
 
 
 cdef class CisModule:
@@ -426,8 +451,8 @@ cdef class CisModule:
 
     property channel_names:
         def __get__(self):
-            p = self.gene.network.factory.params
-            return [p.name_for_channel(c) for c in self.channels]
+            f = self.gene.network.factory
+            return [f.name_for_channel(c) for c in self.channels]
 
     # property op:
     #     def __get__(self):
@@ -563,7 +588,7 @@ cdef class NetworkCollection:
     def selection_indexes(self, Target target):
         """Just return the indices where selection would happen.
 
-        This is used for testing.
+        ***This is used for testing***
         """
         cdef:
             cSelectionModel *sm

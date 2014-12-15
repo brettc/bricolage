@@ -15,8 +15,10 @@ cdef class Factory:
         cFactory_ptr cfactory_ptr
         cFactory *cfactory
         readonly:
-            object params
-            object cis_class
+            object sub_signals, pub_signals
+            object cue_signals, reg_signals, out_signals
+            object reserved_signals
+        object cis_class
         object _environments
 
 cdef class Target:
