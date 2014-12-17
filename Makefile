@@ -1,18 +1,18 @@
 # This is a very naive Makefile for development purposes on my Mac.
 #
 # As far as I have found (yet), there is no IDEAL solution to developing
-# complex cross platform cython extensions with C++ libraries and multiple
-# cython files. Hence this dumb, platform specific, totally specialised
-# solution that works well with my personal development environment for now. It
-# goes against all advice about writing Makefiles, as it makes everything
-# explicit. It is a lot easier to see what is going on that way, though it
-# clearly won't scale well.
+# complex cross-platform cython extensions that include C++ libraries and
+# multiple cython files. Hence this dumb, platform specific, totally
+# specialised solution that works well with my personal development environment
+# for now. I'm sure it goes against lots of advice about writing Makefiles, as
+# it makes everything explicit. But it WORKS, and it is a lot easier to see
+# what is going on that way (though it clearly won't scale well).
 #
 # CURRENT PLATFORM: MacOSX 10.10.1, using Anaconda python 2.7
 
 PYTHONDIR=/Users/Brett/anaconda
 PYSRC=./bricolage
-GRN_DIR=./src
+CPPSRC=./src
 
 LIBINC=-L$(PYTHONDIR)/lib -L$(PYSRC)
 CYTHON=$(PYTHONDIR)/bin/cython
@@ -35,12 +35,14 @@ DYLIB_FLAGS=-dynamiclib -undefined dynamic_lookup -arch x86_64
 
 LIBS=-lpython2.7 -lstdc++
 
-GRN_SRCS = $(wildcard $(GRN_DIR)/*.cpp)
-GRN_OBJS = $(GRN_SRCS:.cpp=.o)
+CPP_SRCS = $(wildcard $(CPPSRC)/*.cpp)
+CPP_OBJS = $(CPP_SRCS:.cpp=.o)
 CY_SRCS = $(wildcard $(PYSRC)/*.pyx)
 CY_EXTS = $(CY_SRCS:.pyx=.so)
 
-GRN_DYLIB = $(PYSRC)/libgrn.dylib
+# We need to give our library a name
+CPP_LIBNAME = grn
+GRN_DYLIB = $(PYSRC)/lib$(CPP_LIBNAME).dylib
 
 all: $(CY_EXTS)
 
@@ -48,8 +50,8 @@ all: $(CY_EXTS)
 cython: $(CY_SRCS:.pyx=.cpp)
 
 # Build the shared libary of all c++ code
-$(GRN_DYLIB): $(GRN_OBJS)
-	$(CC) $(DYLIB_FLAGS) $(LIBINC) $(GRN_OBJS) -o $(GRN_DYLIB)
+$(GRN_DYLIB): $(CPP_OBJS)
+	$(CC) $(DYLIB_FLAGS) $(LIBINC) $(CPP_OBJS) -o $(GRN_DYLIB)
 
 # ---- Automatic rules
 # Make objects for dynamic library
@@ -58,7 +60,7 @@ $(GRN_DIR)/%.o : $(GRN_DIR)/%.cpp
 
 # Make python extensions from cython objects
 $(PYSRC)/%.so: $(PYSRC)/%.o $(GRN_DYLIB)
-	$(CC) $(PYEXT_FLAGS) $(LIBINC) $< -o $@ -lgrn
+	$(CC) $(PYEXT_FLAGS) $(LIBINC) $< -o $@ -l$(CPP_LIBNAME)
 
 # Make objects for all cython output
 $(PYSRC)/%.o : $(PYSRC)/%.cpp 
