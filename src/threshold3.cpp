@@ -8,7 +8,7 @@ cConstructorThreshold3::cConstructorThreshold3(
     , r_binding(-3, 3)
     , r_direction(0, 1)
     , r_site(0, 2)
-    , r_input(0, f.sub_range.second)
+    , r_input(0, f.sub_range.second-1)
 {
 }
 
