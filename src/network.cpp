@@ -1,4 +1,5 @@
 #include "core.hpp"
+#include "algorithm.hpp"
 #include <cmath>
 #include <stdexcept>
 
@@ -79,32 +80,9 @@ void cNetwork::clone_genes(cGeneVector &gv) const
 // would, I guess, be safe.
 void cNetwork::cycle(cChannelState &c) const
 {
-    cChannelState next(c.size());
-    for (auto g : genes)
-        switch (g->intervene)
-        {
-        case INTERVENE_ON:
-            // If it is forced ON, don't both checking anything
-            next.set(g->pub);
-            break;
-        case INTERVENE_NONE:
-            for (auto m : g->modules)
-                // NOTE: is_active is what does all the work here. It is
-                // virtual, and we call it a lot. Hence the ideas above about a
-                // better solution.
-                if (m->intervene == INTERVENE_ON || 
-                    (m->intervene == INTERVENE_NONE && m->is_active(c)))
-                {
-                    next.set(g->pub);
-                    // The gene is active, no use looking further
-                    break;
-                }
-        case INTERVENE_OFF:
-            // Do nothing 
-            ;
-        }
-    // Update the "return" value.
-    c.swap(next);
+    Cycle<cNetwork> cycler;
+    // cycler.cycle(*this, c);
+    cycler.cycle_with_intervention(*this, c);
 }
 
 // This is the outer-inner loop, where we find the attractors. 

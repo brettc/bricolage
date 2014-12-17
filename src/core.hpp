@@ -41,6 +41,8 @@ typedef std::vector<size_t> cIndexes;
 typedef std::vector<double> cRates;
 typedef std::vector<cRates> cRatesVector;
 
+
+// TODO: Do these need implementation? I forget my C++.
 const size_t reserved_channels = 2;
 const size_t off_channel = 0;
 const size_t on_channel = 1;
