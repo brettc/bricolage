@@ -4,15 +4,10 @@ __pycache__/*
 build/*
 .cache/*
 .ipynb_checkpoints/*
-pubsub2_ext.cpp
-test.py
-.waf-1.8.4-6445d4ec11ba9f6e61e5a38922b73f9a
-.lock-waf_darwin_build
 config.log
-.wafpickle*
 c4che
 *.o
 *.d
 *.dylib
-organismal/*.cpp
+bricolage/*.cpp
 cruft-*

@@ -11,7 +11,7 @@
 # CURRENT PLATFORM: MacOSX 10.10.1, using Anaconda python 2.7
 
 PYTHONDIR=/Users/Brett/anaconda
-PYSRC=./organismal
+PYSRC=./bricolage
 GRN_DIR=./src
 
 LIBINC=-L$(PYTHONDIR)/lib -L$(PYSRC)

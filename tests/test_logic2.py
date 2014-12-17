@@ -1,7 +1,7 @@
 import pytest
 import numpy
-from organismal import logic2 as T
-from organismal import operand
+from bricolage import logic2 as T
+from bricolage import operand
 
 @pytest.fixture
 def basic_params():

@@ -42,8 +42,8 @@ class build_pubsub(Command):
         
         compiler = cc.new_compiler(compiler=self.compiler)
 
-        # source_folders = ['organismal', os.path.join('chipmunk_src','constraints')]
-        sources = ['organismal/pubsub2_c.cpp']
+        # source_folders = ['bricolage', os.path.join('chipmunk_src','constraints')]
+        sources = ['bricolage/pubsub2_c.cpp']
         # for folder in source_folders:
         #     for fn in os.listdir(folder):
         #         fn_path = os.path.join(folder, fn)
@@ -53,7 +53,7 @@ class build_pubsub(Command):
         #             os.remove(fn_path)
                     
         include_folders = [
-            './organismal',
+            './bricolage',
             '/Users/Brett/anaconda/include',
             '/Users/Brett/anaconda/lib/python2.7/site-packages/numpy/core/include',
             '/Users/Brett/anaconda/include/python2.7'
@@ -62,10 +62,10 @@ class build_pubsub(Command):
         compiler_preargs = ['-Wno-unknown-pragmas', '-fPIC', '-Wno-unused-function', '-stdlib=libc++', '-std=c++11', '-mmacosx-version-min=10.8']
 
         # cc -bundle -undefined dynamic_lookup -L/Users/Brett/anaconda/lib -arch x86_64
-        # -arch x86_64 build/temp.macosx-10.5-x86_64-2.7/organismal/pubsub2_ext.o
-        # build/temp.macosx-10.5-x86_64-2.7/organismal/pubsub2_c.o
+        # -arch x86_64 build/temp.macosx-10.5-x86_64-2.7/bricolage/pubsub2_ext.o
+        # build/temp.macosx-10.5-x86_64-2.7/bricolage/pubsub2_c.o
         # -L/Users/Brett/anaconda/lib -o
-        # /Users/Brett/Dropbox/Code/organismal/organismal/pubsub2_ext.so
+        # /Users/Brett/Dropbox/Code/bricolage/bricolage/pubsub2_ext.so
         
         if self.release:
             compiler_preargs.append('-DNDEBUG')
@@ -104,7 +104,7 @@ class build_pubsub(Command):
         
         objs = compiler.compile(sources, include_dirs=include_folders, extra_preargs=compiler_preargs)
         
-        libname = 'organismal'
+        libname = 'bricolage'
         if arch == 64 and platform.system() != 'Darwin':
             libname += '64'
         if platform.system() == 'Darwin':
@@ -128,7 +128,7 @@ class build_pubsub(Command):
             linker_preargs += ['-mrtd'] 
             # remove link against msvcr*. this is a bit ugly maybe.. :)
             compiler.dll_libraries = [lib for lib in compiler.dll_libraries if not lib.startswith("msvcr")]
-        compiler.link(cc.CCompiler.SHARED_LIBRARY, objs, libname, output_dir = './organismal', extra_preargs=linker_preargs)
+        compiler.link(cc.CCompiler.SHARED_LIBRARY, objs, libname, output_dir = './bricolage', extra_preargs=linker_preargs)
         
     def run(self):
         self.compile_chipmunk()
@@ -139,10 +139,10 @@ class build_pubsub(Command):
 # -Wno-unused-function
 extensions = [
     Extension(
-        "organismal/pubsub2_ext", 
-        # ["organismal/pubsub2_ext.pyx"],
-        # ["organismal/pubsub2_ext.pyx", "organismal/pubsub2_c.cpp"],
-        ["organismal/pubsub2_ext.pyx", "organismal/pubsub2_c.cpp", "organismal/scheme_cooperative.cpp"],
+        "bricolage/pubsub2_ext", 
+        # ["bricolage/pubsub2_ext.pyx"],
+        # ["bricolage/pubsub2_ext.pyx", "bricolage/pubsub2_c.cpp"],
+        ["bricolage/pubsub2_ext.pyx", "bricolage/pubsub2_c.cpp", "bricolage/scheme_cooperative.cpp"],
         extra_compile_args = [
             # '-ffast-math',
             '-Wno-unused-function', 
@@ -150,16 +150,16 @@ extensions = [
             '-std=c++11', 
             '-mmacosx-version-min=10.8',
         ],
-        depends = ['organismal/pubsub2_c.h'],
+        depends = ['bricolage/pubsub2_c.h'],
         language = 'c++',
         # include_path = [numpy.get_include()],
-        # include_dirs = ['./organismal'],
-        # libraries = ['organismal'],
-        # library_dirs = ['./organismal'],
+        # include_dirs = ['./bricolage'],
+        # libraries = ['bricolage'],
+        # library_dirs = ['./bricolage'],
     )
 ]
 setup(
-    name='organismal',
+    name='bricolage',
     ext_modules=cythonize(
         extensions,
         aliases={ 'NUMPY_PATH': numpy.get_include() },

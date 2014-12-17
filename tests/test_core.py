@@ -1,5 +1,5 @@
 # import pytest
-from organismal import core_ext as T
+from bricolage import core_ext as T
 
 # class Container(object):
 #     def __init__(self, **kw)

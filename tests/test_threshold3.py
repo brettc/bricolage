@@ -1,7 +1,7 @@
 
 # import pytest
-from organismal.core_ext import Target
-from organismal.threshold3 import Parameters, Factory
+from bricolage.core_ext import Target
+from bricolage.threshold3 import Parameters, Factory
 
 def not_fun(x):
     return [not x[0]]
