@@ -4,16 +4,16 @@ from grn cimport *
 cdef class ChannelStateFrozen:
     cdef:
         cChannelState cchannel_state
-        cFactory_ptr cfactory_ptr
-    cdef init(self, cFactory_ptr &f, cChannelState &p)
+        cWorld_ptr cworld_ptr
+    cdef init(self, cWorld_ptr &f, cChannelState &p)
 
 cdef class ChannelState(ChannelStateFrozen):
     pass
 
-cdef class Factory:
+cdef class World:
     cdef:
-        cFactory_ptr cfactory_ptr
-        cFactory *cfactory
+        cWorld_ptr cworld_ptr
+        cWorld *cworld
         readonly:
             object sub_signals, pub_signals
             object cue_signals, reg_signals, out_signals
@@ -21,16 +21,16 @@ cdef class Factory:
         object cis_class
         object _environments
 
-cdef class Target:
-    cdef:
-        cTarget *ctarget
-        readonly:
-            Factory factory
+# cdef class Target:
+#     cdef:
+#         cTarget *ctarget
+#         readonly:
+#             World world
 
 cdef class Network:
     cdef:
         readonly:
-            Factory factory
+            World world
             bint ready
             bint dirty
 
@@ -43,39 +43,39 @@ cdef class Network:
 
     cdef bind_to(self, cNetwork_ptr &ptr)
 
-cdef class Gene:
-    cdef:
-        # Assumption: Networks CANNOT mess with genes number once a network
-        # has been established (You must copy and mutate a network).
-        # TODO: ensure this using point to const!
-        cGene *cgene
-        object _modules
-
-        readonly:
-            # By holding this ref, we ensure the pointer is always valid (pace
-            # what I said above. DON'T mess with the genes!)
-            Network network
-            size_t gene_number
-
-cdef class CisModule:
-    cdef:
-        cCisModule *ccismodule
-        readonly:
-            Gene gene
-
-    cdef reset_network(self)
-
-cdef class NetworkAnalysis:
-    cdef:
-        cNetworkAnalysis *canalysis
-        readonly:
-            Network network
-
-cdef class NetworkCollection:
-    cdef:
-        readonly: 
-            Factory factory
-        cNetworkVector cnetworks
-
-    cdef object get_at(self, size_t i)
-
+# cdef class Gene:
+#     cdef:
+#         # Assumption: Networks CANNOT mess with genes number once a network
+#         # has been established (You must copy and mutate a network).
+#         # TODO: ensure this using point to const!
+#         cGene *cgene
+#         object _modules
+#
+#         readonly:
+#             # By holding this ref, we ensure the pointer is always valid (pace
+#             # what I said above. DON'T mess with the genes!)
+#             Network network
+#             size_t gene_number
+#
+# cdef class CisModule:
+#     cdef:
+#         cCisModule *ccismodule
+#         readonly:
+#             Gene gene
+#
+#     cdef reset_network(self)
+#
+# cdef class NetworkAnalysis:
+#     cdef:
+#         cNetworkAnalysis *canalysis
+#         readonly:
+#             Network network
+#
+# cdef class NetworkCollection:
+#     cdef:
+#         readonly: 
+#             World world
+#         cNetworkVector cnetworks
+#
+#     cdef object get_at(self, size_t i)
+#

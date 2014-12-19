@@ -1,66 +1,58 @@
 #include "threshold3.hpp"
 
-using namespace pubsub2;
+using namespace thresh3;
 
-cConstructorThreshold3::cConstructorThreshold3(
-    cFactory &f, size_t gc, size_t cc)
-    : cConstructor(f, gc, cc)
+cConstructor::cConstructor(const pubsub2::cWorld_ptr &w, size_t gc, size_t cc)
+    : pubsub2::cConstructor(w)
     , r_binding(-3, 3)
     , r_direction(0, 1)
     , r_site(0, 2)
-    , r_input(0, f.sub_range.second-1)
+    , r_input(0, w->sub_range.second-1)
+    , xxx(boost::bind(pubsub2::randint_t(-3, 3), w->rand))
 {
 }
 
-cCisModule *cConstructorThreshold3::construct_cis()
+pubsub2::cNetwork *cConstructor::construct()
 {
-    cCisModuleThreshold3 *cis = new cCisModuleThreshold3();
+    pubsub2::cNetwork *net = new cNetwork(world);
+    // net->calc_attractors();
+    return net;
+}
 
-    for (size_t i = 0; i < cis->site_count(); ++i)
+cCisModule::cCisModule(const cConstructor &c)
+{
+    for (size_t i = 0; i < 3; ++i)
     {
-        cis->channels[i] = r_input(factory.rand);
-        cis->binding[i] = r_binding(factory.rand);
+        channels[i] = c.r_input(c.world->rand);
+        binding[i] = c.r_binding(c.world->rand);
     }
-    return cis;
 }
 
 // This is where the action really is.
-void cConstructorThreshold3::mutate_cis(cCisModule *m)
+void cCisModule::mutate(const cConstructor &c)
 {
-    cCisModuleThreshold3 *cis = static_cast<cCisModuleThreshold3 *>(m);
-    size_t site = r_site(factory.rand);
-    int_t current = cis->binding[site];
+    size_t site = c.r_site(c.world->rand);
+    pubsub2::int_t current = binding[site];
 
-    int_t mutate;
+    pubsub2::int_t mutate;
     if (current == 3)
         mutate = -1;
     else if (current == -3)
         mutate = 1;
     else
-        mutate = r_direction(factory.rand) * 2 - 1;
+        mutate = c.r_direction(c.world->rand) * 2 - 1;
 
     // If we're at zero, possibly change into a different binding 
     if (current == 0)
-        cis->channels[site] = r_input(factory.rand);
+        channels[site] = c.r_input(c.world->rand);
 
-    cis->binding[site] += mutate;
+    binding[site] += mutate;
 }
 
-cCisModule *cCisModuleThreshold3::clone() const
-{
-    cCisModuleThreshold3 *cis = new cCisModuleThreshold3();
-    for (size_t i = 0; i < cis->site_count(); ++i)
-    {
-        cis->channels[i] = channels[i];
-        cis->binding[i] = binding[i];
-    }
-    return cis;
-}
-
-bool cCisModuleThreshold3::is_active(cChannelState const &state) const 
+bool cCisModule::is_active(pubsub2::cChannelState const &state) const 
 {
     // Calculate the weighted sum
-    int_t sum = 0;
+    pubsub2::int_t sum = 0;
     for (size_t i = 0; i < site_count(); ++i)
     {
         if (state[channels[i]])
@@ -69,3 +61,18 @@ bool cCisModuleThreshold3::is_active(cChannelState const &state) const
     // Thresholded
     return sum >= 3;
 }
+
+cNetwork::cNetwork(const pubsub2::cWorld_ptr &w, bool no_ident)
+    : pubsub2::cNetwork(w, no_ident)
+{
+}
+
+pubsub2::cNetwork *cNetwork::clone() const
+{
+    return 0;
+}
+
+void cNetwork::cycle(pubsub2::cChannelState &c) const
+{
+}
+    
