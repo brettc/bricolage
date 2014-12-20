@@ -13,12 +13,12 @@ public:
     cConstructor(const pubsub2::cWorld_ptr &w, size_t gene_count_, size_t cis_count);
 
     pubsub2::cNetwork *construct();
-    void mutate_network(pubsub2::cNetwork_ptr *n, size_t mutations);
+    // void mutate_network(pubsub2::cNetwork_ptr *n, size_t mutations);
 
     // Randomize binding
+    size_t gene_count, module_count;
     mutable pubsub2::randint_t r_binding, r_direction, r_site, r_input;
     mutable rand_test xxx;
-    size_t gene_count, module_count;
 };
 
 class cCisModule : public pubsub2::cCisModule
@@ -51,20 +51,24 @@ public:
     std::vector<cCisModule> modules;
 
     // TODO: overrides
-    size_t module_count() const { return 0; }
-    const pubsub2::cCisModule *get_module(size_t i) { return 0; }
+    size_t module_count() const { return modules.size(); }
+    pubsub2::cCisModule *get_module(size_t i) { return &modules[i]; }
 };
 
 
 class cNetwork : public pubsub2::cNetwork
 {
 public:
-    cNetwork(const pubsub2::cWorld_ptr &f, bool no_ident=false);
+    cNetwork(const cConstructor &c);
+    const cConstructor &constructor;
     std::vector<cGene> genes;
+    virtual size_t gene_count() { return genes.size(); }
+    virtual cGene *get_gene(size_t i) { return &genes[i]; }
 
     // Overrides
     pubsub2::cNetwork *clone() const;
     void cycle(pubsub2::cChannelState &c) const;
+    void cycle_with_intervention(pubsub2::cChannelState &c) const;
 };
 
 }

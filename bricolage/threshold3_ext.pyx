@@ -18,30 +18,36 @@ cdef class World(core_ext.World):
             params.cis_count,
         )
         self.cworld.constructor = c
-        print '----'
-        for i in range(10):
-            print c.xxx()
-        print '----'
+        # print '----'
+        # for i in range(10):
+        #     print c.xxx()
+        # print '----'
+        self.gene_class = Gene
+        self.module_class = CisModule
 
-    def create_network(self):
-        cdef:
-            grn.cNetwork_ptr ptr = grn.cNetwork_ptr(
-                new cNetwork(self.cworld_ptr))
-
-        n = Network(self)
-        n.bind_to(ptr)
-        return n
 
 cdef class Network(core_ext.Network):
+    def __cinit__(self, World w):
+        cdef grn.cNetwork_ptr ptr = grn.cNetwork_ptr(
+            new cNetwork(deref(w.cworld.constructor)))
+        self.bind_to(ptr)
+
+        
+cdef class Gene(core_ext.Gene):
     def __cinit__(self):
         pass
 
-# cdef class CisModule(core_ext.CisModule):
-#     cdef:
-#         cCisModuleThreshold3 *threshold3
-#
-#     def __cinit__(self, core_ext.Gene g, size_t i):
-#         self.threshold3 = dynamic_cast_cCisModuleThreshold3(self.ccismodule)
+    def test(self):
+        cdef cGene *g = dynamic_cast_cGene(self.cgene)
+        return g.modules.size()
+
+        
+cdef class CisModule(core_ext.CisModule):
+    # cdef:
+    #     cCisModuleThreshold3 *threshold3
+
+    def __cinit__(self, Gene g, size_t i):
+        pass
 #
 #     property bindings:
 #         def __get__(self):

@@ -82,7 +82,7 @@ cdef class ChannelStateFrozen:
         return vals
 
     def __repr__(self):
-        return "<ChannelStateFrozen: {}>".format(self.__str__())
+        return "<CSF: {}>".format(self.__str__())
 
 
 cdef class ChannelState(ChannelStateFrozen):
@@ -109,7 +109,7 @@ cdef class ChannelState(ChannelStateFrozen):
         self.cchannel_state |= other.cchannel_state
 
     def __repr__(self):
-        return "<ChannelState: {}>".format(self.__str__())
+        return "<CS: {}>".format(self.__str__())
 
 
 cdef class World:
@@ -267,15 +267,12 @@ cdef class Network:
     # bind it to a cNetwork_ptr.
     def __cinit__(self, World world):
         self.world = world
-        self.ready = False
-        self.dirty = False
         self._genes = None
 
     cdef bind_to(self, cNetwork_ptr &ptr):
         self.ptr = ptr
         self.cnetwork = self.ptr.get()
         self.cnetwork.pyobject = <void *>(self)
-        self.ready = True
 
     def __dealloc__(self):
         self.cnetwork.pyobject = <void *>0
@@ -287,17 +284,17 @@ cdef class Network:
     property parent_identifier:
         def __get__(self):
             return self.cnetwork.parent_identifier
-#
-#     property gene_count:
-#         def __get__(self):
-#             return self.cnetwork.genes.size()
-#
-#     property genes:
-#         def __get__(self):
-#             if self._genes is None:
-#                 self._genes = tuple(Gene(self, i) for i in range(self.gene_count))
-#             return self._genes
-#
+
+    property gene_count:
+        def __get__(self):
+            return self.cnetwork.gene_count()
+
+    property genes:
+        def __get__(self):
+            if self._genes is None:
+                self._genes = tuple(self.world.gene_class(self, i) for i in range(self.gene_count))
+            return self._genes
+
     def cycle(self, ChannelState c):
         self.cnetwork.cycle(c.cchannel_state)
 #
@@ -341,7 +338,6 @@ cdef class Network:
 
             # Again: tuples, so you can't mess with it.
             self._attractors = tuple(attrs)
-            self.dirty = False
             return self._attractors
 
     property rates:
@@ -381,48 +377,48 @@ cdef class Network:
 #         return "<Network id:{} pt:{}>".format(self.identifier, self.parent_identifier)
 
 
-# cdef class Gene:
-#     """A proxy to a gene.
-#     """
-#     def __cinit__(self, Network n, size_t g):
-#         """This should never be called publicly"""
-#         self.network = n
-#         self.gene_number = g
-#         self.cgene = self.network.cnetwork.genes[g]
-#
-#     property sequence:
-#         def __get__(self):
-#             return self.cgene.sequence
-#
-#     property pub:
-#         def __get__(self):
-#             return self.cgene.pub
-#
-#     property module_count:
-#         def __get__(self):
-#             return self.cgene.modules.size()
-#
-#     property modules:
-#         def __get__(self):
-#             # Lazy construction
-#             if self._modules is None:
-#                 self._modules = tuple(self.network.world.cis_class(self, i) 
-#                     for i in range(self.module_count))
-#             return self._modules
+cdef class Gene:
+    """A proxy to a gene.
+    """
+    def __cinit__(self, Network n, size_t g):
+        """This should never be called publicly"""
+        self.network = n
+        self.gene_number = g
+        self.cgene = self.network.cnetwork.get_gene(g)
+
+    property sequence:
+        def __get__(self):
+            return self.cgene.sequence
+
+    property pub:
+        def __get__(self):
+            return self.cgene.pub
+
+    property module_count:
+        def __get__(self):
+            return self.cgene.module_count()
+
+    property modules:
+        def __get__(self):
+            # Lazy construction
+            if self._modules is None:
+                self._modules = tuple(self.network.world.module_class(self, i) 
+                    for i in range(self.module_count))
+            return self._modules
 #
 #     def __repr__(self):
 #         f = self.network.world
 #         return "<Gene[{}]: {}>".format(self.sequence, f.name_for_channel(self.pub))
 #
 #
-# cdef class CisModule:
-#     """A proxy to a CisModule.
-#     """
-#
-#     def __cinit__(self, Gene g, size_t i):
-#         self.gene = g
-#         assert i < g.cgene.modules.size()
-#         self.ccismodule = g.cgene.modules[i]
+cdef class CisModule:
+    """A proxy to a CisModule.
+    """
+    def __cinit__(self, Gene g, size_t i):
+        self.gene = g
+        assert i < g.cgene.module_count()
+        self.ccismodule = g.cgene.get_module(i)
+
 #
 #     def site_count(self):
 #         return self.ccismodule.site_count()
@@ -472,95 +468,97 @@ cdef class Network:
 #         return edges
 #
 #
-# cdef class NetworkCollection:
-#     def __cinit__(self, World world):
-#         self.world = world
-#
-#     def add(self, Network n):
-#         assert n.world is self.world
-#         self.cnetworks.push_back(n.ptr)
-#
-#     cdef object get_at(self, size_t i):
-#         if i >= self.cnetworks.size():
-#             raise IndexError
-#
-#         cdef:
-#             cNetwork_ptr ptr = self.cnetworks[i]
-#             cNetwork *net = ptr.get()
-#
-#         # Is there an existing python object?
-#         # Note: cython automatically increments the reference count when we do
-#         # this (which is what we want)
-#         if net.pyobject:
-#             return <object>(net.pyobject)
-#
-#         # Nope. So we need to create a new python wrapper object
-#         n = Network(self.world)
-#         n.bind_to(ptr)
-#         return n
-#
-#     property size:
-#         def __get__(self):
-#             return self.cnetworks.size()
-#
-#     # def get_max_fitness(self):
-#     #     return max_fitness(self.cnetworks);
-#
-#     def __getitem__(self, size_t i):
-#         return self.get_at(i)
-#
-#     def __iter__(self):
-#         for i in range(self.size):
-#             yield self.get_at(i)
-#
-#     def __repr__(self):
-#         return "<NetworkCollection: {}>".format(self.size)
-#
-#     def mutate(self, double site_rate):
-#         cdef cIndexes mutated
-#         self.world.cworld.constructor.mutate_collection(
-#             self.cnetworks, mutated, site_rate)
-#         # Return indexes of the mutated networks. Automatic conversion (thank
-#         # you Cython)
-#         return mutated
-#
-#     def select(self, Target target):
-#         """Inplace selection of networks, replacing networks"""
-#         cdef:
-#             cSelectionModel *sm
-#             bint sel
-#             cIndexes indexes
-#             cNetworkVector new_networks
-#
-#         sm = new cSelectionModel(self.world.cworld_ptr)
-#         sel = sm.select(self.cnetworks, deref(target.ctarget), 
-#                      self.cnetworks.size(), indexes)
-#         if sel:
-#             sm.copy_using_indexes(self.cnetworks, new_networks, indexes)
-#
-#             # Replace everything -- this is fast
-#             self.cnetworks.swap(new_networks)
-#
-#         # Get rid of this
-#         del sm
-#
-#         return sel
-#
-#     def selection_indexes(self, Target target):
-#         """Just return the indices where selection would happen.
-#
-#         ***This is used for testing***
-#         """
-#         cdef:
-#             cSelectionModel *sm
-#             bint sel
-#             cIndexes indexes
-#             cNetworkVector new_networks
-#
-#         sm = new cSelectionModel(self.world.cworld_ptr)
-#
-#         sel = sm.select(self.cnetworks, deref(target.ctarget), 
-#                      self.cnetworks.size(), indexes)
-#
-#         return indexes
-#
+cdef class NetworkCollection:
+    def __cinit__(self, World world, size_t size):
+        self.world = world
+        
+        cdef size_t i
+        for i in range(size):
+            self.cnetworks.push_back(
+                cNetwork_ptr(world.cworld.constructor.construct()))
+
+    def add(self, Network n):
+        assert n.world is self.world
+        self.cnetworks.push_back(n.ptr)
+
+    cdef object get_at(self, size_t i):
+        if i >= self.cnetworks.size():
+            raise IndexError
+
+        cdef:
+            cNetwork_ptr ptr = self.cnetworks[i]
+            cNetwork *net = ptr.get()
+
+        # Is there an existing python object?
+        # Note: cython automatically increments the reference count when we do
+        # this (which is what we want)
+        if net.pyobject:
+            return <object>(net.pyobject)
+
+        # Nope. So we need to create a new python wrapper object
+        n = Network(self.world)
+        n.bind_to(ptr)
+        return n
+
+    property size:
+        def __get__(self):
+            return self.cnetworks.size()
+
+    def __getitem__(self, size_t i):
+        return self.get_at(i)
+
+    def __iter__(self):
+        for i in range(self.size):
+            yield self.get_at(i)
+
+    def __repr__(self):
+        return "<NetworkCollection: {}>".format(self.size)
+
+    # def mutate(self, double site_rate):
+    #     cdef cIndexes mutated
+    #     self.world.cworld.constructor.mutate_collection(
+    #         self.cnetworks, mutated, site_rate)
+    #     # Return indexes of the mutated networks. Automatic conversion (thank
+    #     # you Cython)
+    #     return mutated
+    #
+    # def select(self, Target target):
+    #     """Inplace selection of networks, replacing networks"""
+    #     cdef:
+    #         cSelectionModel *sm
+    #         bint sel
+    #         cIndexes indexes
+    #         cNetworkVector new_networks
+    #
+    #     sm = new cSelectionModel(self.world.cworld_ptr)
+    #     sel = sm.select(self.cnetworks, deref(target.ctarget), 
+    #                  self.cnetworks.size(), indexes)
+    #     if sel:
+    #         sm.copy_using_indexes(self.cnetworks, new_networks, indexes)
+    #
+    #         # Replace everything -- this is fast
+    #         self.cnetworks.swap(new_networks)
+    #
+    #     # Get rid of this
+    #     del sm
+    #
+    #     return sel
+    #
+    # def selection_indexes(self, Target target):
+    #     """Just return the indices where selection would happen.
+    #
+    #     ***This is used for testing***
+    #     """
+    #     cdef:
+    #         cSelectionModel *sm
+    #         bint sel
+    #         cIndexes indexes
+    #         cNetworkVector new_networks
+    #
+    #     sm = new cSelectionModel(self.world.cworld_ptr)
+    #
+    #     sel = sm.select(self.cnetworks, deref(target.ctarget), 
+    #                  self.cnetworks.size(), indexes)
+    #
+    #     return indexes
+    #

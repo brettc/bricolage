@@ -5,46 +5,12 @@
 
 using namespace pubsub2;
 
-// signal_t cCisModule::get_site_channel(size_t index) const
-// {
-//     // TODO: Fix runtime error?
-//     if (index >= site_count())
-//         throw std::runtime_error("illegal site index");
-//
-//     return _channels[index];
-// }
-//
-// signal_t cCisModule::set_site_channel(size_t index, signal_t c)
-// {
-//     // TODO: Fix runtime error?
-//     if (index >= site_count())
-//         throw std::runtime_error("illegal site index");
-//
-//     signal_t old = _channels[index];
-//     _channels[index] = c;
-//     return old;
-// }
-//
-// cGene::cGene(sequence_t seq, signal_t p)
-//     : sequence(seq)
-//     , intervene(INTERVENE_NONE)
-//     , pub(p)
-// {
-// }
-//
-// cGene *cGene::clone()
-// {
-//     cGene *g = new cGene(sequence, pub);
-//     for (auto m : modules)
-//         g->modules.push_back(m->clone());
-//     return g;
-// }
-//
-// cGene::~cGene()
-// {
-//     for (auto m : modules)
-//         delete m;
-// }
+cGene::cGene(sequence_t seq, signal_t p)
+    : sequence(seq)
+    , intervene(INTERVENE_NONE)
+    , pub(p)
+{
+}
 
 cNetwork::cNetwork(const cWorld_ptr &w, bool no_ident)
     : world(w)
@@ -60,24 +26,6 @@ cNetwork::cNetwork(const cWorld_ptr &w, bool no_ident)
         identifier = -1;
 }
 
-// void cNetwork::clone_genes(cGeneVector &gv) const
-// {
-//     for (auto g : genes)
-//         gv.push_back(g->clone());
-// }
-
-// This is the inner-inner loop!
-// TODO: Maybe this could be moved down the the CIS level to prevent constant
-// calling of virtual function. It would have to be Factory level call:
-// cGeneFactory::cycle(Network &, ChannelState &). But this would mean building 
-// the cis action into the world somehow (or static_cast-ing the CIS which
-// would, I guess, be safe.
-// void cNetwork::cycle(cChannelState &c) const
-// {
-//     Cycle<cNetwork> cycler;
-//     // cycler.cycle(*this, c);
-//     cycler.cycle_with_intervention(*this, c);
-// }
 
 // This is the outer-inner loop, where we find the attractors. 
 // TODO: Maybe template-ize this so that it runs faster without constract calls
@@ -133,10 +81,10 @@ void cNetwork::calc_attractors()
             path.push_back(current);
         }
         // Add a new attractor for this environment.
-        attractors.push_back(cChannelStateVector());
+        attractors.emplace_back();
         cChannelStateVector &this_attr = attractors.back();
 
-        rates.push_back(cRates());
+        rates.emplace_back();
         cRates &this_rate = rates.back();
         for (size_t i=0; i < world->out_channels; ++i)
             this_rate.push_back(0.0);

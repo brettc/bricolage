@@ -17,5 +17,8 @@ cdef extern from "<src/threshold3.hpp>" namespace "thresh3":
         grn.vector[cCisModule] modules;
 
     cdef cppclass cNetwork(grn.cNetwork):
-        cNetwork(grn.cWorld_ptr &w)
+        cNetwork(cConstructor &c)
         grn.vector[cGene] genes
+
+    cGene * dynamic_cast_cGene \
+        "dynamic_cast<thresh3::cGene *>" (grn.cGene *) except NULL

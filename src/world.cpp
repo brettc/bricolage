@@ -79,27 +79,11 @@ cConstructor::cConstructor(const cWorld_ptr &w)
 {
 }
 
-// void cConstructor::construct_network(cNetwork &network)
-// {
-//     for (size_t i=0; i < gene_count; ++i)
-//     {
-//         // TODO: genes.emplace_back(...)
-//         cGene *g = new cGene(i, world.pub_range.first + i);
-//         network.genes.push_back(g);
-//
-//         for (size_t j=0; j < cis_count; ++j)
-//             g->modules.push_back(construct_cis());
-//     }
-//
-//     // Calculate the attractors
-//     network.calc_attractors();
-// }
-
 // void cConstructor::mutate_network(cNetwork_ptr &n, size_t mutations)
 // {
 //     // NOTE: This done INPLACE mutation. It should never be called on a network
 //     // that has already had its attractors calculated! 
-//     
+//
 //     // Select the genes that should be mutated
 //     while (mutations > 0)
 //     {
@@ -121,7 +105,7 @@ cConstructor::cConstructor(const cWorld_ptr &w)
 //     copy->calc_attractors();
 //     return copy;
 // }
-
+//
 // typedef std::poisson_distribution<> poisson_t;
 //
 // void cConstructor::mutate_collection(cNetworkVector &networks, cIndexes &mutated,
@@ -139,7 +123,7 @@ cConstructor::cConstructor(const cWorld_ptr &w)
 //
 //     // Clear this
 //     mutated.clear();
-//     
+//
 //     // If we're not generating any mutations, let's just bail.
 //     if (mutations == 0)
 //         return;

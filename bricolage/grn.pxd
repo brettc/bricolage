@@ -59,7 +59,7 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
     cdef cppclass cGene:
         size_t module_count()
         const cCisModule *get_module(size_t i)
-        sequence_t sequence;
+        sequence_t sequence
         signal_t pub
         # InterventionState intervene;
 
@@ -72,6 +72,8 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         void *pyobject
         int_t identifier, parent_identifier
         void cycle(cChannelState c)
+        size_t gene_count()
+        cGene *get_gene(size_t)
         cAttractors attractors
         cRatesVector rates
         int_t target

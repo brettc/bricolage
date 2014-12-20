@@ -79,10 +79,10 @@ public:
 struct cGene
 {
     cGene(sequence_t sequence, signal_t p);
-    virtual ~cGene();
+    virtual ~cGene() {}
 
     virtual size_t module_count() const=0;
-    virtual const cCisModule *get_module(size_t i)=0;
+    virtual cCisModule *get_module(size_t i)=0;
 
     sequence_t sequence;
     InterventionState intervene;
@@ -154,20 +154,14 @@ public:
 
     // This is where the constructors and mutators for networks live
     virtual cNetwork *construct()=0;
+
     // virtual void mutate_network(cNetwork_ptr *n, size_t mutations)=0;
     // cNetwork_ptr copy_and_mutate_network(cNetwork_ptr *n, size_t mutations);
 
-    // Mutates the gene in place
-    // virtual void mutate_cis(cCisModule *m) = 0;
-    // void mutate_gene(cGene *g);
     // void mutate_network(cNetwork_ptr &n, size_t mutations);
     // void mutate_collection(cNetworkVector &networks, cIndexes &mutated, double site_rate);
 
     cWorld_ptr world;
-    // Basic parameters
-    // size_t gene_count, cis_count;
-    // randint_t r_gene, r_cis, r_sub;
-    // randreal_t r_uniform_01;
 };
 
 class cNetwork
@@ -176,12 +170,14 @@ public:
     cNetwork(const cWorld_ptr &f, bool no_ident=false);
     virtual ~cNetwork() {}
 
-    // size_t gene_count() const { return genes.size(); }
     virtual cNetwork *clone() const=0;
+    virtual size_t gene_count()=0;
+    virtual cGene *get_gene(size_t i)=0;
+
     virtual void cycle(cChannelState &c) const=0;
+    virtual void cycle_with_intervention(cChannelState &c) const=0;
 
     void calc_attractors();
-    // void clone_genes(cGeneVector &gv) const;
     // cNetwork_ptr get_detached_copy() const;
     // bool is_detached() const { return identifier < 0; }
     
@@ -204,8 +200,33 @@ public:
 private:
     // Don't allow copying
     cNetwork(const cNetwork &);
-
 };
+
+// struct cTarget
+// {
+//     cTarget(cWorld *world);
+//     cWorld *world;
+//     int_t identifier;
+//     cRatesVector optimal_rates;
+//
+//     // TODO: per env weighting
+//     // TODO: per output weighting
+//     double assess(const cNetwork &net);
+// };
+//
+//
+// struct cSelectionModel
+// {
+//     cSelectionModel(cWorld_ptr &world);
+//     cWorld_ptr world;
+//
+//     bool select(
+//         const cNetworkVector &networks, cTarget &target, 
+//         size_t number, cIndexes &selected);
+//
+//     void copy_using_indexes(
+//         const cNetworkVector &from, cNetworkVector &to, const cIndexes &selected);
+// };
 
 // cNetwork_ptr get_detached_copy(cNetwork_ptr original);
 // inline cNetwork_ptr get_detached_copy(cNetwork_ptr original)
@@ -240,29 +261,5 @@ private:
 //     void make_active_edges(cEdgeList &edges);
 // };
 //
-// struct cTarget
-// {
-//     cTarget(cWorld *world);
-//     cWorld *world;
-//     int_t identifier;
-//     cRatesVector optimal_rates;
-//
-//     // TODO: per env weighting
-//     // TODO: per output weighting
-//     double assess(const cNetwork &net);
-// };
-//
-// struct cSelectionModel
-// {
-//     cSelectionModel(cWorld_ptr &world);
-//     cWorld_ptr world;
-//
-//     bool select(
-//         const cNetworkVector &networks, cTarget &target, 
-//         size_t number, cIndexes &selected);
-//
-//     void copy_using_indexes(
-//         const cNetworkVector &from, cNetworkVector &to, const cIndexes &selected);
-// };
-//
+
 } // end namespace pubsub2
