@@ -74,8 +74,6 @@ public:
     InterventionState intervene;
 };
 
-// typedef std::vector<cCisModule *> cCisModules;
-
 struct cGene
 {
     cGene(sequence_t sequence, signal_t p);
@@ -153,14 +151,15 @@ public:
     virtual ~cConstructor() {};
 
     // This is where the constructors and mutators for networks live
-    virtual cNetwork *construct()=0;
+    virtual cNetwork_ptr construct()=0;
+    virtual size_t site_count(cNetworkVector &networks)=0;
 
     // virtual void mutate_network(cNetwork_ptr *n, size_t mutations)=0;
-    // cNetwork_ptr copy_and_mutate_network(cNetwork_ptr *n, size_t mutations);
+    cNetwork_ptr clone_and_mutate_network(cNetwork_ptr &n, size_t mutations);
 
     // void mutate_network(cNetwork_ptr &n, size_t mutations);
-    // void mutate_collection(cNetworkVector &networks, cIndexes &mutated, double site_rate);
-
+    void mutate_collection(
+        cNetworkVector &networks, cIndexes &mutated, double site_rate);
     cWorld_ptr world;
 };
 
@@ -170,7 +169,8 @@ public:
     cNetwork(const cWorld_ptr &f, bool no_ident=false);
     virtual ~cNetwork() {}
 
-    virtual cNetwork *clone() const=0;
+    virtual cNetwork_ptr clone() const=0;
+    virtual void mutate(size_t nmutations)=0;
     virtual size_t gene_count()=0;
     virtual cGene *get_gene(size_t i)=0;
 
@@ -202,31 +202,32 @@ private:
     cNetwork(const cNetwork &);
 };
 
-// struct cTarget
-// {
-//     cTarget(cWorld *world);
-//     cWorld *world;
-//     int_t identifier;
-//     cRatesVector optimal_rates;
-//
-//     // TODO: per env weighting
-//     // TODO: per output weighting
-//     double assess(const cNetwork &net);
-// };
-//
-//
-// struct cSelectionModel
-// {
-//     cSelectionModel(cWorld_ptr &world);
-//     cWorld_ptr world;
-//
-//     bool select(
-//         const cNetworkVector &networks, cTarget &target, 
-//         size_t number, cIndexes &selected);
-//
-//     void copy_using_indexes(
-//         const cNetworkVector &from, cNetworkVector &to, const cIndexes &selected);
-// };
+
+struct cTarget
+{
+    cTarget(const cWorld_ptr &world);
+    cWorld_ptr world;
+    int_t identifier;
+    cRatesVector optimal_rates;
+
+    // TODO: per env weighting
+    // TODO: per output weighting
+    double assess(const cNetwork &net);
+};
+
+
+struct cSelectionModel
+{
+    cSelectionModel(cWorld_ptr &world);
+    cWorld_ptr world;
+
+    bool select(
+        const cNetworkVector &networks, cTarget &target, 
+        size_t number, cIndexes &selected);
+
+    void copy_using_indexes(
+        const cNetworkVector &from, cNetworkVector &to, const cIndexes &selected);
+};
 
 // cNetwork_ptr get_detached_copy(cNetwork_ptr original);
 // inline cNetwork_ptr get_detached_copy(cNetwork_ptr original)
@@ -237,7 +238,7 @@ private:
 //
 //     return cNetwork_ptr(copy);
 // }
-
+//
 // enum NodeType { NT_GENE=0, NT_MODULE, NT_CHANNEL };
 // typedef std::pair<NodeType, size_t> Node_t;
 // typedef std::pair<Node_t, Node_t> Edge_t;

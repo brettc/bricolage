@@ -47,7 +47,9 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
 
     cdef cppclass cConstructor:
         cConstructor()
-        cNetwork *construct()
+        cNetwork_ptr construct()
+        void mutate_collection(cNetworkVector &networks, 
+                               cIndexes &mutated, double site_rate)
         cWorld world
     
     cdef cppclass cCisModule:
@@ -64,15 +66,13 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         # InterventionState intervene;
 
     cdef cppclass cNetwork:
-        # TODO: Needed for cython bug, never used
-        # See https://groups.google.com/forum/#!topic/cython-users/ko7X_fQ0n9Q
-        cNetwork() 
-
         cNetwork(cWorld_ptr)
         void *pyobject
         int_t identifier, parent_identifier
         void cycle(cChannelState c)
+        void cycle_with_intervention(cChannelState c)
         size_t gene_count()
+        void mutate(size_t)
         cGene *get_gene(size_t)
         cAttractors attractors
         cRatesVector rates
@@ -80,6 +80,10 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         double fitness
         void calc_attractors()
         # bint is_detached()
+        
+        # TODO: Needed for cython bug, never used
+        # See https://groups.google.com/forum/#!topic/cython-users/ko7X_fQ0n9Q
+        cNetwork() 
 
     # ctypedef pair[char, size_t] Node_t
     # ctypedef pair[Node_t, Node_t] Edge_t
@@ -96,23 +100,23 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
     # # ctypedef vector[cConstNetwork_ptr] cNetworkVector
     # ctypedef vector[cNetwork_ptr] cNetworkVector
     #
-    # cdef cppclass cTarget:
-    #     cTarget(cWorld *factory)
-    #     double assess(cNetwork &net)
-    #     cWorld *factory
-    #     int_t identifier
-    #     cRatesVector optimal_rates
-    #
-    # cdef cppclass cSelectionModel:
-    #     cSelectionModel(cWorld_ptr &factory)
-    #     cWorld_ptr factory
-    #
-    #     bint select(
-    #         const cNetworkVector &networks, cTarget &target, 
-    #         size_t number, cIndexes &selected)
-    #
-    #     void copy_using_indexes(
-    #         const cNetworkVector &fr, cNetworkVector &to, const cIndexes &selected)
+    cdef cppclass cTarget:
+        cTarget(cWorld_ptr &w)
+        double assess(cNetwork &net)
+        cWorld *factory
+        int_t identifier
+        cRatesVector optimal_rates
+
+    cdef cppclass cSelectionModel:
+        cSelectionModel(cWorld_ptr &factory)
+        cWorld_ptr factory
+
+        bint select(
+            const cNetworkVector &networks, cTarget &target, 
+            size_t number, cIndexes &selected)
+
+        void copy_using_indexes(
+            const cNetworkVector &fr, cNetworkVector &to, const cIndexes &selected)
 
 # cdef extern from "<src/logic2.hpp>" namespace "pubsub2":
 #     cdef cppclass cConstructorLogic2(cConstructor):

@@ -26,15 +26,7 @@ cNetwork::cNetwork(const cWorld_ptr &w, bool no_ident)
         identifier = -1;
 }
 
-
 // This is the outer-inner loop, where we find the attractors. 
-// TODO: Maybe template-ize this so that it runs faster without constract calls
-// to the virtual function. Like this maybe:
-// template class attractor_calc<Cis_Type, Factory_Type>
-// {
-// }
-// But it would still need a dynamic runtime selector to call the right one...
-// Hmmm.
 void cNetwork::calc_attractors()
 {
     attractors.clear();

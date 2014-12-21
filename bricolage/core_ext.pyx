@@ -21,8 +21,8 @@ cdef class ChannelStateFrozen:
     def __cinit__(self):
         pass
 
-    cdef init(self, cWorld_ptr &f, cChannelState &p):
-        self.cworld_ptr = f
+    cdef init(self, cWorld_ptr &w, cChannelState &p):
+        self.cworld_ptr = w
         self.cchannel_state = p
 
     def test(self, size_t i):
@@ -42,13 +42,13 @@ cdef class ChannelStateFrozen:
         # TODO: Clean this function up---it is a bit rough.
         cdef:
             string cstr
-            cWorld *f = self.cworld_ptr.get()
+            cWorld *w = self.cworld_ptr.get()
 
-        if f == NULL:
+        if w == NULL:
             # TODO: Some proper exceptions would be good...
             raise RuntimeError
 
-        cdef size_t cuereg = f.cue_channels + f.reg_channels
+        cdef size_t cuereg = w.cue_channels + w.reg_channels
 
         to_string(self.cchannel_state, cstr)
 
@@ -56,8 +56,8 @@ cdef class ChannelStateFrozen:
         # Also, clip the reserved channels 
         # TODO: fix this nasty hack
         s = cstr[::-1][2:]
-        env = s[:f.cue_channels]
-        reg = s[f.cue_channels:cuereg]
+        env = s[:w.cue_channels]
+        reg = s[w.cue_channels:cuereg]
         out = s[cuereg:]
 
         return env + '|' + reg + '|' + out
@@ -129,27 +129,8 @@ cdef class World:
         self.sub_signals = set(range(*self.cworld.sub_range))
         self.pub_signals = set(range(*self.cworld.pub_range))
 
-    # def create_network(self):
-    #     cdef:
-    #         cNetwork *net = self.cworld.constructor.construct()
-    #         cNetwork_ptr ptr = cNetwork_ptr(net)
-    #
-    #     n = Network(self)
-    #     n.bind_to(ptr)
-    #     return n
-    #
-    # def create_collection(self, size_t size):
-    #     cdef:
-    #         cNetwork_ptr ptr
-    #         size_t i
-    #
-    #     nc = NetworkCollection(self)
-    #     for i in range(size):
-    #         ptr = cNetwork_ptr(new cNetwork(self.cworld_ptr))
-    #         self.cworld.constructor.construct_network(deref(ptr.get()))
-    #         nc.cnetworks.push_back(ptr)
-    #
-    #     return nc
+        self.gene_class = Gene
+        self.module_class = CisModule
 
     def create_state(self):
         c = ChannelState()
@@ -235,33 +216,33 @@ cdef class World:
             c + 1 - self.cworld.cue_range.first, sz)
 
 
-# cdef class Target:
-#     def __cinit__(self, World f, init_func):
-#         self.world = f
-#         self.ctarget = new cTarget(f.cworld)
-#         a, b = f.cworld.cue_range
-#
-#         # Slow and cumbersome, but it doesn't matter
-#         for i, e in enumerate(f.environments):
-#             # TODO: Clean up the refs here
-#             outputs = init_func(e.as_array()[a:b])
-#             if len(outputs) != f.out_channels:
-#                 raise RuntimeError
-#
-#             for j, val in enumerate(outputs):
-#                 self.ctarget.optimal_rates[i][j] = float(val)
-#
-#     def __dealloc__(self):
-#         del self.ctarget
-#
-#     def assess(self, Network net):
-#         assert net.world is self.world
-#         return self.ctarget.assess(deref(net.cnetwork));
-#
-#     def as_array(self):
-#         return numpy.array(self.ctarget.optimal_rates)
-#
-#
+cdef class Target:
+    def __cinit__(self, World w, init_func):
+        self.world = w
+        self.ctarget = new cTarget(w.cworld_ptr)
+        a, b = w.cworld.cue_range
+
+        # Slow and cumbersome, but it doesn't matter
+        for i, e in enumerate(w.environments):
+            # TODO: Clean up the refs here
+            outputs = init_func(e.as_array()[a:b])
+            if len(outputs) != w.out_channels:
+                raise RuntimeError
+
+            for j, val in enumerate(outputs):
+                self.ctarget.optimal_rates[i][j] = float(val)
+
+    def __dealloc__(self):
+        del self.ctarget
+
+    def assess(self, Network net):
+        assert net.world is self.world
+        return self.ctarget.assess(deref(net.cnetwork));
+
+    def as_array(self):
+        return numpy.array(self.ctarget.optimal_rates)
+
+
 cdef class Network:
     # Networks take two stages. You need to create the python object and then
     # bind it to a cNetwork_ptr.
@@ -297,17 +278,23 @@ cdef class Network:
 
     def cycle(self, ChannelState c):
         self.cnetwork.cycle(c.cchannel_state)
-#
-#     def mutated(self, size_t nmutations):
-#         """Return a mutated version..."""
-#         cdef:
-#             cConstructor *c = self.world.cworld.constructor
-#             cNetwork_ptr new_ptr
-#
-#         new_ptr = c.copy_and_mutate_network(self.ptr, nmutations)
-#         new_net = Network(self.world)
-#         new_net.bind_to(new_ptr)
-#         return new_net
+
+    def cycle_with_intervention(self, ChannelState c):
+        self.cnetwork.cycle_with_intervention(c.cchannel_state)
+
+    def _evil_mutate(self, size_t nmutations):
+        """Mutate the network. 
+        
+        This invalidates lots of assumptions required for selection to work
+        correctly. Use only if you understand what you are doing.
+        """
+        self.cnetwork.mutate(nmutations)
+        self._invalidate_cached()
+
+    def _invalidate_cached(self):
+        self.cnetwork.calc_attractors()
+        self._attractors = None
+        self._rates = None
 #
     property attractors:
         """A tuple containing the attractors for each environment"""
@@ -394,6 +381,11 @@ cdef class Gene:
         def __get__(self):
             return self.cgene.pub
 
+    def _evil_set_pub(self, size_t p):
+        assert p in self.network.world.pub_signals
+        # self.cgene.pub = p
+        self.network._invalidate_cached()
+
     property module_count:
         def __get__(self):
             return self.cgene.module_count()
@@ -405,12 +397,12 @@ cdef class Gene:
                 self._modules = tuple(self.network.world.module_class(self, i) 
                     for i in range(self.module_count))
             return self._modules
-#
-#     def __repr__(self):
-#         f = self.network.world
-#         return "<Gene[{}]: {}>".format(self.sequence, f.name_for_channel(self.pub))
-#
-#
+
+    def __repr__(self):
+        f = self.network.world
+        return "<Gene[{}]: {}>".format(self.sequence, f.name_for_channel(self.pub))
+
+
 cdef class CisModule:
     """A proxy to a CisModule.
     """
@@ -419,28 +411,28 @@ cdef class CisModule:
         assert i < g.cgene.module_count()
         self.ccismodule = g.cgene.get_module(i)
 
-#
-#     def site_count(self):
-#         return self.ccismodule.site_count()
-#
-#     def get_site(self, size_t i):
-#         assert i < self.ccismodule.site_count()
-#         return self.ccismodule.get_site_channel(i)
-#
-#     cdef reset_network(self):
-#         self.gene.network._attractors = None
-#         self.gene.network._rates = None
-#         self.gene.network.cnetwork.calc_attractors()
-#
-#     property channels:
-#         def __get__(self):
-#             return tuple(self.ccismodule.get_site_channel(i)
-#                          for i in range(self.ccismodule.site_count()))
-#
-#     property channel_names:
-#         def __get__(self):
-#             f = self.gene.network.world
-#             return [f.name_for_channel(c) for c in self.channels]
+    def site_count(self):
+        return self.ccismodule.site_count()
+
+    def get_site(self, size_t i):
+        assert i < self.ccismodule.site_count()
+        return self.ccismodule.get_site(i)
+
+    def _evil_set_site(self, size_t i, size_t c):
+        assert c in self.gene.network.world.sub_signals
+        old = self.ccismodule.set_site(i, c)
+        self.gene.network._invalidate_cached()
+        return old
+
+    property channels:
+        def __get__(self):
+            return tuple(self.ccismodule.get_site(i)
+                         for i in range(self.ccismodule.site_count()))
+
+    property channel_names:
+        def __get__(self):
+            w = self.gene.network.world
+            return [w.name_for_channel(c) for c in self.channels]
 
     # def is_active(self, ChannelState p):
     #     return self.ccismodule.is_active(p.cchannel_state)
@@ -514,51 +506,51 @@ cdef class NetworkCollection:
     def __repr__(self):
         return "<NetworkCollection: {}>".format(self.size)
 
-    # def mutate(self, double site_rate):
-    #     cdef cIndexes mutated
-    #     self.world.cworld.constructor.mutate_collection(
-    #         self.cnetworks, mutated, site_rate)
-    #     # Return indexes of the mutated networks. Automatic conversion (thank
-    #     # you Cython)
-    #     return mutated
-    #
-    # def select(self, Target target):
-    #     """Inplace selection of networks, replacing networks"""
-    #     cdef:
-    #         cSelectionModel *sm
-    #         bint sel
-    #         cIndexes indexes
-    #         cNetworkVector new_networks
-    #
-    #     sm = new cSelectionModel(self.world.cworld_ptr)
-    #     sel = sm.select(self.cnetworks, deref(target.ctarget), 
-    #                  self.cnetworks.size(), indexes)
-    #     if sel:
-    #         sm.copy_using_indexes(self.cnetworks, new_networks, indexes)
-    #
-    #         # Replace everything -- this is fast
-    #         self.cnetworks.swap(new_networks)
-    #
-    #     # Get rid of this
-    #     del sm
-    #
-    #     return sel
-    #
-    # def selection_indexes(self, Target target):
-    #     """Just return the indices where selection would happen.
-    #
-    #     ***This is used for testing***
-    #     """
-    #     cdef:
-    #         cSelectionModel *sm
-    #         bint sel
-    #         cIndexes indexes
-    #         cNetworkVector new_networks
-    #
-    #     sm = new cSelectionModel(self.world.cworld_ptr)
-    #
-    #     sel = sm.select(self.cnetworks, deref(target.ctarget), 
-    #                  self.cnetworks.size(), indexes)
-    #
-    #     return indexes
-    #
+    def mutate(self, double site_rate):
+        cdef cIndexes mutated
+        self.world.cworld.constructor.mutate_collection(
+            self.cnetworks, mutated, site_rate)
+        # Return indexes of the mutated networks. Automatic conversion (thank
+        # you Cython)
+        return mutated
+
+    def select(self, Target target):
+        """Inplace selection of networks, replacing networks"""
+        cdef:
+            cSelectionModel *sm
+            bint sel
+            cIndexes indexes
+            cNetworkVector new_networks
+
+        sm = new cSelectionModel(self.world.cworld_ptr)
+        sel = sm.select(self.cnetworks, deref(target.ctarget), 
+                     self.cnetworks.size(), indexes)
+        if sel:
+            sm.copy_using_indexes(self.cnetworks, new_networks, indexes)
+
+            # Replace everything -- this is fast
+            self.cnetworks.swap(new_networks)
+
+        # Get rid of this
+        del sm
+
+        return sel
+
+    def selection_indexes(self, Target target):
+        """Just return the indices where selection would happen.
+
+        ***This is used for testing***
+        """
+        cdef:
+            cSelectionModel *sm
+            bint sel
+            cIndexes indexes
+            cNetworkVector new_networks
+
+        sm = new cSelectionModel(self.world.cworld_ptr)
+
+        sel = sm.select(self.cnetworks, deref(target.ctarget), 
+                     self.cnetworks.size(), indexes)
+
+        return indexes
+

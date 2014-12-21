@@ -2,8 +2,7 @@ cimport grn
 
 cdef extern from "<src/threshold3.hpp>" namespace "thresh3":
     cdef cppclass cConstructor(grn.cConstructor):
-        cConstructor(grn.cWorld_ptr &w, size_t gc, size_t cc)
-        int xxx()
+        cConstructor(grn.cWorld_ptr &w, size_t cc)
 
     cdef cppclass cCisModule(grn.cCisModule):
         cCisModule(cConstructor &c); 
@@ -22,3 +21,6 @@ cdef extern from "<src/threshold3.hpp>" namespace "thresh3":
 
     cGene * dynamic_cast_cGene \
         "dynamic_cast<thresh3::cGene *>" (grn.cGene *) except NULL
+
+    cCisModule * dynamic_cast_cCisModule \
+        "dynamic_cast<thresh3::cCisModule *>" (grn.cCisModule *) except NULL

@@ -21,11 +21,11 @@ cdef class World:
         object gene_class, module_class
         object _environments
 
-# cdef class Target:
-#     cdef:
-#         cTarget *ctarget
-#         readonly:
-#             World world
+cdef class Target:
+    cdef:
+        cTarget *ctarget
+        readonly:
+            World world
 
 cdef class Network:
     cdef:

@@ -4,21 +4,21 @@
 
 namespace thresh3 {
 
-typedef boost::function<int()> rand_test;
+typedef boost::function<int()> random_int_t;
 
 
 class cConstructor : public pubsub2::cConstructor
 {
 public:
-    cConstructor(const pubsub2::cWorld_ptr &w, size_t gene_count_, size_t cis_count);
+    cConstructor(const pubsub2::cWorld_ptr &w, size_t cis_count);
 
-    pubsub2::cNetwork *construct();
-    // void mutate_network(pubsub2::cNetwork_ptr *n, size_t mutations);
+    pubsub2::cNetwork_ptr construct();
+    size_t site_count(pubsub2::cNetworkVector &networks);
 
     // Randomize binding
     size_t gene_count, module_count;
     mutable pubsub2::randint_t r_binding, r_direction, r_site, r_input;
-    mutable rand_test xxx;
+    mutable random_int_t r_gene, r_cis;
 };
 
 class cCisModule : public pubsub2::cCisModule
@@ -62,11 +62,12 @@ public:
     cNetwork(const cConstructor &c);
     const cConstructor &constructor;
     std::vector<cGene> genes;
-    virtual size_t gene_count() { return genes.size(); }
-    virtual cGene *get_gene(size_t i) { return &genes[i]; }
 
     // Overrides
-    pubsub2::cNetwork *clone() const;
+    virtual size_t gene_count() { return genes.size(); }
+    virtual cGene *get_gene(size_t i) { return &genes[i]; }
+    virtual void mutate(size_t nmutations);
+    pubsub2::cNetwork_ptr clone() const;
     void cycle(pubsub2::cChannelState &c) const;
     void cycle_with_intervention(pubsub2::cChannelState &c) const;
 };
