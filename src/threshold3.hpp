@@ -64,7 +64,7 @@ public:
     std::vector<cGene> genes;
 
     // Overrides
-    virtual size_t gene_count() { return genes.size(); }
+    virtual size_t gene_count() const { return genes.size(); }
     virtual cGene *get_gene(size_t i) { return &genes[i]; }
     virtual void mutate(size_t nmutations);
     pubsub2::cNetwork_ptr clone() const;

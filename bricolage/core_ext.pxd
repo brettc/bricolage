@@ -70,10 +70,10 @@ cdef class NetworkCollection:
 
     cdef object get_at(self, size_t i)
 
-#
-# cdef class NetworkAnalysis:
-#     cdef:
-#         cNetworkAnalysis *canalysis
-#         readonly:
-#             Network network
-#
+
+cdef class NetworkAnalysis:
+    cdef:
+        cNetworkAnalysis *canalysis
+        readonly:
+            Network network
+

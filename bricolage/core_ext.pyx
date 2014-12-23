@@ -295,7 +295,7 @@ cdef class Network:
         self.cnetwork.calc_attractors()
         self._attractors = None
         self._rates = None
-#
+
     property attractors:
         """A tuple containing the attractors for each environment"""
         def __get__(self):
@@ -355,13 +355,13 @@ cdef class Network:
     property fitness:
         def __get__(self):
             return self.cnetwork.fitness
-#
-#     property target:
-#         def __get__(self):
-#             return self.cnetwork.target
-#
-#     def __repr__(self):
-#         return "<Network id:{} pt:{}>".format(self.identifier, self.parent_identifier)
+
+    property target:
+        def __get__(self):
+            return self.cnetwork.target
+
+    def __repr__(self):
+        return "<Network id:{} pt:{}>".format(self.identifier, self.parent_identifier)
 
 
 cdef class Gene:
@@ -434,32 +434,7 @@ cdef class CisModule:
             w = self.gene.network.world
             return [w.name_for_channel(c) for c in self.channels]
 
-    # def is_active(self, ChannelState p):
-    #     return self.ccismodule.is_active(p.cchannel_state)
 
-
-# cdef class NetworkAnalysis:
-#     def __cinit__(self, Network net):
-#         self.network = net
-#         self.canalysis = new cNetworkAnalysis(net.ptr)
-#         # self.canalysis.find_knockouts()
-#
-#     def __dealloc__(self):
-#         del self.canalysis
-#
-#     def get_edges(self):
-#         cdef:
-#             cEdgeList edges
-#         self.canalysis.make_edges(edges)
-#         return edges
-#
-#     def get_active_edges(self):
-#         cdef:
-#             cEdgeList edges
-#         self.canalysis.make_active_edges(edges)
-#         return edges
-#
-#
 cdef class NetworkCollection:
     def __cinit__(self, World world, size_t size):
         self.world = world
@@ -483,11 +458,12 @@ cdef class NetworkCollection:
 
         # Is there an existing python object?
         # Note: cython automatically increments the reference count when we do
-        # this (which is what we want)
+        # this (which is what we want). This move just means we get object
+        # identity (at least while one python reference continues to exist.
         if net.pyobject:
             return <object>(net.pyobject)
 
-        # Nope. So we need to create a new python wrapper object
+        # Nope. We need to create a new python wrapper object
         n = Network(self.world)
         n.bind_to(ptr)
         return n
@@ -554,3 +530,23 @@ cdef class NetworkCollection:
 
         return indexes
 
+
+cdef class NetworkAnalysis:
+    def __cinit__(self, Network net):
+        self.network = net
+        self.canalysis = new cNetworkAnalysis(net.ptr)
+
+    def __dealloc__(self):
+        del self.canalysis
+
+    def get_edges(self):
+        cdef:
+            cEdgeList edges
+        self.canalysis.make_edges(edges)
+        return edges
+
+    def get_active_edges(self):
+        cdef:
+            cEdgeList edges
+        self.canalysis.make_active_edges(edges)
+        return edges

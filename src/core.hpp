@@ -70,7 +70,6 @@ public:
     virtual signal_t get_site(size_t i) const=0;
     virtual signal_t set_site(size_t i, signal_t c)=0;
     virtual size_t site_count() const = 0;
-
     InterventionState intervene;
 };
 
@@ -83,14 +82,17 @@ struct cGene
     virtual cCisModule *get_module(size_t i)=0;
 
     sequence_t sequence;
-    InterventionState intervene;
     signal_t pub;
+    InterventionState intervene;
 };
 
 
 class cNetwork;
 typedef boost::shared_ptr<cNetwork> cNetwork_ptr;
 typedef std::vector<cNetwork_ptr> cNetworkVector;
+
+typedef boost::shared_ptr<const cNetwork> cConstNetwork_ptr;
+// typedef std::vector<cConstNetwork_ptr> cNetworkVector;
 
 typedef std::mt19937 random_engine_t;
 typedef std::uniform_int_distribution<size_t> randint_t;
@@ -171,13 +173,15 @@ public:
 
     virtual cNetwork_ptr clone() const=0;
     virtual void mutate(size_t nmutations)=0;
-    virtual size_t gene_count()=0;
+    virtual size_t gene_count() const=0;
     virtual cGene *get_gene(size_t i)=0;
 
     virtual void cycle(cChannelState &c) const=0;
     virtual void cycle_with_intervention(cChannelState &c) const=0;
 
-    void calc_attractors();
+    void _calc_attractors(bool intervention);
+    void calc_attractors() { _calc_attractors(false); }
+    void calc_attractors_with_intervention() { _calc_attractors(true); }
     // cNetwork_ptr get_detached_copy() const;
     // bool is_detached() const { return identifier < 0; }
     
@@ -239,28 +243,29 @@ struct cSelectionModel
 //     return cNetwork_ptr(copy);
 // }
 //
-// enum NodeType { NT_GENE=0, NT_MODULE, NT_CHANNEL };
-// typedef std::pair<NodeType, size_t> Node_t;
-// typedef std::pair<Node_t, Node_t> Edge_t;
-// typedef std::set<Edge_t> cEdgeList;
-//
-// // TODO: Should really make this into a union, but not sure if it makes life
-// // harder...
-// inline size_t make_module_node_id(size_t g, size_t m)
-// {
-//     // Combine gene and module id
-//     return g << 8 | m;
-// }
-//
-// struct cNetworkAnalysis
-// {
-//     cNetworkAnalysis(const cNetwork_ptr &n);
-//     cNetwork_ptr original;
-//     cNetwork modified;
-//
-//     void make_edges(cEdgeList &edges);
-//     void make_active_edges(cEdgeList &edges);
-// };
-//
+
+enum NodeType { NT_GENE=0, NT_MODULE, NT_CHANNEL };
+typedef std::pair<NodeType, size_t> Node_t;
+typedef std::pair<Node_t, Node_t> Edge_t;
+typedef std::set<Edge_t> cEdgeList;
+
+// TODO: Should really make this into a union, but not sure if it makes life
+// harder...
+inline size_t make_module_node_id(size_t g, size_t m)
+{
+    // Combine gene and module id
+    return g << 8 | m;
+}
+
+struct cNetworkAnalysis
+{
+    cNetworkAnalysis(cNetwork_ptr &n);
+    cNetwork_ptr original;
+    cNetwork_ptr modified;
+
+    void make_edges(cEdgeList &edges);
+    void make_active_edges(cEdgeList &edges);
+};
+
 
 } // end namespace pubsub2

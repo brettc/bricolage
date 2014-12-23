@@ -7,8 +7,8 @@ using namespace pubsub2;
 
 cGene::cGene(sequence_t seq, signal_t p)
     : sequence(seq)
-    , intervene(INTERVENE_NONE)
     , pub(p)
+    , intervene(INTERVENE_NONE)
 {
 }
 
@@ -27,7 +27,7 @@ cNetwork::cNetwork(const cWorld_ptr &w, bool no_ident)
 }
 
 // This is the outer-inner loop, where we find the attractors. 
-void cNetwork::calc_attractors()
+void cNetwork::_calc_attractors(bool intervention)
 {
     attractors.clear();
     rates.clear();
@@ -47,7 +47,10 @@ void cNetwork::calc_attractors()
         for (;;)
         {
             // Update the current state.
-            cycle(current);
+            if (!intervention)
+                cycle(current);
+            else
+                cycle_with_intervention(current);
 
             // Put back the environment (as this remains constant)
             current |= env;

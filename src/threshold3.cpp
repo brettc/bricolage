@@ -45,7 +45,6 @@ size_t cConstructor::site_count(pubsub2::cNetworkVector &networks)
 
 void cNetwork::mutate(size_t nmutations)
 {
-    // NOTE: This done INPLACE mutation.
     auto &c = static_cast<const cConstructor &>(constructor);
 
     // Select the genes that should be mutated
@@ -95,6 +94,8 @@ cCisModule::cCisModule(const cConstructor &c)
 // This is where the action really is.
 void cCisModule::mutate(const cConstructor &c)
 {
+    // TODO: mutation size is ....
+    // 1 + poisson something?
     size_t i = c.r_site(c.world->rand);
     channels[i] = c.r_input(c.world->rand);
     binding[i] = c.r_binding(c.world->rand);

@@ -79,21 +79,22 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         int_t target
         double fitness
         void calc_attractors()
+        void calc_attractors_with_intervention()
         # bint is_detached()
         
         # TODO: Needed for cython bug, never used
         # See https://groups.google.com/forum/#!topic/cython-users/ko7X_fQ0n9Q
         cNetwork() 
 
-    # ctypedef pair[char, size_t] Node_t
-    # ctypedef pair[Node_t, Node_t] Edge_t
-    # ctypedef std_set[Edge_t] cEdgeList
+    ctypedef pair[char, size_t] Node_t
+    ctypedef pair[Node_t, Node_t] Edge_t
+    ctypedef std_set[Edge_t] cEdgeList
 
-    # cdef cppclass cNetworkAnalysis:
-    #     cNetworkAnalysis(const cNetwork_ptr &n)
-    #     void make_active_edges(cEdgeList e)
-    #     void make_edges(cEdgeList e)
-    #
+    cdef cppclass cNetworkAnalysis:
+        cNetworkAnalysis(const cNetwork_ptr &n)
+        void make_active_edges(cEdgeList e)
+        void make_edges(cEdgeList e)
+
     # # ctypedef shared_ptr[cNetwork] cNetwork_ptr
     # # cNetwork_ptr get_detached_copy(cNetwork_ptr)
     # # ctypedef shared_ptr[const cNetwork] cConstNetwork_ptr
