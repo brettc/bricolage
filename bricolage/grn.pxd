@@ -26,8 +26,14 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
     cdef cppclass cConstructor
     cdef cppclass cNetwork
     ctypedef shared_ptr[cNetwork] cNetwork_ptr
+    ctypedef shared_ptr[cConstructor] cConstructor_ptr
     ctypedef vector[cNetwork_ptr] cNetworkVector
         
+    cdef enum InterventionState:
+        INTERVENE_NONE = 0
+        INTERVENE_ON = 1
+        INTERVENE_OFF = 2
+
     cdef cppclass cWorld:
         cWorld(size_t seed, size_t cue, size_t reg, size_t out)
         mt19937 rand
@@ -39,7 +45,6 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         pair[size_t, size_t] sub_range
         pair[size_t, size_t] pub_range
         cChannelStateVector environments
-        cConstructor *constructor
         double get_random_double(double low, double high)
         double get_random_int(int low, int high)
 
@@ -50,36 +55,39 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         cNetwork_ptr construct()
         void mutate_collection(cNetworkVector &networks, 
                                cIndexes &mutated, double site_rate)
-        cWorld world
+        cWorld_ptr world
+
     
     cdef cppclass cCisModule:
         signal_t get_site(size_t index)
         signal_t set_site(size_t index, signal_t channel);
         size_t site_count()
-        # InterventionState intervene;
+        InterventionState intervene
 
     cdef cppclass cGene:
         size_t module_count()
         const cCisModule *get_module(size_t i)
         sequence_t sequence
         signal_t pub
-        # InterventionState intervene;
+        InterventionState intervene
 
     cdef cppclass cNetwork:
-        cNetwork(cWorld_ptr)
-        void *pyobject
-        int_t identifier, parent_identifier
+        cNetwork(cConstructor_ptr &)
+
         void cycle(cChannelState c)
         void cycle_with_intervention(cChannelState c)
         size_t gene_count()
         void mutate(size_t)
         cGene *get_gene(size_t)
+        void calc_attractors()
+        void calc_attractors_with_intervention()
+        
+        void *pyobject
+        int_t identifier, parent_identifier
         cAttractors attractors
         cRatesVector rates
         int_t target
         double fitness
-        void calc_attractors()
-        void calc_attractors_with_intervention()
         # bint is_detached()
         
         # TODO: Needed for cython bug, never used

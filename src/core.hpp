@@ -4,11 +4,12 @@
 #include <cstdint>
 #include <vector>
 #include <set>
+#include <memory>
 
 // #include <tr1/memory> Another shared_ptr?
-#include <boost/shared_ptr.hpp>
+// #include <boost/shared_ptr.hpp>
+// #include <boost/multi_array.hpp>
 #include <boost/dynamic_bitset.hpp>
-#include <boost/multi_array.hpp>
 #include <tuple>
 #include <random>
 
@@ -28,7 +29,6 @@ template <typename T> inline int c_cmp(T a, T b)
 }
 
 typedef int_fast8_t signal_t;
-typedef int_fast16_t operand_t;
 typedef signed int int_t;
 typedef unsigned int sequence_t;
 
@@ -45,6 +45,9 @@ typedef std::vector<cRates> cRatesVector;
 const size_t reserved_channels = 2;
 const size_t off_channel = 0;
 const size_t on_channel = 1;
+
+// Set this globally
+const size_t MAX_CHANNELS_PER_CIS = 4;
 
 // Allows us to intervene on the state of genes and modules, forcing them on or
 // off to ascertain what causal role they have.
@@ -67,10 +70,17 @@ class cCisModule
 public:
     cCisModule() : intervene(INTERVENE_NONE) {}
     virtual ~cCisModule() {}
-    virtual signal_t get_site(size_t i) const=0;
-    virtual signal_t set_site(size_t i, signal_t c)=0;
+    pubsub2::signal_t get_site(size_t i) const { return channels[i]; }
+    pubsub2::signal_t set_site(size_t i, pubsub2::signal_t c) 
+    { 
+        pubsub2::signal_t old = channels[i];
+        channels[i] = c; 
+        return old;
+    }
+    // Defines how many channels you'll actually use.
     virtual size_t site_count() const = 0;
     InterventionState intervene;
+    signal_t channels[MAX_CHANNELS_PER_CIS];
 };
 
 struct cGene
@@ -88,10 +98,10 @@ struct cGene
 
 
 class cNetwork;
-typedef boost::shared_ptr<cNetwork> cNetwork_ptr;
+typedef std::shared_ptr<cNetwork> cNetwork_ptr;
 typedef std::vector<cNetwork_ptr> cNetworkVector;
 
-typedef boost::shared_ptr<const cNetwork> cConstNetwork_ptr;
+typedef std::shared_ptr<const cNetwork> cConstNetwork_ptr;
 // typedef std::vector<cConstNetwork_ptr> cNetworkVector;
 
 typedef std::mt19937 random_engine_t;
@@ -129,9 +139,7 @@ public:
     // Randomising stuff
     random_engine_t rand;
 
-    // The specialised constructor for networks
-    cConstructor *constructor;
-protected:
+private:
     void init_channels();
     void init_environments();
 public:
@@ -143,10 +151,10 @@ public:
         return std::uniform_int_distribution<int>(low, high)(rand); }
 
 };
-typedef boost::shared_ptr<cWorld> cWorld_ptr;
+typedef std::shared_ptr<cWorld> cWorld_ptr;
 
 // Base class for overriding world operations
-class cConstructor
+class cConstructor : public std::enable_shared_from_this<cConstructor>
 {
 public:
     cConstructor(const cWorld_ptr &w);
@@ -165,10 +173,12 @@ public:
     cWorld_ptr world;
 };
 
+typedef std::shared_ptr<cConstructor> cConstructor_ptr;
+
 class cNetwork
 {
 public:
-    cNetwork(const cWorld_ptr &f, bool no_ident=false);
+    cNetwork(const cConstructor_ptr &c, bool no_ident=false);
     virtual ~cNetwork() {}
 
     virtual cNetwork_ptr clone() const=0;
@@ -185,6 +195,7 @@ public:
     // cNetwork_ptr get_detached_copy() const;
     // bool is_detached() const { return identifier < 0; }
     
+    cConstructor_ptr constructor;
     cWorld_ptr world;
     int_t identifier, parent_identifier;
 

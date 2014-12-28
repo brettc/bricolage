@@ -12,8 +12,9 @@ cGene::cGene(sequence_t seq, signal_t p)
 {
 }
 
-cNetwork::cNetwork(const cWorld_ptr &w, bool no_ident)
-    : world(w)
+cNetwork::cNetwork(const cConstructor_ptr &c, bool no_ident)
+    : constructor(c) 
+    , world(c->world)
     , parent_identifier(-1)
     , target(-1)
     , pyobject(0)

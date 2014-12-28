@@ -28,19 +28,10 @@ public:
 
     // Overrides
     size_t site_count() const { return 3; }
-    pubsub2::signal_t get_site(size_t i) const { return channels[i]; }
-    pubsub2::signal_t set_site(size_t i, pubsub2::signal_t c) 
-    { 
-        pubsub2::signal_t old = channels[i];
-        channels[i] = c; 
-        return old;
-    }
-
     void mutate(const cConstructor &c);
     bool is_active(pubsub2::cChannelState const &state) const;
 
     pubsub2::int_t binding[3];
-    pubsub2::signal_t channels[3];
 };
 
 
@@ -59,8 +50,7 @@ public:
 class cNetwork : public pubsub2::cNetwork
 {
 public:
-    cNetwork(const cConstructor &c);
-    const cConstructor &constructor;
+    cNetwork(const pubsub2::cConstructor_ptr &c);
     std::vector<cGene> genes;
 
     // Overrides

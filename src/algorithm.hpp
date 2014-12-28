@@ -2,12 +2,12 @@
 
 namespace algo {
 
-// This is the inner-inner loop!
-// TODO: Maybe this could be moved down the the CIS level to prevent constant
-// calling of virtual function. It would have to be Factory level call:
-// cGeneFactory::cycle(Network &, ChannelState &). But this would mean building 
-// the cis action into the factory somehow (or static_cast-ing the CIS which
-// would, I guess, be safe.
+// Templatize this so we can re-use it for different networks.
+//
+// Requirements:
+// * Network must have .genes
+// * Module must have .modules
+// * Module must have .is_active(cChannelState &)
 template<typename Network> 
 struct Cycle
 {

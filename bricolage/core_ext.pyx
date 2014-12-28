@@ -129,8 +129,6 @@ cdef class World:
         self.sub_signals = set(range(*self.cworld.sub_range))
         self.pub_signals = set(range(*self.cworld.pub_range))
 
-        self.gene_class = Gene
-        self.module_class = CisModule
 
     def create_state(self):
         c = ChannelState()
@@ -215,40 +213,17 @@ cdef class World:
         return "E{0:0{1:}d}".format(
             c + 1 - self.cworld.cue_range.first, sz)
 
-
-cdef class Target:
-    def __cinit__(self, World w, init_func):
+cdef class Constructor:
+    def __cinit__(self, World w, params):
         self.world = w
-        self.ctarget = new cTarget(w.cworld_ptr)
-        a, b = w.cworld.cue_range
-
-        # Slow and cumbersome, but it doesn't matter
-        for i, e in enumerate(w.environments):
-            # TODO: Clean up the refs here
-            outputs = init_func(e.as_array()[a:b])
-            if len(outputs) != w.out_channels:
-                raise RuntimeError
-
-            for j, val in enumerate(outputs):
-                self.ctarget.optimal_rates[i][j] = float(val)
-
-    def __dealloc__(self):
-        del self.ctarget
-
-    def assess(self, Network net):
-        assert net.world is self.world
-        return self.ctarget.assess(deref(net.cnetwork));
-
-    def as_array(self):
-        return numpy.array(self.ctarget.optimal_rates)
-
+        self.gene_class = Gene
+        self.module_class = CisModule
 
 cdef class Network:
-    # Networks take two stages. You need to create the python object and then
-    # bind it to a cNetwork_ptr.
-    def __cinit__(self, World world):
-        self.world = world
-        self._genes = None
+    def __cinit__(self, Constructor c):
+        self.constructor = c
+        cdef cNetwork_ptr ptr = c._this.construct()
+        self.bind_to(ptr)
 
     cdef bind_to(self, cNetwork_ptr &ptr):
         self.ptr = ptr
@@ -257,7 +232,7 @@ cdef class Network:
 
     def __dealloc__(self):
         self.cnetwork.pyobject = <void *>0
-#
+
     property identifier:
         def __get__(self):
             return self.cnetwork.identifier
@@ -273,7 +248,7 @@ cdef class Network:
     property genes:
         def __get__(self):
             if self._genes is None:
-                self._genes = tuple(self.world.gene_class(self, i) for i in range(self.gene_count))
+                self._genes = tuple(self.constructor.gene_class(self, i) for i in range(self.gene_count))
             return self._genes
 
     def cycle(self, ChannelState c):
@@ -284,7 +259,7 @@ cdef class Network:
 
     def _evil_mutate(self, size_t nmutations):
         """Mutate the network. 
-        
+
         This invalidates lots of assumptions required for selection to work
         correctly. Use only if you understand what you are doing.
         """
@@ -314,7 +289,7 @@ cdef class Network:
                 cstate_iter = deref(cattr_iter).begin()
                 while cstate_iter != deref(cattr_iter).end():
                     c = ChannelStateFrozen()
-                    c.init(self.world.cworld_ptr, deref(cstate_iter))
+                    c.init(self.constructor._this.world, deref(cstate_iter))
                     attr.append(c)
                     preinc(cstate_iter)
 
@@ -381,6 +356,10 @@ cdef class Gene:
         def __get__(self):
             return self.cgene.pub
 
+    property intervene:
+        def __get__(self):
+            return self.cgene.intervene
+
     def _evil_set_pub(self, size_t p):
         assert p in self.network.world.pub_signals
         # self.cgene.pub = p
@@ -394,13 +373,13 @@ cdef class Gene:
         def __get__(self):
             # Lazy construction
             if self._modules is None:
-                self._modules = tuple(self.network.world.module_class(self, i) 
+                self._modules = tuple(self.network.constructor.module_class(self, i) 
                     for i in range(self.module_count))
             return self._modules
 
     def __repr__(self):
-        f = self.network.world
-        return "<Gene[{}]: {}>".format(self.sequence, f.name_for_channel(self.pub))
+        w = self.network.constructor.world
+        return "<Gene[{}]: {}>".format(self.sequence, w.name_for_channel(self.pub))
 
 
 cdef class CisModule:
@@ -424,6 +403,10 @@ cdef class CisModule:
         self.gene.network._invalidate_cached()
         return old
 
+    property intervene:
+        def __get__(self):
+            return self.ccismodule.intervene
+
     property channels:
         def __get__(self):
             return tuple(self.ccismodule.get_site(i)
@@ -436,16 +419,17 @@ cdef class CisModule:
 
 
 cdef class NetworkCollection:
-    def __cinit__(self, World world, size_t size):
-        self.world = world
+    def __cinit__(self, Constructor c, size_t size):
+        self.constructor = c
         
         cdef size_t i
         for i in range(size):
             self.cnetworks.push_back(
-                cNetwork_ptr(world.cworld.constructor.construct()))
+                cNetwork_ptr(c._this.construct()))
 
     def add(self, Network n):
-        assert n.world is self.world
+        # TODO: Mix different network types?
+        assert n.constructor is self.constructor
         self.cnetworks.push_back(n.ptr)
 
     cdef object get_at(self, size_t i):
@@ -459,12 +443,12 @@ cdef class NetworkCollection:
         # Is there an existing python object?
         # Note: cython automatically increments the reference count when we do
         # this (which is what we want). This move just means we get object
-        # identity (at least while one python reference continues to exist.
+        # identity, at least while one python reference continues to exist.
         if net.pyobject:
             return <object>(net.pyobject)
 
         # Nope. We need to create a new python wrapper object
-        n = Network(self.world)
+        n = Network(self.constructor)
         n.bind_to(ptr)
         return n
 
@@ -484,7 +468,7 @@ cdef class NetworkCollection:
 
     def mutate(self, double site_rate):
         cdef cIndexes mutated
-        self.world.cworld.constructor.mutate_collection(
+        self.constructor._this.mutate_collection(
             self.cnetworks, mutated, site_rate)
         # Return indexes of the mutated networks. Automatic conversion (thank
         # you Cython)
@@ -498,7 +482,7 @@ cdef class NetworkCollection:
             cIndexes indexes
             cNetworkVector new_networks
 
-        sm = new cSelectionModel(self.world.cworld_ptr)
+        sm = new cSelectionModel(self.constructor._this.world)
         sel = sm.select(self.cnetworks, deref(target.ctarget), 
                      self.cnetworks.size(), indexes)
         if sel:
@@ -523,12 +507,47 @@ cdef class NetworkCollection:
             cIndexes indexes
             cNetworkVector new_networks
 
-        sm = new cSelectionModel(self.world.cworld_ptr)
+        sm = new cSelectionModel(self.constructor._this.world)
 
         sel = sm.select(self.cnetworks, deref(target.ctarget), 
                      self.cnetworks.size(), indexes)
 
         return indexes
+
+cdef class Target:
+    def __cinit__(self, World w, init_func):
+        self.world = w
+        self.ctarget = new cTarget(w.cworld_ptr)
+        a, b = w.cworld.cue_range
+
+        # Slow and cumbersome, but it doesn't matter
+        for i, e in enumerate(w.environments):
+            # TODO: Clean up the refs here
+            outputs = init_func(*e.as_array()[a:b])
+            try:
+                s = len(outputs)
+            except TypeError:
+                # Must be a single value...
+                outputs = [outputs]
+                s = 1
+
+            if len(outputs) != w.out_channels:
+                raise RuntimeError(
+                    "return value of Target function must be length %s" % w.out_channels)
+
+            for j, val in enumerate(outputs):
+                self.ctarget.optimal_rates[i][j] = float(val)
+
+    def __dealloc__(self):
+        del self.ctarget
+
+    def assess(self, Network net):
+        assert net.world is self.world
+        return self.ctarget.assess(deref(net.cnetwork));
+
+    def as_array(self):
+        return numpy.array(self.ctarget.optimal_rates)
+
 
 
 cdef class NetworkAnalysis:

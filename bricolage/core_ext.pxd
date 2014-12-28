@@ -18,8 +18,14 @@ cdef class World:
             object sub_signals, pub_signals
             object cue_signals, reg_signals, out_signals
             object reserved_signals
-        object gene_class, module_class
         object _environments
+
+cdef class Constructor:
+    cdef:
+        cConstructor_ptr _shared
+        cConstructor *_this
+        readonly:
+            object world, gene_class, module_class
 
 cdef class Target:
     cdef:
@@ -30,7 +36,7 @@ cdef class Target:
 cdef class Network:
     cdef:
         readonly:
-            World world
+            Constructor constructor
 
         # Because we hold a reference to the shared_ptr, we know we can always
         # safely access the ACTUAL pointer. We keep the pointer around too, as
@@ -38,7 +44,6 @@ cdef class Network:
         cNetwork_ptr ptr
         cNetwork *cnetwork
         object _genes, _attractors, _rates
-        object gene_class
 
     cdef bind_to(self, cNetwork_ptr &ptr)
 
@@ -55,7 +60,7 @@ cdef class Gene:
             # what I said above. DON'T mess with the genes!)
             Network network
             size_t gene_number
-#
+
 cdef class CisModule:
     cdef:
         cCisModule *ccismodule
@@ -65,11 +70,10 @@ cdef class CisModule:
 cdef class NetworkCollection:
     cdef:
         readonly: 
-            World world
+            Constructor constructor
         cNetworkVector cnetworks
 
     cdef object get_at(self, size_t i)
-
 
 cdef class NetworkAnalysis:
     cdef:

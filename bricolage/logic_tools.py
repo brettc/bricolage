@@ -1,4 +1,5 @@
-from sympy.logic import SOPform
+from sympy.logic import SOPform, simplify_logic
+from sympy import symbols
 from sympy.printing.latex import latex
 
 import itertools
@@ -53,6 +54,13 @@ def boolean_func_from_coop_binding(factory, channels, bindings):
     names = list('abcdefghijklmnopqrstuvwxyz')[:len(unique)]
 
     sop = SOPform(names, is_true)
+
+    # # Can we simplify this, once we know the off/on channels?
+    # off_c, on_c = symbols("a,b")
+    # off_c = False
+    # on_c = True
+    # sop = simplify_logic(sop & off_c, form='dnf', deep=True)
+
     if sop == False:
         return "OFF"
     if sop == True:

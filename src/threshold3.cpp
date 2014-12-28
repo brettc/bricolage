@@ -19,7 +19,8 @@ cConstructor::cConstructor(const pubsub2::cWorld_ptr &w, size_t cc)
 // Construct a brand new Network with random stuff.
 pubsub2::cNetwork_ptr cConstructor::construct()
 {
-    cNetwork *net = new cNetwork(*this);
+    pubsub2::cConstructor_ptr p = shared_from_this();
+    cNetwork *net = new cNetwork(p);
 
     for (size_t pub = world->reg_range.first, gindex = 0; 
          pub < world->pub_range.second; ++pub, ++gindex)
@@ -45,18 +46,18 @@ size_t cConstructor::site_count(pubsub2::cNetworkVector &networks)
 
 void cNetwork::mutate(size_t nmutations)
 {
-    auto &c = static_cast<const cConstructor &>(constructor);
+    auto &ctor = static_cast<const cConstructor &>(*constructor);
 
     // Select the genes that should be mutated
     while (nmutations > 0)
     {
         // Choose a gene and mutate it
-        size_t i = c.r_gene();
+        size_t i = ctor.r_gene();
         auto &g = genes[i];
 
-        size_t j = c.r_cis();
+        size_t j = ctor.r_cis();
         auto &c = g.modules[j];
-        c.mutate(constructor);
+        c.mutate(ctor);
         --nmutations;
     }
 }
@@ -115,9 +116,8 @@ bool cCisModule::is_active(pubsub2::cChannelState const &state) const
     return sum >= 3;
 }
 
-cNetwork::cNetwork(const cConstructor &c)
-    : pubsub2::cNetwork(c.world)
-    , constructor(c)
+cNetwork::cNetwork(const pubsub2::cConstructor_ptr &c)
+    : pubsub2::cNetwork(c)
 {
 }
 

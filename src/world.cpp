@@ -14,7 +14,6 @@ cWorld::cWorld(size_t seed, size_t cue, size_t reg, size_t out)
     , out_channels(out)
     // Random 
     , rand(seed)
-    , constructor(0)
 {
     init_channels();
     init_environments();
@@ -22,8 +21,6 @@ cWorld::cWorld(size_t seed, size_t cue, size_t reg, size_t out)
 
 cWorld::~cWorld()
 {
-    if (constructor)
-        delete constructor;
 }
 
 void cWorld::init_environments()
@@ -44,7 +41,7 @@ void cWorld::init_environments()
 void cWorld::init_channels()
 {
     // Calculate the total number of elements given the overlap
-    // Given cue = 2, reg = 2, out = 2
+    // Example: Given cue = 2, reg = 2, out = 2
     //             0 = ALWAYS OFF
     //               1 = ALWAYS ON
     // reserved  [ 0 1 ]
@@ -88,8 +85,6 @@ cNetwork_ptr cConstructor::clone_and_mutate_network(cNetwork_ptr &n, size_t nmut
     return copy;
 }
 
-typedef std::poisson_distribution<> poisson_t;
-
 void cConstructor::mutate_collection(
     cNetworkVector &networks, cIndexes &mutated, double site_rate)
 {
@@ -99,7 +94,7 @@ void cConstructor::mutate_collection(
     // to get the expected number of mutations. Then we generate a number using
     // a poisson distribution.
     double expected = site_rate * site_count(networks);
-    poisson_t r_pop(expected);
+    std::poisson_distribution<> r_pop(expected);
     size_t mutations = r_pop(world->rand);
 
     // Clear this
