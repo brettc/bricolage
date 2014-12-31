@@ -18,21 +18,7 @@ cdef class Constructor(core_ext.Constructor):
         self._this = self._shared.get()
 
         # Specialise the python classes
-        # self.gene_class = Gene
         self.module_class = CisModule
-
-    def tester(self):
-        cdef grn.cNetwork_ptr p = self._this.construct()
-        print <long>p.get()
-
-# No need?
-# cdef class Gene(core_ext.Gene):
-#     def __cinit__(self):
-#         pass
-#
-#     def test(self):
-#         cdef cGene *g = dynamic_cast_cGene(self.cgene)
-#         return g.modules.size()
 
         
 cdef class CisModule(core_ext.CisModule):

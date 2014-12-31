@@ -39,7 +39,7 @@ cdef class ChannelStateFrozen:
             return self.cchannel_state.size()
 
     def __str__(self):
-        # TODO: Clean this function up---it is a bit rough.
+        # TODO: Clean this function up---it is really crappy
         cdef:
             string cstr
             cWorld *w = self.cworld_ptr.get()
@@ -82,7 +82,7 @@ cdef class ChannelStateFrozen:
         return vals
 
     def __repr__(self):
-        return "<CSF: {}>".format(self.__str__())
+        return "<ChannelsRO: {}>".format(self.__str__())
 
 
 cdef class ChannelState(ChannelStateFrozen):
@@ -109,7 +109,7 @@ cdef class ChannelState(ChannelStateFrozen):
         self.cchannel_state |= other.cchannel_state
 
     def __repr__(self):
-        return "<CS: {}>".format(self.__str__())
+        return "<Channels: {}>".format(self.__str__())
 
 
 cdef class World:
@@ -343,7 +343,7 @@ cdef class Gene:
     """A proxy to a gene.
     """
     def __cinit__(self, Network n, size_t g):
-        """This should never be called publicly"""
+        """This is not meant to be called publicly"""
         self.network = n
         self.gene_number = g
         self.cgene = self.network.cnetwork.get_gene(g)
@@ -360,10 +360,10 @@ cdef class Gene:
         def __get__(self):
             return self.cgene.intervene
 
-    def _evil_set_pub(self, size_t p):
-        assert p in self.network.world.pub_signals
-        # self.cgene.pub = p
-        self.network._invalidate_cached()
+    # def _evil_set_pub(self, size_t p):
+    #     assert p in self.network.world.pub_signals
+    #     # self.cgene.pub = p
+    #     self.network._invalidate_cached()
 
     property module_count:
         def __get__(self):
@@ -421,11 +421,10 @@ cdef class CisModule:
 cdef class NetworkCollection:
     def __cinit__(self, Constructor c, size_t size):
         self.constructor = c
-        
+        self.cnetworks.reserve(size)
         cdef size_t i
         for i in range(size):
-            self.cnetworks.push_back(
-                cNetwork_ptr(c._this.construct()))
+            self.cnetworks.push_back(c._this.construct())
 
     def add(self, Network n):
         # TODO: Mix different network types?
@@ -455,6 +454,10 @@ cdef class NetworkCollection:
     property size:
         def __get__(self):
             return self.cnetworks.size()
+
+    property site_count:
+        def __get__(self):
+            return self.constructor._this.site_count(self.cnetworks)
 
     def __getitem__(self, size_t i):
         return self.get_at(i)
@@ -547,7 +550,6 @@ cdef class Target:
 
     def as_array(self):
         return numpy.array(self.ctarget.optimal_rates)
-
 
 
 cdef class NetworkAnalysis:

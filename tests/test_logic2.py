@@ -8,117 +8,75 @@ def basic_params():
     return T.Parameters()
 
 @pytest.fixture
-def params3x2():
-    return T.Parameters(
-        seed=4,
-        operands = [
-            T.Operand.NOT_A_AND_B,
-            T.Operand.A_AND_NOT_B,
-            T.Operand.NOR,
-            T.Operand.AND,
-        ],
-        cis_count=2,
-        reg_channels=5,
-        out_channels=2,
-        cue_channels=3,
-    )
-
+def p_3x2():
+    o = T.Operand
+    ops = o.NOT_A_AND_B, o.A_AND_NOT_B, o.NOR, o.AND
+    return T.Parameters(seed=1, operands=ops, cis_count=2, reg_channels=5,
+                        out_channels=2, cue_channels=3)
 @pytest.fixture
-def params3x3():
-    return T.Parameters(
-        seed=1,
-        operands = [
-            T.Operand.NOT_A_AND_B,
-            T.Operand.A_AND_NOT_B,
-            T.Operand.NOR,
-            T.Operand.AND,
-        ],
-        cis_count=2,
-        reg_channels=3,
-        out_channels=3,
-        cue_channels=3,
-    )
+def c_3x2(p_3x2):
+    world = T.World(p_3x2)
+    return T.Constructor(world, p_3x2)
 
-def test_factory(params3x2):
-    f = T.Factory(params3x2)
+def test_constructor(p_3x2):
+    world = T.World(p_3x2)
+    const = T.Constructor(world, p_3x2)
+    assert set(const.operands) == set(p_3x2.operands)
 
-    # Make sure we can stuff from the Factory
-    # assert params3x2 == f.params
-    e = f.environments
-    for i in e:
-        print repr(i)
-
-def test_network_ids(params3x2):
-    f = T.Factory(params3x2)
+def test_network_ids(c_3x2):
     for i in range(10):
-        n = f.create_network()
+        n = T.Network(c_3x2)
         assert n.identifier == i
 
-    pop = f.create_collection(10)
+    pop = T.NetworkCollection(c_3x2, 10)
     assert pop[9].identifier == 19
 
-def test_network_construction(params3x2):
-    p = params3x2
-    f = T.Factory(p)
-    pop = f.create_collection(1000)
+def test_network_construction(c_3x2):
+    w = c_3x2.world
+    pop = T.NetworkCollection(c_3x2, 1000)
     for n in pop:
-        assert len(n.genes) == p.gene_count
+        assert len(n.genes) == c_3x2.gene_count
         for g in n.genes:
-            print g.modules
-            assert len(g.modules) == p.cis_count
-            assert g.pub in range(*f.pub_range)
-            for c in g.modules:
-                assert T.Operand(c.op) in p.operands
-                for i in range(c.site_count()):
-                    assert f.sub_range[0] <= c.get_site(i) < f.sub_range[1]
+            assert len(g.modules) == c_3x2.module_count
+            assert g.pub in range(*w.pub_range)
+            for m in g.modules:
+                assert T.Operand(m.op) in c_3x2.operands
+                for i in range(m.site_count()):
+                    assert w.sub_range[0] <= m.get_site(i) < w.sub_range[1]
 
-def test_referencing(basic_params):
-    f = T.Factory(basic_params)
-    nc = T.NetworkCollection(f)
-    net = f.create_network()
+def test_referencing(c_3x2):
+    original = T.Network(c_3x2)
+    nc = T.NetworkCollection(c_3x2, 0)
 
-    nc.add(net)
-    del net
+    # Get the "pointer" value
+    id_original = id(original)
+
+    nc.add(original)
+    del original
 
     # These should be the same, as we re-use python references if they exist
     a = nc[0]
+
+    # This should be the same python object that we deleted above, as the
+    # reference was maintained internally 
+    assert id(a) == id_original
+
+    # Getting it again should work too.
     b = nc[0]
-
     assert a is b
-    assert a.factory is b.factory
 
-def test_bad_access(params3x2):
-    f = T.Factory(params3x2)
-    nc = T.NetworkCollection(f)
+def test_bad_access(c_3x2):
+    nc = T.NetworkCollection(c_3x2, 0)
     with pytest.raises(IndexError):
         a = nc[0]
 
-    nc.add(f.create_network())
+    nc.add(T.Network(c_3x2))
     a = nc[0]
     b = nc[0]
 
     assert a is b
 
-def test_channelstate(params3x2):
-    f = T.Factory(params3x2)
-    e2 = f.environments[-1]
-    e2_again = f.environments[-1]
-
-    # We should get the same channels states out.
-    assert e2 == e2_again
-    assert e2 is e2_again
-
-    # When we copy, they should be the same, but not identical.
-    copy_e2 = e2.copy()
-    assert e2 == copy_e2
-    assert e2 is not copy_e2
-
-    # Modify the state -- testing still work
-    copy_e2.flip(0)
-    assert e2 != copy_e2
-    copy_e2.flip(0)
-    assert e2 == copy_e2
-    
+# ---------- HERE 
 def network_cycle(network, curstate):
     """A Python version of what the C++ cycle does."""
     nextstate = network.factory.create_state()
@@ -142,9 +100,9 @@ def construct_attractor(net, env):
                 return tuple(path[i:])
         path.append(cur)
 
-def test_attractors(params3x2, basic_params):
+def test_attractors(p_3x2, basic_params):
     f = T.Factory(basic_params)
-    # f = T.Factory(params3x2)
+    # f = T.Factory(p_3x2)
     nc = f.create_collection(1)
     for net in nc:
         pattractors = [construct_attractor(net, env) for env in f.environments]
@@ -155,8 +113,8 @@ def test_attractors(params3x2, basic_params):
         with pytest.raises(ValueError):
             net.rates[0, 0] = 10.
 
-def test_collection(params3x2):
-    f = T.Factory(params3x2)
+def test_collection(p_3x2):
+    f = T.Factory(p_3x2)
 
     nets = f.create_collection(1000)
 
@@ -173,8 +131,8 @@ def test_collection(params3x2):
     #
     # assert nmutations > 0
 
-def test_mutation(params3x2):
-    f = T.Factory(params3x2)
+def test_mutation(p_3x2):
+    f = T.Factory(p_3x2)
     orig = f.create_network()
     mute = orig.mutated(1)
     print orig, mute
@@ -189,8 +147,8 @@ def test_mutation(params3x2):
             print [str(x) for x in a1]
             print [str(x) for x in a2]
 
-def test_rates(params3x2):
-    f = T.Factory(params3x2)
+def test_rates(p_3x2):
+    f = T.Factory(p_3x2)
     orig = f.create_network()
     rates = orig.rates
 
@@ -199,7 +157,7 @@ def test_rates(params3x2):
         rates[0, 0] = 10.
 
     # rates only include the output channels
-    outc = params3x2.out_channels
+    outc = p_3x2.out_channels
     nc = f.create_collection(100)
     for net in nc:
         for attr, rate in zip(net.attractors, net.rates):
@@ -232,8 +190,8 @@ def target_3x3():
         return 1, .5, 0
     return make_target
 
-def test_targets(params3x2, target_3x2):
-    f = T.Factory(params3x2)
+def test_targets(p_3x2, target_3x2):
+    f = T.Factory(p_3x2)
     targ = T.Target(f, target_3x2)
     nc = f.create_collection(100)
     for net in nc:
@@ -246,8 +204,8 @@ def test_targets(params3x2, target_3x2):
         # summed = scores.sum(axis=1) * ch.fitness_contribution
         # summed = scores.sum(axis=1)
 
-def test_random_engine(params3x2, target_3x2):
-    f = T.Factory(params3x2)
+def test_random_engine(p_3x2, target_3x2):
+    f = T.Factory(p_3x2)
     f.seed_random_engine(1)
     first_time = [f.get_random_double(0, 1) for _ in range(20)]
     first_time += [f.get_random_int(0, 100) for _ in range(20)]
@@ -258,9 +216,9 @@ def test_random_engine(params3x2, target_3x2):
 
     assert first_time == second_time
         
-def test_selection(params3x2, target_3x2):
+def test_selection(p_3x2, target_3x2):
     # TODO: Finish testing selection by python
-    factory = T.Factory(params3x2)
+    factory = T.Factory(p_3x2)
     target = T.Target(factory, target_3x2)
     population = factory.create_collection(1000)
 
@@ -278,6 +236,23 @@ def test_selection(params3x2, target_3x2):
         cum_score += target.assess(net)
 
     indexes = []
+
+@pytest.fixture
+def params3x3():
+    return T.Parameters(
+        seed=1,
+        operands = [
+            T.Operand.NOT_A_AND_B,
+            T.Operand.A_AND_NOT_B,
+            T.Operand.NOR,
+            T.Operand.AND,
+        ],
+        cis_count=2,
+        reg_channels=3,
+        out_channels=3,
+        cue_channels=3,
+    )
+
 
 def not_test_analysis(params3x3, target_3x3):
     factory = T.Factory(params3x3)

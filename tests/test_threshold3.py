@@ -1,26 +1,47 @@
-from bricolage.threshold3 import *
+from bricolage.threshold3 import (
+    World, Parameters, Target, Constructor, Network, NetworkCollection)
 
 def xor_func(a, b):
     return (a or b) and not (a and b)
 
-def not_fun(x):
-    a, b = x
-    return [xor(a, b)]
+def fitness_func1(a, b):
+    return xor_func(a, b)
 
-def test_binding():
-    p = Parameters(seed=2, cis_count=2, cue_channels=2, reg_channels=0, out_channels=1)
-    w = World(p)
-c = Constructor(w, pgtjjck
-    target = Target(w, xor_func)
-    pop = NetworkCollection(w, 1000)
+def test_network():
+    params = Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
+                        cue_channels=3,)
+    world = World(params)
+    const = Constructor(world, params)
+    net = Network(const)
+    print net.attractors
+    print world.pub_signals
+    # net.genes[0].pub = 3
+    #
+
+def test_population():
+    params = Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
+                        cue_channels=3,)
+    world = World(params)
+    const = Constructor(world, params)
+    popul = NetworkCollection(const, 1000)
+    print popul[0].attractors[1]
+
+def test_xor():
+    params = Parameters(seed=2, cis_count=2, cue_channels=2, reg_channels=0,
+                        out_channels=1)
+    world = World(params)
+    print world.environments
+    const = Constructor(world, params)
+    target = Target(world, fitness_func1)
+    pop = NetworkCollection(const, 10000)
+
     while 1:
         pop.select(target)
         fits = [n.fitness for n in pop]
-        mfit = max(fits)
-        if mfit == 1.0:
+        max_fit = max(fits)
+        if max_fit == 1.0:
             break
         pop.mutate(.05)
-        print mfit
 
     # print w.environments
     for n in pop:

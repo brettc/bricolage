@@ -126,6 +126,8 @@ public:
     size_t cue_channels, reg_channels, out_channels;
     size_t channel_count;
 
+    size_t gene_count;
+
     std::pair<size_t, size_t> cue_range;
     std::pair<size_t, size_t> reg_range;
     std::pair<size_t, size_t> out_range;
@@ -229,7 +231,6 @@ struct cTarget
     // TODO: per output weighting
     double assess(const cNetwork &net);
 };
-
 
 struct cSelectionModel
 {

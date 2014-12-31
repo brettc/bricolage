@@ -4,13 +4,10 @@ from utility cimport *
 cdef extern from "<src/core.hpp>" namespace "pubsub2":
     ctypedef unsigned int signal_t
 
-    ctypedef unsigned int operand_t
     ctypedef unsigned int sequence_t
     ctypedef int int_t
     ctypedef random_engine_t
     ctypedef uniform_int_distribution[size_t] randint_t
-
-    ctypedef vector[operand_t] cOperands
 
     ctypedef dynamic_bitset[size_t] cChannelState
     ctypedef vector[cChannelState] cChannelStateVector
@@ -53,6 +50,7 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
     cdef cppclass cConstructor:
         cConstructor()
         cNetwork_ptr construct()
+        size_t site_count(cNetworkVector &networks)
         void mutate_collection(cNetworkVector &networks, 
                                cIndexes &mutated, double site_rate)
         cWorld_ptr world
@@ -63,6 +61,7 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         signal_t set_site(size_t index, signal_t channel);
         size_t site_count()
         InterventionState intervene
+        signal_t *channels
 
     cdef cppclass cGene:
         size_t module_count()
