@@ -4,35 +4,39 @@ from grn cimport *
 cdef class ChannelStateFrozen:
     cdef:
         cChannelState cchannel_state
-        cFactory_ptr cfactory_ptr
-    cdef init(self, cFactory_ptr &f, cChannelState &p)
+        cWorld_ptr cworld_ptr
+    cdef init(self, cWorld_ptr &f, cChannelState &p)
 
 cdef class ChannelState(ChannelStateFrozen):
     pass
 
-cdef class Factory:
+cdef class World:
     cdef:
-        cFactory_ptr cfactory_ptr
-        cFactory *cfactory
+        cWorld_ptr cworld_ptr
+        cWorld *cworld
         readonly:
             object sub_signals, pub_signals
             object cue_signals, reg_signals, out_signals
             object reserved_signals
-        object cis_class
         object _environments
+
+cdef class Constructor:
+    cdef:
+        cConstructor_ptr _shared
+        cConstructor *_this
+        readonly:
+            object world, gene_class, module_class
 
 cdef class Target:
     cdef:
         cTarget *ctarget
         readonly:
-            Factory factory
+            World world
 
 cdef class Network:
     cdef:
         readonly:
-            Factory factory
-            bint ready
-            bint dirty
+            Constructor constructor
 
         # Because we hold a reference to the shared_ptr, we know we can always
         # safely access the ACTUAL pointer. We keep the pointer around too, as
@@ -63,19 +67,17 @@ cdef class CisModule:
         readonly:
             Gene gene
 
-    cdef reset_network(self)
+cdef class NetworkCollection:
+    cdef:
+        readonly: 
+            Constructor constructor
+        cNetworkVector cnetworks
+
+    cdef object get_at(self, size_t i)
 
 cdef class NetworkAnalysis:
     cdef:
         cNetworkAnalysis *canalysis
         readonly:
             Network network
-
-cdef class NetworkCollection:
-    cdef:
-        readonly: 
-            Factory factory
-        cNetworkVector cnetworks
-
-    cdef object get_at(self, size_t i)
 

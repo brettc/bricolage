@@ -4,13 +4,13 @@
 
 using namespace pubsub2;
 
-cTarget::cTarget(cFactory *f)
-    : factory(f) 
-    , identifier(f->get_next_target_ident())
+cTarget::cTarget(const cWorld_ptr &w)
+    : world(w) 
+    , identifier(w->get_next_target_ident())
 {
     cRates temp;
-    std::fill_n(std::back_inserter(temp), f->out_channels, 0.0);
-    std::fill_n(std::back_inserter(optimal_rates), f->environments.size(), temp);
+    std::fill_n(std::back_inserter(temp), w->out_channels, 0.0);
+    std::fill_n(std::back_inserter(optimal_rates), w->environments.size(), temp);
 }
 
 
@@ -26,7 +26,7 @@ double cTarget::assess(const cNetwork &net)
 
     // TODO: check that factories are the same?
     size_t nsize = net.rates.size();
-    size_t osize = factory->out_channels;
+    size_t osize = world->out_channels;
 
     if (nsize != optimal_rates.size())
         throw std::runtime_error("optimal rates and networks rates differ in size");
@@ -59,8 +59,8 @@ double cTarget::assess(const cNetwork &net)
 }
 
 
-cSelectionModel::cSelectionModel(cFactory_ptr &f)
-    : factory(f)
+cSelectionModel::cSelectionModel(cWorld_ptr &w)
+    : world(w)
 {
 }
 
@@ -100,7 +100,7 @@ bool cSelectionModel::select(
     std::uniform_real_distribution<double> wheel(0.0, cum_score);
     for (size_t i = 0; i < number; ++i)
     {
-        double locator = wheel(factory->rand);
+        double locator = wheel(world->rand);
         auto it = std::lower_bound(cum_scores.begin(), cum_scores.end(), locator);
         size_t found_index = it - cum_scores.begin();
 

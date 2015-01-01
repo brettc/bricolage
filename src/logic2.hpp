@@ -1,46 +1,82 @@
 #pragma once
 
+#include <functional>
 #include "core.hpp"
 
-namespace pubsub2 {
+namespace logic2 {
 
-struct cConstructorLogic2 : public cConstructor
+typedef int_fast16_t operand_t;
+typedef std::vector<operand_t> cOperands;
+
+typedef std::function<int()> random_int_t;
+inline random_int_t random_int_range(int a, int b, const pubsub2::cWorld_ptr &w)
+{ 
+    return std::bind(std::uniform_int_distribution<>(a, b-1), w->rand);
+}
+
+struct cConstructor : public pubsub2::cConstructor
 {
-    cConstructorLogic2(cFactory &f, size_t gene_count_, size_t cis_count,
-                       const cOperands &ops);
+    cConstructor(const pubsub2::cWorld_ptr &w, size_t module_count, const cOperands &ops);
+    size_t gene_count, module_count;
     cOperands operands;
-    randint_t r_oper;
+    random_int_t r_gene, r_module, r_operand, r_site, r_input;
 
     // Overrides
-    cCisModule *construct_cis();
-    void mutate_cis(cCisModule *m);
+    pubsub2::cNetwork_ptr construct();
+    size_t site_count(pubsub2::cNetworkVector &networks);
 };
 
-class cCisModuleLogic2 : public cCisModule
+class cCisModule : public pubsub2::cCisModule
 {
 public:
-    cCisModuleLogic2() { _channels = channels; }
+    cCisModule(const cConstructor &c);
 
+    // Overrides
     size_t site_count() const { return 2; }
-    virtual cCisModule* clone() const;
-    void mutate();
+    void mutate(const cConstructor &c);
 
     // Inline this stuff. It won't change.
     inline bool test(unsigned int a, unsigned int b) const 
     { 
-        // Note: C++ standard guarantees integral conversion from bool results
-        // in 0 or 1.
+        // Note: C++ standard guarantees that integral conversion from bool
+        // will result in 0 or 1.
         return op & (8 >> ((a << 1) | b)); 
     }
 
-    inline bool is_active(cChannelState const &state) const 
+    inline bool is_active(pubsub2::cChannelState const &state) const 
     {
         return test(state.test(channels[0]), state.test(channels[1]));
     }
-// protected:
-    // Default constructor is fine
+
     operand_t op;
-    signal_t channels[2];
 };
+
+class cGene : public pubsub2::cGene
+{
+public:
+    cGene(pubsub2::sequence_t sequence, pubsub2::signal_t p);
+    std::vector<cCisModule> modules;
+
+    // Overrides
+    size_t module_count() const { return modules.size(); }
+    pubsub2::cCisModule *get_module(size_t i) { return &modules[i]; }
+};
+
+
+class cNetwork : public pubsub2::cNetwork
+{
+public:
+    cNetwork(const pubsub2::cConstructor_ptr &c);
+    std::vector<cGene> genes;
+
+    // Overrides
+    virtual size_t gene_count() const { return genes.size(); }
+    virtual cGene *get_gene(size_t i) { return &genes[i]; }
+    virtual void mutate(size_t nmutations);
+    pubsub2::cNetwork_ptr clone() const;
+    void cycle(pubsub2::cChannelState &c) const;
+    void cycle_with_intervention(pubsub2::cChannelState &c) const;
+};
+
 
 }

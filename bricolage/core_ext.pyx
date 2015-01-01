@@ -5,7 +5,7 @@
 
 import cython
 import numpy
-from operand import Operand
+# from operand import Operand
 
 # cimports
 cimport numpy as np
@@ -21,8 +21,8 @@ cdef class ChannelStateFrozen:
     def __cinit__(self):
         pass
 
-    cdef init(self, cFactory_ptr &f, cChannelState &p):
-        self.cfactory_ptr = f
+    cdef init(self, cWorld_ptr &w, cChannelState &p):
+        self.cworld_ptr = w
         self.cchannel_state = p
 
     def test(self, size_t i):
@@ -39,16 +39,16 @@ cdef class ChannelStateFrozen:
             return self.cchannel_state.size()
 
     def __str__(self):
-        # TODO: Clean this function up---it is a bit rough.
+        # TODO: Clean this function up---it is really crappy
         cdef:
             string cstr
-            cFactory *f = self.cfactory_ptr.get()
+            cWorld *w = self.cworld_ptr.get()
 
-        if f == NULL:
+        if w == NULL:
             # TODO: Some proper exceptions would be good...
             raise RuntimeError
 
-        cdef size_t cuereg = f.cue_channels + f.reg_channels
+        cdef size_t cuereg = w.cue_channels + w.reg_channels
 
         to_string(self.cchannel_state, cstr)
 
@@ -56,15 +56,15 @@ cdef class ChannelStateFrozen:
         # Also, clip the reserved channels 
         # TODO: fix this nasty hack
         s = cstr[::-1][2:]
-        env = s[:f.cue_channels]
-        reg = s[f.cue_channels:cuereg]
+        env = s[:w.cue_channels]
+        reg = s[w.cue_channels:cuereg]
         out = s[cuereg:]
 
         return env + '|' + reg + '|' + out
 
     def __copy__(self):
         other = ChannelState()
-        other.init(self.cfactory_ptr, self.cchannel_state)
+        other.init(self.cworld_ptr, self.cchannel_state)
         return other
 
     def copy(self):
@@ -82,7 +82,7 @@ cdef class ChannelStateFrozen:
         return vals
 
     def __repr__(self):
-        return "<ChannelStateFrozen: {}>".format(self.__str__())
+        return "<ChannelsRO: {}>".format(self.__str__())
 
 
 cdef class ChannelState(ChannelStateFrozen):
@@ -109,53 +109,31 @@ cdef class ChannelState(ChannelStateFrozen):
         self.cchannel_state |= other.cchannel_state
 
     def __repr__(self):
-        return "<ChannelState: {}>".format(self.__str__())
+        return "<Channels: {}>".format(self.__str__())
 
 
-cdef class Factory:
+cdef class World:
     def __cinit__(self, params):
-        self.cfactory_ptr = cFactory_ptr(new cFactory(
+        self.cworld_ptr = cWorld_ptr(new cWorld(
             params.seed, 
             params.cue_channels, 
             params.reg_channels, 
             params.out_channels,
         ))
-        self.cfactory = self.cfactory_ptr.get()
+        self.cworld = self.cworld_ptr.get()
 
         self.reserved_signals = set([on_channel, off_channel])
-        self.cue_signals = set(range(*self.cfactory.cue_range))
-        self.reg_signals = set(range(*self.cfactory.reg_range))
-        self.out_signals = set(range(*self.cfactory.out_range))
-        self.sub_signals = set(range(*self.cfactory.sub_range))
-        self.pub_signals = set(range(*self.cfactory.pub_range))
+        self.cue_signals = set(range(*self.cworld.cue_range))
+        self.reg_signals = set(range(*self.cworld.reg_range))
+        self.out_signals = set(range(*self.cworld.out_range))
+        self.sub_signals = set(range(*self.cworld.sub_range))
+        self.pub_signals = set(range(*self.cworld.pub_range))
 
-    def create_network(self):
-        cdef:
-            cNetwork *net = new cNetwork(self.cfactory_ptr)
-            cNetwork_ptr ptr = cNetwork_ptr(net)
-
-        self.cfactory.constructor.construct_network(deref(net))
-        n = Network(self)
-        n.bind_to(ptr)
-        return n
-
-    def create_collection(self, size_t size):
-        cdef:
-            cNetwork_ptr ptr
-            size_t i
-
-        nc = NetworkCollection(self)
-        for i in range(size):
-            ptr = cNetwork_ptr(new cNetwork(self.cfactory_ptr))
-            self.cfactory.constructor.construct_network(deref(ptr.get()))
-            nc.cnetworks.push_back(ptr)
-
-        return nc
 
     def create_state(self):
         c = ChannelState()
-        c.cchannel_state.resize(self.cfactory.channel_count)
-        c.cfactory_ptr = self.cfactory_ptr
+        c.cchannel_state.resize(self.cworld.channel_count)
+        c.cworld_ptr = self.cworld_ptr
         return c
 
     property environments:
@@ -163,11 +141,11 @@ cdef class Factory:
             if self._environments is not None:
                 return self._environments
 
-            cdef vector[cChannelState].iterator i =  self.cfactory.environments.begin()
+            cdef vector[cChannelState].iterator i =  self.cworld.environments.begin()
             envs = []
-            while i != self.cfactory.environments.end():
+            while i != self.cworld.environments.end():
                 p = ChannelStateFrozen()
-                p.init(self.cfactory_ptr, deref(i))
+                p.init(self.cworld_ptr, deref(i))
                 envs.append(p)
                 preinc(i)
 
@@ -176,26 +154,26 @@ cdef class Factory:
 
     # Some routines just for testing, mainly for testing (NOT fast)
     def seed_random_engine(self, int s):
-        self.cfactory.rand.seed(s)
+        self.cworld.rand.seed(s)
 
     def get_random_double(self, double low, double high):
-        return self.cfactory.get_random_double(low, high)
+        return self.cworld.get_random_double(low, high)
 
     def get_random_int(self, int low, int high):
-        return self.cfactory.get_random_int(low, high)
+        return self.cworld.get_random_int(low, high)
 
     property cue_channels:
         def __get__(self):
-            return self.cfactory.cue_channels
+            return self.cworld.cue_channels
     property reg_channels:
         def __get__(self):
-            return self.cfactory.reg_channels
+            return self.cworld.reg_channels
     property out_channels:
         def __get__(self):
-            return self.cfactory.out_channels
+            return self.cworld.out_channels
     property channel_count:
         def __get__(self):
-            return self.cfactory.channel_count
+            return self.cworld.channel_count
     # property off_channel:
     #     def __get__(self):
     #         return off_channel
@@ -205,19 +183,19 @@ cdef class Factory:
 
     property cue_range:
         def __get__(self):
-            return self.cfactory.cue_range
+            return self.cworld.cue_range
     property reg_range:
         def __get__(self):
-            return self.cfactory.reg_range
+            return self.cworld.reg_range
     property out_range:
         def __get__(self):
-            return self.cfactory.out_range
+            return self.cworld.out_range
     property sub_range:
         def __get__(self):
-            return self.cfactory.sub_range
+            return self.cworld.sub_range
     property pub_range:
         def __get__(self):
-            return self.cfactory.pub_range
+            return self.cworld.pub_range
     
     def name_for_channel(self, c):
         sz = 1
@@ -228,55 +206,29 @@ cdef class Factory:
         # We use "mathematical" number, starting at 1.0
         if c in self.out_signals:
             return "P{0:0{1:}d}".format(
-                c + 1 - self.cfactory.out_range.first, sz)
+                c + 1 - self.cworld.out_range.first, sz)
         if c in self.reg_signals:
             return "T{0:0{1:}d}".format(
-                c + 1 - self.cfactory.reg_range.first, sz)
+                c + 1 - self.cworld.reg_range.first, sz)
         return "E{0:0{1:}d}".format(
-            c + 1 - self.cfactory.cue_range.first, sz)
+            c + 1 - self.cworld.cue_range.first, sz)
 
-
-cdef class Target:
-    def __cinit__(self, Factory f, init_func):
-        self.factory = f
-        self.ctarget = new cTarget(f.cfactory)
-        a, b = f.cfactory.cue_range
-
-        # Slow and cumbersome, but it doesn't matter
-        for i, e in enumerate(f.environments):
-            # TODO: Clean up the refs here
-            outputs = init_func(e.as_array()[a:b])
-            if len(outputs) != f.out_channels:
-                raise RuntimeError
-
-            for j, val in enumerate(outputs):
-                self.ctarget.optimal_rates[i][j] = float(val)
-
-    def __dealloc__(self):
-        del self.ctarget
-
-    def assess(self, Network net):
-        assert net.factory is self.factory
-        return self.ctarget.assess(deref(net.cnetwork));
-
-    def as_array(self):
-        return numpy.array(self.ctarget.optimal_rates)
-
+cdef class Constructor:
+    def __cinit__(self, World w, params):
+        self.world = w
+        self.gene_class = Gene
+        self.module_class = CisModule
 
 cdef class Network:
-    # Networks take two stages. You need to create the python object and then
-    # bind it to a cNetwork_ptr.
-    def __cinit__(self, Factory factory):
-        self.factory = factory
-        self.ready = False
-        self.dirty = False
-        self._genes = None
+    def __cinit__(self, Constructor c):
+        self.constructor = c
+        cdef cNetwork_ptr ptr = c._this.construct()
+        self.bind_to(ptr)
 
     cdef bind_to(self, cNetwork_ptr &ptr):
         self.ptr = ptr
         self.cnetwork = self.ptr.get()
         self.cnetwork.pyobject = <void *>(self)
-        self.ready = True
 
     def __dealloc__(self):
         self.cnetwork.pyobject = <void *>0
@@ -291,27 +243,33 @@ cdef class Network:
 
     property gene_count:
         def __get__(self):
-            return self.cnetwork.genes.size()
+            return self.cnetwork.gene_count()
 
     property genes:
         def __get__(self):
             if self._genes is None:
-                self._genes = tuple(Gene(self, i) for i in range(self.gene_count))
+                self._genes = tuple(self.constructor.gene_class(self, i) for i in range(self.gene_count))
             return self._genes
 
     def cycle(self, ChannelState c):
         self.cnetwork.cycle(c.cchannel_state)
 
-    def mutated(self, size_t nmutations):
-        """Return a mutated version..."""
-        cdef:
-            cConstructor *c = self.factory.cfactory.constructor
-            cNetwork_ptr new_ptr
+    def cycle_with_intervention(self, ChannelState c):
+        self.cnetwork.cycle_with_intervention(c.cchannel_state)
 
-        new_ptr = c.copy_and_mutate_network(self.ptr, nmutations)
-        new_net = Network(self.factory)
-        new_net.bind_to(new_ptr)
-        return new_net
+    def _evil_mutate(self, size_t nmutations):
+        """Mutate the network. 
+
+        This invalidates lots of assumptions required for selection to work
+        correctly. Use only if you understand what you are doing.
+        """
+        self.cnetwork.mutate(nmutations)
+        self._invalidate_cached()
+
+    def _invalidate_cached(self):
+        self.cnetwork.calc_attractors()
+        self._attractors = None
+        self._rates = None
 
     property attractors:
         """A tuple containing the attractors for each environment"""
@@ -323,7 +281,7 @@ cdef class Network:
             cdef:
                 vector[cChannelStateVector].iterator cattr_iter
                 vector[cChannelState].iterator cstate_iter
-                
+
             attrs = []
             cattr_iter = self.cnetwork.attractors.begin()
             while cattr_iter != self.cnetwork.attractors.end():
@@ -331,7 +289,7 @@ cdef class Network:
                 cstate_iter = deref(cattr_iter).begin()
                 while cstate_iter != deref(cattr_iter).end():
                     c = ChannelStateFrozen()
-                    c.init(self.factory.cfactory_ptr, deref(cstate_iter))
+                    c.init(self.constructor._this.world, deref(cstate_iter))
                     attr.append(c)
                     preinc(cstate_iter)
 
@@ -342,7 +300,6 @@ cdef class Network:
 
             # Again: tuples, so you can't mess with it.
             self._attractors = tuple(attrs)
-            self.dirty = False
             return self._attractors
 
     property rates:
@@ -353,16 +310,16 @@ cdef class Network:
                 return self._rates
 
             # Construct the numpy array via python
-            r = numpy.zeros((self.factory.cfactory.environments.size(),
-                         self.factory.cfactory.out_channels))
+            r = numpy.zeros((self.world.cworld.environments.size(),
+                         self.world.cworld.out_channels))
 
             cdef:
                 np.npy_double[:,:] c_r = r
                 size_t i, j
 
             # Copy in the goods using a memory array
-            for i in range(self.factory.cfactory.environments.size()):
-                for j in range(self.factory.cfactory.out_channels):
+            for i in range(self.world.cworld.environments.size()):
+                for j in range(self.world.cworld.out_channels):
                     c_r[i, j] = self.cnetwork.rates[i][j]
 
             # Don't mess with it!
@@ -381,22 +338,15 @@ cdef class Network:
     def __repr__(self):
         return "<Network id:{} pt:{}>".format(self.identifier, self.parent_identifier)
 
-    # def testing(self):
-    #     cdef cGene *g = self.cnetwork.genes[0];
-    #     cdef cCisModule *m = g.modules[0];
-    #     print 'one'
-    #     cdef cCisModuleLogic2 *ml = dynamic_cast_cCisModuleLogic2(m)
-    #     print ml.op
-
 
 cdef class Gene:
     """A proxy to a gene.
     """
     def __cinit__(self, Network n, size_t g):
-        """This should never be called publicly"""
+        """This is not meant to be called publicly"""
         self.network = n
         self.gene_number = g
-        self.cgene = self.network.cnetwork.genes[g]
+        self.cgene = self.network.cnetwork.get_gene(g)
 
     property sequence:
         def __get__(self):
@@ -406,117 +356,79 @@ cdef class Gene:
         def __get__(self):
             return self.cgene.pub
 
+    property intervene:
+        def __get__(self):
+            return self.cgene.intervene
+
+    # def _evil_set_pub(self, size_t p):
+    #     assert p in self.network.world.pub_signals
+    #     # self.cgene.pub = p
+    #     self.network._invalidate_cached()
+
     property module_count:
         def __get__(self):
-            return self.cgene.modules.size()
+            return self.cgene.module_count()
 
     property modules:
         def __get__(self):
             # Lazy construction
             if self._modules is None:
-                self._modules = tuple(self.network.factory.cis_class(self, i) 
+                self._modules = tuple(self.network.constructor.module_class(self, i) 
                     for i in range(self.module_count))
             return self._modules
 
     def __repr__(self):
-        f = self.network.factory
-        return "<Gene[{}]: {}>".format(self.sequence, f.name_for_channel(self.pub))
+        w = self.network.constructor.world
+        return "<Gene[{}]: {}>".format(self.sequence, w.name_for_channel(self.pub))
 
 
 cdef class CisModule:
     """A proxy to a CisModule.
     """
-
     def __cinit__(self, Gene g, size_t i):
         self.gene = g
-        assert i < g.cgene.modules.size()
-        self.ccismodule = g.cgene.modules[i]
+        assert i < g.cgene.module_count()
+        self.ccismodule = g.cgene.get_module(i)
 
     def site_count(self):
         return self.ccismodule.site_count()
 
     def get_site(self, size_t i):
         assert i < self.ccismodule.site_count()
-        return self.ccismodule.get_site_channel(i)
+        return self.ccismodule.get_site(i)
 
-    cdef reset_network(self):
-        self.gene.network._attractors = None
-        self.gene.network._rates = None
-        self.gene.network.cnetwork.calc_attractors()
+    def _evil_set_site(self, size_t i, size_t c):
+        assert c in self.gene.network.world.sub_signals
+        old = self.ccismodule.set_site(i, c)
+        self.gene.network._invalidate_cached()
+        return old
+
+    property intervene:
+        def __get__(self):
+            return self.ccismodule.intervene
 
     property channels:
         def __get__(self):
-            return tuple(self.ccismodule.get_site_channel(i)
+            return tuple(self.ccismodule.get_site(i)
                          for i in range(self.ccismodule.site_count()))
 
     property channel_names:
         def __get__(self):
-            f = self.gene.network.factory
-            return [f.name_for_channel(c) for c in self.channels]
-
-    # property op:
-    #     def __get__(self):
-    #         return self.ccismodule.op
-    #
-    # property sub1:
-    #     def __get__(self):
-    #         return self.ccismodule.sub1
-    #     def __set__(self, size_t c):
-    #         self.ccismodule.sub1 = c
-    #         self.reset_network()
-    #
-    # property sub2:
-    #     def __get__(self):
-    #         return self.ccismodule.sub2
-    #     def __set__(self, size_t c):
-    #         self.ccismodule.sub2 = c
-    #         self.reset_network()
-
-    # def __cmp__(self, CisModule other):
-    #     cdef int retval 
-    #     retval = c_cmp(self.ccismodule.op, other.ccismodule.op)
-    #     if retval != 0:
-    #         return retval
-    #     retval = c_cmp(self.ccismodule.sub1, other.ccismodule.sub1)
-    #     if retval != 0:
-    #         return retval
-    #     return c_cmp(self.ccismodule.sub2, other.ccismodule.sub2)
-
-    # def test(self, unsigned int a, unsigned int b):
-    #     return self.ccismodule.test(a, b)
-
-    def is_active(self, ChannelState p):
-        return self.ccismodule.is_active(p.cchannel_state)
-
-
-cdef class NetworkAnalysis:
-    def __cinit__(self, Network net):
-        self.network = net
-        self.canalysis = new cNetworkAnalysis(net.ptr)
-        # self.canalysis.find_knockouts()
-
-    def __dealloc__(self):
-        del self.canalysis
-
-    def get_edges(self):
-        cdef:
-            cEdgeList edges
-        self.canalysis.make_edges(edges)
-        return edges
-
-    def get_active_edges(self):
-        cdef:
-            cEdgeList edges
-        self.canalysis.make_active_edges(edges)
-        return edges
+            w = self.gene.network.world
+            return [w.name_for_channel(c) for c in self.channels]
 
 
 cdef class NetworkCollection:
-    def __cinit__(self, Factory factory):
-        self.factory = factory
+    def __cinit__(self, Constructor c, size_t size):
+        self.constructor = c
+        self.cnetworks.reserve(size)
+        cdef size_t i
+        for i in range(size):
+            self.cnetworks.push_back(c._this.construct())
 
     def add(self, Network n):
-        assert n.factory is self.factory
+        # TODO: Mix different network types?
+        assert n.constructor is self.constructor
         self.cnetworks.push_back(n.ptr)
 
     cdef object get_at(self, size_t i):
@@ -529,12 +441,13 @@ cdef class NetworkCollection:
 
         # Is there an existing python object?
         # Note: cython automatically increments the reference count when we do
-        # this (which is what we want)
+        # this (which is what we want). This move just means we get object
+        # identity, at least while one python reference continues to exist.
         if net.pyobject:
             return <object>(net.pyobject)
 
-        # Nope. So we need to create a new python wrapper object
-        n = Network(self.factory)
+        # Nope. We need to create a new python wrapper object
+        n = Network(self.constructor)
         n.bind_to(ptr)
         return n
 
@@ -542,8 +455,9 @@ cdef class NetworkCollection:
         def __get__(self):
             return self.cnetworks.size()
 
-    # def get_max_fitness(self):
-    #     return max_fitness(self.cnetworks);
+    property site_count:
+        def __get__(self):
+            return self.constructor._this.site_count(self.cnetworks)
 
     def __getitem__(self, size_t i):
         return self.get_at(i)
@@ -557,7 +471,7 @@ cdef class NetworkCollection:
 
     def mutate(self, double site_rate):
         cdef cIndexes mutated
-        self.factory.cfactory.constructor.mutate_collection(
+        self.constructor._this.mutate_collection(
             self.cnetworks, mutated, site_rate)
         # Return indexes of the mutated networks. Automatic conversion (thank
         # you Cython)
@@ -571,7 +485,7 @@ cdef class NetworkCollection:
             cIndexes indexes
             cNetworkVector new_networks
 
-        sm = new cSelectionModel(self.factory.cfactory_ptr)
+        sm = new cSelectionModel(self.constructor._this.world)
         sel = sm.select(self.cnetworks, deref(target.ctarget), 
                      self.cnetworks.size(), indexes)
         if sel:
@@ -596,10 +510,64 @@ cdef class NetworkCollection:
             cIndexes indexes
             cNetworkVector new_networks
 
-        sm = new cSelectionModel(self.factory.cfactory_ptr)
+        sm = new cSelectionModel(self.constructor._this.world)
 
         sel = sm.select(self.cnetworks, deref(target.ctarget), 
                      self.cnetworks.size(), indexes)
 
         return indexes
 
+cdef class Target:
+    def __cinit__(self, World w, init_func):
+        self.world = w
+        self.ctarget = new cTarget(w.cworld_ptr)
+        a, b = w.cworld.cue_range
+
+        # Slow and cumbersome, but it doesn't matter
+        for i, e in enumerate(w.environments):
+            # TODO: Clean up the refs here
+            outputs = init_func(*e.as_array()[a:b])
+            try:
+                s = len(outputs)
+            except TypeError:
+                # Must be a single value...
+                outputs = [outputs]
+                s = 1
+
+            if len(outputs) != w.out_channels:
+                raise RuntimeError(
+                    "return value of Target function must be length %s" % w.out_channels)
+
+            for j, val in enumerate(outputs):
+                self.ctarget.optimal_rates[i][j] = float(val)
+
+    def __dealloc__(self):
+        del self.ctarget
+
+    def assess(self, Network net):
+        assert net.world is self.world
+        return self.ctarget.assess(deref(net.cnetwork));
+
+    def as_array(self):
+        return numpy.array(self.ctarget.optimal_rates)
+
+
+cdef class NetworkAnalysis:
+    def __cinit__(self, Network net):
+        self.network = net
+        self.canalysis = new cNetworkAnalysis(net.ptr)
+
+    def __dealloc__(self):
+        del self.canalysis
+
+    def get_edges(self):
+        cdef:
+            cEdgeList edges
+        self.canalysis.make_edges(edges)
+        return edges
+
+    def get_active_edges(self):
+        cdef:
+            cEdgeList edges
+        self.canalysis.make_active_edges(edges)
+        return edges

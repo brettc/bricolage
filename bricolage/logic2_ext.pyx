@@ -4,48 +4,56 @@
 # cython: cdivision=True
 
 from .operand import Operand
-from cython.operator import dereference as deref, preincrement as preinc
-from grn cimport *
+from logic2_cpp cimport *
 cimport core_ext
 
-cdef class Factory(core_ext.Factory):
-    def __cinit__(self, params):
-        # Create a mutator
-        self.cfactory.constructor = new cConstructorLogic2(
-            deref(self.cfactory),
-            params.gene_count,
+cdef class Constructor(core_ext.Constructor):
+    def __cinit__(self, core_ext.World w, params):
+        self._shared = grn.cConstructor_ptr(new cConstructor(
+            w.cworld_ptr,
             params.cis_count,
-            params.operands
-        )
+            params.operands,
+        ))
+        self._this = self._shared.get()
 
-        self.cis_class = CisModule
+        # Specialise the python classes
+        self.module_class = CisModule
 
+    property gene_count:
+        def __get__(self):
+            cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 
+            return c.gene_count
+    
+    property module_count:
+        def __get__(self):
+            cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 
+            return c.module_count
+
+    property operands:
+        def __get__(self):
+            cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 
+            return [Operand(_) for _ in c.operands]
     
 cdef class CisModule(core_ext.CisModule):
-    cdef:
-        cCisModuleLogic2 *logic2
-
-    def __cinit__(self, core_ext.Gene g, size_t i):
-        self.logic2 = dynamic_cast_cCisModuleLogic2(self.ccismodule)
-
     property op:
         def __get__(self):
-            return self.logic2.op
+            cdef cCisModule *cm = dynamic_cast_cCisModule(self.ccismodule) 
+            return Operand(cm.op)
 
     property sub1:
         def __get__(self):
-            return self.logic2.channels[0]
+            return self.ccismodule.channels[0]
 
     property sub2:
         def __get__(self):
-            return self.logic2.channels[1]
+            return self.ccismodule.channels[1]
 
     def __str__(self):
-        f = self.gene.network.factory
+        w = self.gene.network.constructor.world
         return "{}({}, {})".format(
-            Operand(self.op).name,
-            f.name_for_channel(self.logic2.channels[0]),
-            f.name_for_channel(self.logic2.channels[1]),
+            self.op.name,
+            w.name_for_channel(self.ccismodule.channels[0]),
+            w.name_for_channel(self.ccismodule.channels[1]),
         )
 
     def __repr__(self):

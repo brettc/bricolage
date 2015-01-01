@@ -4,13 +4,10 @@ from utility cimport *
 cdef extern from "<src/core.hpp>" namespace "pubsub2":
     ctypedef unsigned int signal_t
 
-    ctypedef unsigned int operand_t
     ctypedef unsigned int sequence_t
     ctypedef int int_t
     ctypedef random_engine_t
     ctypedef uniform_int_distribution[size_t] randint_t
-
-    ctypedef vector[operand_t] cOperands
 
     ctypedef dynamic_bitset[size_t] cChannelState
     ctypedef vector[cChannelState] cChannelStateVector
@@ -26,10 +23,16 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
     cdef cppclass cConstructor
     cdef cppclass cNetwork
     ctypedef shared_ptr[cNetwork] cNetwork_ptr
+    ctypedef shared_ptr[cConstructor] cConstructor_ptr
     ctypedef vector[cNetwork_ptr] cNetworkVector
         
-    cdef cppclass cFactory:
-        cFactory(size_t seed, size_t cue, size_t reg, size_t out)
+    cdef enum InterventionState:
+        INTERVENE_NONE = 0
+        INTERVENE_ON = 1
+        INTERVENE_OFF = 2
+
+    cdef cppclass cWorld:
+        cWorld(size_t seed, size_t cue, size_t reg, size_t out)
         mt19937 rand
         size_t cue_channels, reg_channels, out_channels
         size_t channel_count
@@ -39,51 +42,56 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         pair[size_t, size_t] sub_range
         pair[size_t, size_t] pub_range
         cChannelStateVector environments
-        cConstructor *constructor
         double get_random_double(double low, double high)
         double get_random_int(int low, int high)
 
-    ctypedef shared_ptr[cFactory] cFactory_ptr
+    ctypedef shared_ptr[cWorld] cWorld_ptr
 
     cdef cppclass cConstructor:
         cConstructor()
-        cConstructor(cFactory &f, size_t gene_count_, size_t cis_count_)
-        void construct_network(cNetwork &network);
-        void mutate_network(cNetwork_ptr &n, size_t n)
-        cNetwork_ptr copy_and_mutate_network(
-            cNetwork_ptr &n, size_t mutations)
-        void mutate_collection(
-            cNetworkVector &networks, cIndexes &mutated, double site_rate)
-        size_t gene_count, cis_count;
-        randint_t r_gene, r_cis, r_sub;
+        cNetwork_ptr construct()
+        size_t site_count(cNetworkVector &networks)
+        void mutate_collection(cNetworkVector &networks, 
+                               cIndexes &mutated, double site_rate)
+        cWorld_ptr world
 
+    
     cdef cppclass cCisModule:
-        # bint test(unsigned int a, unsigned int b)
-        bint is_active(dynamic_bitset[size_t] s)
-        signal_t get_site_channel(size_t index)
-        signal_t set_site_channel(size_t index, signal_t channel);
+        signal_t get_site(size_t index)
+        signal_t set_site(size_t index, signal_t channel);
         size_t site_count()
-        
-    ctypedef vector[cCisModule *] cCisModules
+        InterventionState intervene
+        signal_t *channels
 
     cdef cppclass cGene:
-        sequence_t sequence;
-        cCisModules modules;
+        size_t module_count()
+        const cCisModule *get_module(size_t i)
+        sequence_t sequence
         signal_t pub
+        InterventionState intervene
 
     cdef cppclass cNetwork:
-        cNetwork(cFactory_ptr)
-        void *pyobject
-        vector[cGene *] genes
-        int_t identifier, parent_identifier
-        size_t gene_count
+        cNetwork(cConstructor_ptr &)
+
         void cycle(cChannelState c)
+        void cycle_with_intervention(cChannelState c)
+        size_t gene_count()
+        void mutate(size_t)
+        cGene *get_gene(size_t)
+        void calc_attractors()
+        void calc_attractors_with_intervention()
+        
+        void *pyobject
+        int_t identifier, parent_identifier
         cAttractors attractors
         cRatesVector rates
         int_t target
         double fitness
-        void calc_attractors()
-        bint is_detached()
+        # bint is_detached()
+        
+        # TODO: Needed for cython bug, never used
+        # See https://groups.google.com/forum/#!topic/cython-users/ko7X_fQ0n9Q
+        cNetwork() 
 
     ctypedef pair[char, size_t] Node_t
     ctypedef pair[Node_t, Node_t] Edge_t
@@ -94,22 +102,22 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         void make_active_edges(cEdgeList e)
         void make_edges(cEdgeList e)
 
-    # ctypedef shared_ptr[cNetwork] cNetwork_ptr
-    # cNetwork_ptr get_detached_copy(cNetwork_ptr)
-    # ctypedef shared_ptr[const cNetwork] cConstNetwork_ptr
-    # ctypedef vector[cConstNetwork_ptr] cNetworkVector
-    ctypedef vector[cNetwork_ptr] cNetworkVector
-
+    # # ctypedef shared_ptr[cNetwork] cNetwork_ptr
+    # # cNetwork_ptr get_detached_copy(cNetwork_ptr)
+    # # ctypedef shared_ptr[const cNetwork] cConstNetwork_ptr
+    # # ctypedef vector[cConstNetwork_ptr] cNetworkVector
+    # ctypedef vector[cNetwork_ptr] cNetworkVector
+    #
     cdef cppclass cTarget:
-        cTarget(cFactory *factory)
+        cTarget(cWorld_ptr &w)
         double assess(cNetwork &net)
-        cFactory *factory
+        cWorld *factory
         int_t identifier
         cRatesVector optimal_rates
 
     cdef cppclass cSelectionModel:
-        cSelectionModel(cFactory_ptr &factory)
-        cFactory_ptr factory
+        cSelectionModel(cWorld_ptr &factory)
+        cWorld_ptr factory
 
         bint select(
             const cNetworkVector &networks, cTarget &target, 
@@ -118,25 +126,16 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         void copy_using_indexes(
             const cNetworkVector &fr, cNetworkVector &to, const cIndexes &selected)
 
-cdef extern from "<src/logic2.hpp>" namespace "pubsub2":
-    cdef cppclass cConstructorLogic2(cConstructor):
-        cConstructorLogic2(cFactory &f, size_t gc, size_t cc, cOperands &ops)
+# cdef extern from "<src/logic2.hpp>" namespace "pubsub2":
+#     cdef cppclass cConstructorLogic2(cConstructor):
+#         cConstructorLogic2(cWorld &f, size_t gc, size_t cc, cOperands &ops)
+#
+#     cdef cppclass cCisModuleLogic2(cCisModule):
+#         operand_t op
+#         signal_t *channels
+#
+#     cCisModuleLogic2 * dynamic_cast_cCisModuleLogic2 \
+#         "dynamic_cast<pubsub2::cCisModuleLogic2 *>" (cCisModule *) except NULL
 
-    cdef cppclass cCisModuleLogic2(cCisModule):
-        operand_t op
-        signal_t *channels
 
-    cCisModuleLogic2 * dynamic_cast_cCisModuleLogic2 \
-        "dynamic_cast<pubsub2::cCisModuleLogic2 *>" (cCisModule *) except NULL
-
-cdef extern from "<src/threshold3.hpp>" namespace "pubsub2":
-    cdef cppclass cConstructorThreshold3(cConstructor):
-        cConstructorThreshold3(cFactory &f, size_t gc, size_t cc)
-
-    cdef cppclass cCisModuleThreshold3(cCisModule):
-        signal_t channels[3]
-        int_t binding[3]
-
-    cCisModuleThreshold3 * dynamic_cast_cCisModuleThreshold3 \
-        "dynamic_cast<pubsub2::cCisModuleThreshold3*>" (cCisModule *) except NULL
 
