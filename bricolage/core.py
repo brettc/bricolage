@@ -11,6 +11,7 @@ class Parameters(object):
         self.cue_channels = 2
         self.reg_channels = 1
         self.out_channels = 1
+        self._override(kwargs)
 
     def _override(self, kwargs):
         for k, v in kwargs.items():

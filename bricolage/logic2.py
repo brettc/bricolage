@@ -1,14 +1,16 @@
 from .operand import Operand
 import core
-from core_ext import World, Network, NetworkCollection, Target, NetworkAnalysis
-from logic2_ext import Constructor
+from .core_ext import (World, Network, Target, NetworkCollection,
+                       NetworkAnalysis)
+from .logic2_ext import Constructor
 
 __all__ = ["World", "Constructor", "Network", "Parameters", "Operand",
            "NetworkCollection", "Target", "NetworkAnalysis"]
 
 class Parameters(core.Parameters):
     def __init__(self, **kwargs):
-        core.Parameters.__init__(self, **kwargs)
+        # Add new parameters here-->
         self.operands = [Operand.AND, Operand.OR]
-        self._override(kwargs)
+        # <---
+        core.Parameters.__init__(self, **kwargs)
 

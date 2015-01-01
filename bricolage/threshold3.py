@@ -1,26 +1,15 @@
-from .core_ext import NetworkCollection, NetworkAnalysis, Target, World, Network
+import core
+from .core_ext import (World, Network, Target, NetworkCollection,
+                       NetworkAnalysis)
 from .threshold3_ext import Constructor
 
-__all__ = [
-    "Target", "NetworkCollection", "NetworkAnalysis", "World", "Network",
-    "Parameters", "Constructor"
-]
+__all__ = ["World", "Constructor", "Network", "Parameters",
+           "NetworkCollection", "Target", "NetworkAnalysis"]
 
-class Parameters(object):
+class Parameters(core.Parameters):
     def __init__(self, **kwargs):
-        # Defaults are provided here
-        self.seed = 1
-        self.cis_count = 3
-        self.cue_channels = 2
-        self.reg_channels = 3
-        self.out_channels = 1
-
-        self._override(kwargs)
-
-    def _override(self, kwargs):
-        for k, v in kwargs.items():
-            if hasattr(self, k):
-                setattr(self, k, v)
-            else:
-                raise RuntimeError("Invalid Operations")
+        # Add new parameters here-->
+        
+        # <---
+        core.Parameters.__init__(self, **kwargs)
 

@@ -309,17 +309,18 @@ cdef class Network:
             if self._rates is not None:
                 return self._rates
 
+            cdef cWorld *world = self.constructor._this.world.get()
+
             # Construct the numpy array via python
-            r = numpy.zeros((self.world.cworld.environments.size(),
-                         self.world.cworld.out_channels))
+            r = numpy.zeros((world.environments.size(), world.out_channels))
 
             cdef:
                 np.npy_double[:,:] c_r = r
                 size_t i, j
 
             # Copy in the goods using a memory array
-            for i in range(self.world.cworld.environments.size()):
-                for j in range(self.world.cworld.out_channels):
+            for i in range(world.environments.size()):
+                for j in range(world.out_channels):
                     c_r[i, j] = self.cnetwork.rates[i][j]
 
             # Don't mess with it!

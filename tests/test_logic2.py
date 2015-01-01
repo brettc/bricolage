@@ -79,7 +79,7 @@ def test_bad_access(c_3x2):
 # ---------- HERE 
 def network_cycle(network, curstate):
     """A Python version of what the C++ cycle does."""
-    nextstate = network.factory.create_state()
+    nextstate = network.constructor.world.create_state()
     for g in network.genes:
         for m in g.modules:
             if operand.calculate(m.op, curstate[m.sub1], curstate[m.sub2]):
@@ -100,65 +100,25 @@ def construct_attractor(net, env):
                 return tuple(path[i:])
         path.append(cur)
 
-def test_attractors(p_3x2, basic_params):
-    f = T.Factory(basic_params)
-    # f = T.Factory(p_3x2)
-    nc = f.create_collection(1)
+def test_attractors(c_3x2):
+    nc = T.NetworkCollection(c_3x2, 100)
     for net in nc:
-        pattractors = [construct_attractor(net, env) for env in f.environments]
+        pattractors = [construct_attractor(net, env) 
+                       for env in c_3x2.world.environments]
         # Make sure the attractors created in C++ are the same
         assert tuple(pattractors) == net.attractors
 
-        # It should be readonly
-        with pytest.raises(ValueError):
-            net.rates[0, 0] = 10.
-
-def test_collection(p_3x2):
-    f = T.Factory(p_3x2)
-
-    nets = f.create_collection(1000)
-
-    old_nets = [_ for _ in nets]
-    mutated = nets.mutate(.01)
-    #
-    # nmutations = 0
-    # for i, n in enumerate(nets):
-    #     if i in mutated:
-    #         nmutations += 1
-    #         assert n is not old_nets[i]
-    #     else:
-    #         assert n is old_nets[i]
-    #
-    # assert nmutations > 0
-
-def test_mutation(p_3x2):
-    f = T.Factory(p_3x2)
-    orig = f.create_network()
-    mute = orig.mutated(1)
-    print orig, mute
-    for g1, g2 in zip(orig.genes, mute.genes):
-        for m1, m2 in zip(g1.modules, g2.modules):
-            if m1 != m2:
-                print g1, m1
-                print g2, m2
-
-    for i, (a1, a2) in enumerate(zip(orig.attractors, mute.attractors)):
-        if a1 != a2:
-            print [str(x) for x in a1]
-            print [str(x) for x in a2]
-
-def test_rates(p_3x2):
-    f = T.Factory(p_3x2)
-    orig = f.create_network()
-    rates = orig.rates
+def test_rates(c_3x2):
+    network = T.Network(c_3x2)
+    rates = network.rates
 
     # It should be readonly
     with pytest.raises(ValueError):
         rates[0, 0] = 10.
 
+    nc = T.NetworkCollection(c_3x2, 100)
     # rates only include the output channels
-    outc = p_3x2.out_channels
-    nc = f.create_collection(100)
+    outc = c_3x2.world.out_channels
     for net in nc:
         for attr, rate in zip(net.attractors, net.rates):
             test_rate = numpy.zeros(outc)
@@ -166,6 +126,22 @@ def test_rates(p_3x2):
                 test_rate += state.as_array()[-outc:]
             test_rate /= len(attr)
             assert (test_rate == rate).all()
+
+# def test_mutation(c_3x2):
+#     orig = f.create_network()
+#     mute = orig.mutated(1)
+#     print orig, mute
+#     for g1, g2 in zip(orig.genes, mute.genes):
+#         for m1, m2 in zip(g1.modules, g2.modules):
+#             if m1 != m2:
+#                 print g1, m1
+#                 print g2, m2
+#
+#     for i, (a1, a2) in enumerate(zip(orig.attractors, mute.attractors)):
+#         if a1 != a2:
+#             print [str(x) for x in a1]
+#             print [str(x) for x in a2]
+
 
 @pytest.fixture
 def target_3x2():
@@ -190,127 +166,98 @@ def target_3x3():
         return 1, .5, 0
     return make_target
 
-def test_targets(p_3x2, target_3x2):
-    f = T.Factory(p_3x2)
-    targ = T.Target(f, target_3x2)
-    nc = f.create_collection(100)
-    for net in nc:
-        diffs = abs(targ.as_array() - net.rates)
-        scores = 1.0 - diffs
-
-        # These should be the same (approx)
-        assert abs(scores.mean() - targ.assess(net)) < 1e-12
-
+# def test_targets(p_3x2, target_3x2):
+#     f = T.Factory(p_3x2)
+#     targ = T.Target(f, target_3x2)
+#     nc = f.create_collection(100)
+#     for net in nc:
+#         diffs = abs(targ.as_array() - net.rates)
+#         scores = 1.0 - diffs
+#
+#         # These should be the same (approx)
+#         assert abs(scores.mean() - targ.assess(net)) < 1e-12
+#
         # summed = scores.sum(axis=1) * ch.fitness_contribution
         # summed = scores.sum(axis=1)
 
-def test_random_engine(p_3x2, target_3x2):
-    f = T.Factory(p_3x2)
-    f.seed_random_engine(1)
-    first_time = [f.get_random_double(0, 1) for _ in range(20)]
-    first_time += [f.get_random_int(0, 100) for _ in range(20)]
-    
-    f.seed_random_engine(1)
-    second_time = [f.get_random_double(0, 1) for _ in range(20)]
-    second_time += [f.get_random_int(0, 100) for _ in range(20)]
+# def test_selection(p_3x2, target_3x2):
+#     # TODO: Finish testing selection by python
+#     factory = T.Factory(p_3x2)
+#     target = T.Target(factory, target_3x2)
+#     population = factory.create_collection(1000)
+#
+#     # What does c++ do?
+#     factory.seed_random_engine(1)
+#     c_selection_indexes = population.selection_indexes(target)
+#
+#     # Now, do it in python
+#     factory.seed_random_engine(1)
+#     p_selection_indexes = []
+#     cum_scores = []
+#     cum_score = 0.0
+#     for net in population:
+#         cum_scores.append(cum_score)
+#         cum_score += target.assess(net)
+#
+#     indexes = []
 
-    assert first_time == second_time
-        
-def test_selection(p_3x2, target_3x2):
-    # TODO: Finish testing selection by python
-    factory = T.Factory(p_3x2)
-    target = T.Target(factory, target_3x2)
-    population = factory.create_collection(1000)
-
-    # What does c++ do?
-    factory.seed_random_engine(1)
-    c_selection_indexes = population.selection_indexes(target)
-
-    # Now, do it in python
-    factory.seed_random_engine(1)
-    p_selection_indexes = []
-    cum_scores = []
-    cum_score = 0.0
-    for net in population:
-        cum_scores.append(cum_score)
-        cum_score += target.assess(net)
-
-    indexes = []
-
-@pytest.fixture
-def params3x3():
-    return T.Parameters(
-        seed=1,
-        operands = [
-            T.Operand.NOT_A_AND_B,
-            T.Operand.A_AND_NOT_B,
-            T.Operand.NOR,
-            T.Operand.AND,
-        ],
-        cis_count=2,
-        reg_channels=3,
-        out_channels=3,
-        cue_channels=3,
-    )
-
-
-def not_test_analysis(params3x3, target_3x3):
-    factory = T.Factory(params3x3)
-    target = T.Target(factory, target_3x3)
-    net = factory.create_network()
-    ana = T.NetworkAnalysis(net)
-    edges = ana.get_edges()
-    ko = ana.get_knockouts()
-    # TODO: Extend this to a large selection 
-    for e in ko:
-        assert e in edges
-
-def nottest_play(target_3x3):
-    p = T.Parameters(
-        seed=4,
-        operands = [
-            T.Operand.NOT_A_AND_B,
-            T.Operand.A_AND_NOT_B,
-            T.Operand.AND,
-            T.Operand.NOR,
-            T.Operand.A_AND_NOT_B,
-            T.Operand.NOT_A_AND_B,
-        ],
-        cis_count=1,
-        reg_channels=8,
-        out_channels=3,
-        cue_channels=3,
-    )
-
-    factory = T.Factory(p)
-    target = T.Target(factory, target_3x3)
-    pop = factory.create_collection(1000)
-    while 1:
-        pop.select(target)
-        maxf = max([n.fitness for n in pop])
-        if maxf == 1.0:
-            break
-        pop.mutate()
-
-    winners = []
-    for net in pop:
-        if net.fitness == 1.0:
-            winners.append(net)
-
-    for net in winners:
-        for g in net.genes:
-            print g
-            for m in g.modules:
-                print '   ', m
-        ana = T.NetworkAnalysis(net)
-        for k in ana.knockouts:
-            print k
-
-        print '--edges'
-        for e in ana.get_edges():
-            print e
-
-        break
-
-        print '--'
-
+# def not_test_analysis(params3x3, target_3x3):
+#     factory = T.Factory(params3x3)
+#     target = T.Target(factory, target_3x3)
+#     net = factory.create_network()
+#     ana = T.NetworkAnalysis(net)
+#     edges = ana.get_edges()
+#     ko = ana.get_knockouts()
+#     # TODO: Extend this to a large selection 
+#     for e in ko:
+#         assert e in edges
+#
+# def nottest_play(target_3x3):
+#     p = T.Parameters(
+#         seed=4,
+#         operands = [
+#             T.Operand.NOT_A_AND_B,
+#             T.Operand.A_AND_NOT_B,
+#             T.Operand.AND,
+#             T.Operand.NOR,
+#             T.Operand.A_AND_NOT_B,
+#             T.Operand.NOT_A_AND_B,
+#         ],
+#         cis_count=1,
+#         reg_channels=8,
+#         out_channels=3,
+#         cue_channels=3,
+#     )
+#
+#     factory = T.Factory(p)
+#     target = T.Target(factory, target_3x3)
+#     pop = factory.create_collection(1000)
+#     while 1:
+#         pop.select(target)
+#         maxf = max([n.fitness for n in pop])
+#         if maxf == 1.0:
+#             break
+#         pop.mutate()
+#
+#     winners = []
+#     for net in pop:
+#         if net.fitness == 1.0:
+#             winners.append(net)
+#
+#     for net in winners:
+#         for g in net.genes:
+#             print g
+#             for m in g.modules:
+#                 print '   ', m
+#         ana = T.NetworkAnalysis(net)
+#         for k in ana.knockouts:
+#             print k
+#
+#         print '--edges'
+#         for e in ana.get_edges():
+#             print e
+#
+#         break
+#
+#         print '--'
+#
