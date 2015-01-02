@@ -49,7 +49,7 @@ void cWorld::init_channels()
     // regs              [ 4 5 ] 
     // outs                  [ 6 7 8 ]
     //
-    // subs          [ 2 3 4 5 ]
+    // subs      [ 0 1 2 3 4 5 ]
     // pubs              [ 4 5 6 7 8 ]
     channel_count = cue_channels + reg_channels + out_channels + reserved_channels;
 
@@ -64,7 +64,7 @@ void cWorld::init_channels()
     out_range.first = reg_range.second;
     out_range.second = out_range.first + out_channels;
 
-    sub_range.first = cue_range.first;
+    sub_range.first = 0;
     sub_range.second = reg_range.second;
 
     pub_range.first = reg_range.first;

@@ -4,8 +4,13 @@ from bricolage import logic2 as T
 from bricolage import operand
 
 @pytest.fixture
-def basic_params():
-    return T.Parameters()
+def c_one_unit():
+    o = T.Operand
+    ops = o.NOT_A_AND_B, o.A_AND_NOT_B, o.NOR, o.AND
+    p = T.Parameters(seed=1, operands=ops, cis_count=1, reg_channels=0,
+                        out_channels=1, cue_channels=2)
+    w = T.World(p)
+    return T.Constructor(w, p)
 
 @pytest.fixture
 def p_3x2():
@@ -13,6 +18,8 @@ def p_3x2():
     ops = o.NOT_A_AND_B, o.A_AND_NOT_B, o.NOR, o.AND
     return T.Parameters(seed=1, operands=ops, cis_count=2, reg_channels=5,
                         out_channels=2, cue_channels=3)
+
+
 @pytest.fixture
 def c_3x2(p_3x2):
     world = T.World(p_3x2)
@@ -82,7 +89,8 @@ def network_cycle(network, curstate):
     nextstate = network.constructor.world.create_state()
     for g in network.genes:
         for m in g.modules:
-            if operand.calculate(m.op, curstate[m.sub1], curstate[m.sub2]):
+            a, b = m.channels
+            if operand.calculate(m.op, curstate[a], curstate[b]):
                 nextstate.set(g.pub)
                 break
     return nextstate
@@ -142,44 +150,67 @@ def test_rates(c_3x2):
 #             print [str(x) for x in a1]
 #             print [str(x) for x in a2]
 
+def test_cis_manipulation(c_one_unit):
+    net = T.Network(c_one_unit)
+    cis = net.genes[0].modules[0]
+    for i in range(16):
+        op = T.Operand(i)
+        cis.op = op
+        for a, b in ((0, 0), (0, 1), (1, 0), (1, 1)):
+            assert operand.calculate(op, a, b) == cis.test(a, b)
+
+def test_cis_mutation(c_one_unit):
+    net = T.Network(c_one_unit)
+    cis = net.genes[0].modules[0]
+
+    # Get originals
+    oo = cis.op
+    oa, ob = cis.channels
+
+    # ROUGH: But everything should change within 20 cycles...
+    for i in range(20):
+        cis.mutate()
+        o = cis.op
+        a, b = cis.channels
+        if o != oo and oa != a and ob != b:
+            break
+    else:
+        assert False
 
 @pytest.fixture
 def target_3x2():
     """Return a function for initialising a target that has 3 inputs and 2
     outputs"""
-    def make_target(x):
-        a, b, c = x
+    def make_target(a, b, c):
         f1 = .5 if a and b or not c else 1.0
         f2 = 1 if ((a or c) and not (a and b)) and b else 0
         return f1, f2
     return make_target
 
-@pytest.fixture
-def target_3x3():
-    """Return a function for initialising a target that has 3 inputs and 2
-    outputs"""
-    def make_target(x):
-        a, b, c = x
-        res = (a and b) or (b and c)
-        if res:
-            return 0, 1, .5
-        return 1, .5, 0
-    return make_target
+def test_targets(c_3x2, target_3x2):
+    targ = T.Target(c_3x2.world, target_3x2)
+    nc = T.NetworkCollection(c_3x2, 1000)
+    for net in nc:
+        diffs = abs(targ.as_array() - net.rates)
+        scores = 1.0 - diffs
 
-# def test_targets(p_3x2, target_3x2):
-#     f = T.Factory(p_3x2)
-#     targ = T.Target(f, target_3x2)
-#     nc = f.create_collection(100)
-#     for net in nc:
-#         diffs = abs(targ.as_array() - net.rates)
-#         scores = 1.0 - diffs
-#
-#         # These should be the same (approx)
-#         assert abs(scores.mean() - targ.assess(net)) < 1e-12
-#
+        # These should be the same (approx)
+        assert abs(scores.mean() - targ.assess(net)) < 1e-12
+
         # summed = scores.sum(axis=1) * ch.fitness_contribution
         # summed = scores.sum(axis=1)
-
+        
+# @pytest.fixture
+# def target_3x3():
+#     """Return a function for initialising a target that has 3 inputs and 2
+#     outputs"""
+#     def make_target(a, b, c):
+#         res = (a and b) or (b and c)
+#         if res:
+#             return 0, 1, .5
+#         return 1, .5, 0
+#     return make_target
+#
 # def test_selection(p_3x2, target_3x2):
 #     # TODO: Finish testing selection by python
 #     factory = T.Factory(p_3x2)

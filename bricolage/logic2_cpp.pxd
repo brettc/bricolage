@@ -13,6 +13,7 @@ cdef extern from "<src/logic2.hpp>" namespace "logic2":
         cCisModule(cConstructor &c)
         void mutate(cConstructor &c)
         bint is_active(grn.cChannelState &state)
+        bint test(unsigned int a, unsigned int b)
         operand_t op
 
     cdef cppclass cGene(grn.cGene):

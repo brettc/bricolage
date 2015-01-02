@@ -398,7 +398,7 @@ cdef class CisModule:
         assert i < self.ccismodule.site_count()
         return self.ccismodule.get_site(i)
 
-    def _evil_set_site(self, size_t i, size_t c):
+    def set_site(self, size_t i, size_t c):
         assert c in self.gene.network.world.sub_signals
         old = self.ccismodule.set_site(i, c)
         self.gene.network._invalidate_cached()
@@ -407,15 +407,25 @@ cdef class CisModule:
     property intervene:
         def __get__(self):
             return self.ccismodule.intervene
+        # def __set__(self):
+        #     return self.ccismodule.intervene
 
     property channels:
         def __get__(self):
-            return tuple(self.ccismodule.get_site(i)
+            return tuple(self.ccismodule.channels[i]
                          for i in range(self.ccismodule.site_count()))
+        def __set__(self, t):
+            assert len(t) == self.ccismodule.site_count()
+            valid = self.gene.network.constructor.world.sub_signals
+            cdef size_t i, c
+            for i in range(self.ccismodule.site_count()):
+                assert t[i] in valid
+                self.ccismodule.channels[i] = t[i]
+            self.gene.network._invalidate_cached()
 
     property channel_names:
         def __get__(self):
-            w = self.gene.network.world
+            w = self.gene.network.constructor.world
             return [w.name_for_channel(c) for c in self.channels]
 
 
@@ -546,7 +556,7 @@ cdef class Target:
         del self.ctarget
 
     def assess(self, Network net):
-        assert net.world is self.world
+        assert net.constructor.world is self.world
         return self.ctarget.assess(deref(net.cnetwork));
 
     def as_array(self):

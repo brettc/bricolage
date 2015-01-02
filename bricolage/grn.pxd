@@ -2,6 +2,9 @@
 from utility cimport *
 
 cdef extern from "<src/core.hpp>" namespace "pubsub2":
+    cdef enum:
+        MAX_CIS_CHANNELS = 4
+
     ctypedef unsigned int signal_t
 
     ctypedef unsigned int sequence_t
@@ -54,14 +57,13 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         void mutate_collection(cNetworkVector &networks, 
                                cIndexes &mutated, double site_rate)
         cWorld_ptr world
-
     
     cdef cppclass cCisModule:
         signal_t get_site(size_t index)
         signal_t set_site(size_t index, signal_t channel);
         size_t site_count()
         InterventionState intervene
-        signal_t *channels
+        signal_t channels[MAX_CIS_CHANNELS]
 
     cdef cppclass cGene:
         size_t module_count()
@@ -82,6 +84,8 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         void calc_attractors_with_intervention()
         
         void *pyobject
+        cConstructor_ptr constructor
+        cWorld_ptr world
         int_t identifier, parent_identifier
         cAttractors attractors
         cRatesVector rates

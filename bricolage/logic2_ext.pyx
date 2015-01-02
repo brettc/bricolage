@@ -6,6 +6,7 @@
 from .operand import Operand
 from logic2_cpp cimport *
 cimport core_ext
+from cython.operator import dereference as deref, preincrement as preinc
 
 cdef class Constructor(core_ext.Constructor):
     def __cinit__(self, core_ext.World w, params):
@@ -39,14 +40,22 @@ cdef class CisModule(core_ext.CisModule):
         def __get__(self):
             cdef cCisModule *cm = dynamic_cast_cCisModule(self.ccismodule) 
             return Operand(cm.op)
+        def __set__(self, size_t op):
+            cdef cCisModule *cm = dynamic_cast_cCisModule(self.ccismodule) 
+            operand = Operand(op)
+            cm.op = op
 
-    property sub1:
-        def __get__(self):
-            return self.ccismodule.channels[0]
+    def test(self, bint a, bint b):
+        cdef cCisModule *cm = dynamic_cast_cCisModule(self.ccismodule) 
+        return cm.test(a, b)
 
-    property sub2:
-        def __get__(self):
-            return self.ccismodule.channels[1]
+    def is_active(self, core_ext.ChannelState state):
+        cdef cCisModule *cm = dynamic_cast_cCisModule(self.ccismodule) 
+        return cm.is_active(state.cchannel_state)
+
+    def mutate(self):
+        cdef cCisModule *cm = dynamic_cast_cCisModule(self.ccismodule) 
+        cm.mutate(deref(self.gene.network.cnetwork.constructor.get()))
 
     def __str__(self):
         w = self.gene.network.constructor.world
