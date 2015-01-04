@@ -19,6 +19,13 @@ cConstructor::cConstructor(const pubsub2::cWorld_ptr &w, size_t cc,
     , r_site(random_int_range(0, 2, w))
     , r_input(random_int_range(w->sub_range.first, w->sub_range.second, w))
 {
+
+    // Randomly allocate operands to binding pairs
+    std::pair<size_t, size_t> &r = w->sub_range;
+    
+    for (pubsub2::signal_t a = r.first; a < r.second; ++a)
+        for (pubsub2::signal_t b = r.first; b < r.second; ++b)
+            bindings[std::make_pair(a, b)] = r_operand();
 }
 
 pubsub2::cNetwork_ptr cConstructor::construct()
@@ -121,7 +128,10 @@ cCisModule::cCisModule(const cConstructor &c)
 // This is where the action really is.
 void cCisModule::mutate(const cConstructor &c)
 {
+    // Pick a channel
     size_t i = c.r_site();
     channels[i] = c.r_input();
+    // signal_pair_t cc = std::make_pair(channels[0], channels[1]);
+    // op = c.bindings.at(cc);
     op = c.operands[c.r_operand()];
 }

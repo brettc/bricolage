@@ -3,11 +3,15 @@ cimport grn
 cdef extern from "<src/logic2.hpp>" namespace "logic2":
     ctypedef unsigned int operand_t
     ctypedef grn.vector[operand_t] cOperands
+    ctypedef grn.pair[grn.signal_t, grn.signal_t] signal_pair_t
+    ctypedef grn.std_map[signal_pair_t, operand_t] binding_map_t
 
     cdef cppclass cConstructor(grn.cConstructor):
         cConstructor(grn.cWorld_ptr &w, size_t cc, cOperands &ops)
         size_t gene_count, module_count
         cOperands operands
+        binding_map_t bindings
+
 
     cdef cppclass cCisModule(grn.cCisModule):
         cCisModule(cConstructor &c)

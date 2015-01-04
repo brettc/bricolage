@@ -12,7 +12,7 @@ from .logic_tools import boolean_func_from_coop_binding
 cdef class Constructor(core_ext.Constructor):
     def __cinit__(self, core_ext.World w, params):
         self._shared = grn.cConstructor_ptr(new cConstructor(
-            w.cworld_ptr,
+            w._shared,
             params.cis_count,
         ))
         self._this = self._shared.get()
@@ -27,7 +27,7 @@ cdef class CisModule(core_ext.CisModule):
 
     property bindings:
         def __get__(self):
-            cdef cCisModule *cm = dynamic_cast_cCisModule(self.ccismodule) 
+            cdef cCisModule *cm = dynamic_cast_cCisModule(self._this) 
             return tuple(cm.binding[i] for i in range(3))
 
     property operation:
@@ -36,13 +36,13 @@ cdef class CisModule(core_ext.CisModule):
             return boolean_func_from_coop_binding(w, self.channels, self.bindings)
 
     def is_active(self, core_ext.ChannelState c):
-        cdef cCisModule *cm = dynamic_cast_cCisModule(self.ccismodule) 
-        return cm.is_active(c.cchannel_state)
+        cdef cCisModule *cm = dynamic_cast_cCisModule(self._this) 
+        return cm.is_active(c._this)
 
     def _evil_set_binding(self, size_t i, int w):
         assert i <= 3
         assert -3 <= w <= 3
-        cdef cCisModule *cm = dynamic_cast_cCisModule(self.ccismodule) 
+        cdef cCisModule *cm = dynamic_cast_cCisModule(self._this) 
         cm.binding[i] = w
         self.gene.network._invalidate_cached()
 

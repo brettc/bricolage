@@ -1,5 +1,5 @@
 from bricolage.threshold3 import (
-    World, Parameters, Target, Constructor, Network, NetworkCollection)
+    World, Parameters, Target, Constructor, Network, Population)
 
 def xor_func(a, b):
     return (a or b) and not (a and b)
@@ -23,7 +23,7 @@ def test_population():
                         cue_channels=3,)
     world = World(params)
     const = Constructor(world, params)
-    popul = NetworkCollection(const, 1000)
+    popul = Population(const, 1000)
     print popul[0].attractors[1]
 
 def test_xor():
@@ -33,7 +33,7 @@ def test_xor():
     print world.environments
     const = Constructor(world, params)
     target = Target(world, fitness_func1)
-    pop = NetworkCollection(const, 10000)
+    pop = Population(const, 10000)
 
     while 1:
         pop.select(target)

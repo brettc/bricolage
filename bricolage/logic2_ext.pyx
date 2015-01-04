@@ -11,7 +11,7 @@ from cython.operator import dereference as deref, preincrement as preinc
 cdef class Constructor(core_ext.Constructor):
     def __cinit__(self, core_ext.World w, params):
         self._shared = grn.cConstructor_ptr(new cConstructor(
-            w.cworld_ptr,
+            w._shared,
             params.cis_count,
             params.operands,
         ))
@@ -34,35 +34,41 @@ cdef class Constructor(core_ext.Constructor):
         def __get__(self):
             cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 
             return [Operand(_) for _ in c.operands]
+
+    property bindings:
+        def __get__(self):
+            cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 
+            return c.bindings
     
+
 cdef class CisModule(core_ext.CisModule):
     property op:
         def __get__(self):
-            cdef cCisModule *cm = dynamic_cast_cCisModule(self.ccismodule) 
+            cdef cCisModule *cm = dynamic_cast_cCisModule(self._this) 
             return Operand(cm.op)
         def __set__(self, size_t op):
-            cdef cCisModule *cm = dynamic_cast_cCisModule(self.ccismodule) 
+            cdef cCisModule *cm = dynamic_cast_cCisModule(self._this) 
             operand = Operand(op)
             cm.op = op
 
     def test(self, bint a, bint b):
-        cdef cCisModule *cm = dynamic_cast_cCisModule(self.ccismodule) 
+        cdef cCisModule *cm = dynamic_cast_cCisModule(self._this) 
         return cm.test(a, b)
 
     def is_active(self, core_ext.ChannelState state):
-        cdef cCisModule *cm = dynamic_cast_cCisModule(self.ccismodule) 
-        return cm.is_active(state.cchannel_state)
+        cdef cCisModule *cm = dynamic_cast_cCisModule(self._this) 
+        return cm.is_active(state._this)
 
     def mutate(self):
-        cdef cCisModule *cm = dynamic_cast_cCisModule(self.ccismodule) 
-        cm.mutate(deref(self.gene.network.cnetwork.constructor.get()))
+        cdef cCisModule *cm = dynamic_cast_cCisModule(self._this) 
+        cm.mutate(deref(self.gene.network._this.constructor.get()))
 
     def __str__(self):
         w = self.gene.network.constructor.world
         return "{}({}, {})".format(
             self.op.name,
-            w.name_for_channel(self.ccismodule.channels[0]),
-            w.name_for_channel(self.ccismodule.channels[1]),
+            w.name_for_channel(self._this.channels[0]),
+            w.name_for_channel(self._this.channels[1]),
         )
 
     def __repr__(self):

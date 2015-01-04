@@ -56,6 +56,9 @@ cython: $(CY_SRCS:.pyx=.cpp)
 $(GRN_DYLIB): $(CPP_OBJS)
 	$(CC) $(DYLIB_FLAGS) $(LIBINC) $(CPP_OBJS) -o $(GRN_DYLIB)
 
+# otool shit?
+# $(CC) $(DYLIB_FLAGS) $(LIBINC) $(CPP_OBJS) -o libgrn.dylib
+
 # ---- Automatic rules
 # Make objects for dynamic library
 

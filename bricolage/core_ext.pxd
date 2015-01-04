@@ -3,8 +3,8 @@ from grn cimport *
 
 cdef class ChannelStateFrozen:
     cdef:
-        cChannelState cchannel_state
-        cWorld_ptr cworld_ptr
+        cChannelState _this
+        cWorld_ptr world
     cdef init(self, cWorld_ptr &f, cChannelState &p)
 
 cdef class ChannelState(ChannelStateFrozen):
@@ -12,8 +12,8 @@ cdef class ChannelState(ChannelStateFrozen):
 
 cdef class World:
     cdef:
-        cWorld_ptr cworld_ptr
-        cWorld *cworld
+        cWorld_ptr _shared
+        cWorld *_this
         readonly:
             object sub_signals, pub_signals
             object cue_signals, reg_signals, out_signals
@@ -29,7 +29,7 @@ cdef class Constructor:
 
 cdef class Target:
     cdef:
-        cTarget *ctarget
+        cTarget *_this
         readonly:
             World world
 
@@ -41,8 +41,8 @@ cdef class Network:
         # Because we hold a reference to the shared_ptr, we know we can always
         # safely access the ACTUAL pointer. We keep the pointer around too, as
         # it makes our life easier. The cost is a tiny bit of space.
-        cNetwork_ptr ptr
-        cNetwork *cnetwork
+        cNetwork_ptr _shared
+        cNetwork *_this
         object _genes, _attractors, _rates
 
     cdef bind_to(self, cNetwork_ptr &ptr)
@@ -52,7 +52,7 @@ cdef class Gene:
         # Assumption: Networks CANNOT mess with genes number once a network
         # has been established (You must copy and mutate a network).
         # TODO: ensure this using point to const!
-        cGene *cgene
+        cGene *_this
         object _modules
 
         readonly:
@@ -63,11 +63,11 @@ cdef class Gene:
 
 cdef class CisModule:
     cdef:
-        cCisModule *ccismodule
+        cCisModule *_this
         readonly:
             Gene gene
 
-cdef class NetworkCollection:
+cdef class Population:
     cdef:
         readonly: 
             Constructor constructor
@@ -77,7 +77,7 @@ cdef class NetworkCollection:
 
 cdef class NetworkAnalysis:
     cdef:
-        cNetworkAnalysis *canalysis
+        cNetworkAnalysis *_this
         readonly:
             Network network
 

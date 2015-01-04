@@ -29,18 +29,19 @@ def test_constructor(p_3x2):
     world = T.World(p_3x2)
     const = T.Constructor(world, p_3x2)
     assert set(const.operands) == set(p_3x2.operands)
+    print const.bindings
 
 def test_network_ids(c_3x2):
     for i in range(10):
         n = T.Network(c_3x2)
         assert n.identifier == i
 
-    pop = T.NetworkCollection(c_3x2, 10)
+    pop = T.Population(c_3x2, 10)
     assert pop[9].identifier == 19
 
 def test_network_construction(c_3x2):
     w = c_3x2.world
-    pop = T.NetworkCollection(c_3x2, 1000)
+    pop = T.Population(c_3x2, 1000)
     for n in pop:
         assert len(n.genes) == c_3x2.gene_count
         for g in n.genes:
@@ -53,7 +54,7 @@ def test_network_construction(c_3x2):
 
 def test_referencing(c_3x2):
     original = T.Network(c_3x2)
-    nc = T.NetworkCollection(c_3x2, 0)
+    nc = T.Population(c_3x2, 0)
 
     # Get the "pointer" value
     id_original = id(original)
@@ -73,7 +74,7 @@ def test_referencing(c_3x2):
     assert a is b
 
 def test_bad_access(c_3x2):
-    nc = T.NetworkCollection(c_3x2, 0)
+    nc = T.Population(c_3x2, 0)
     with pytest.raises(IndexError):
         a = nc[0]
 
@@ -109,7 +110,7 @@ def construct_attractor(net, env):
         path.append(cur)
 
 def test_attractors(c_3x2):
-    nc = T.NetworkCollection(c_3x2, 100)
+    nc = T.Population(c_3x2, 100)
     for net in nc:
         pattractors = [construct_attractor(net, env) 
                        for env in c_3x2.world.environments]
@@ -124,7 +125,7 @@ def test_rates(c_3x2):
     with pytest.raises(ValueError):
         rates[0, 0] = 10.
 
-    nc = T.NetworkCollection(c_3x2, 100)
+    nc = T.Population(c_3x2, 100)
     # rates only include the output channels
     outc = c_3x2.world.out_channels
     for net in nc:
@@ -189,7 +190,7 @@ def target_3x2():
 
 def test_targets(c_3x2, target_3x2):
     targ = T.Target(c_3x2.world, target_3x2)
-    nc = T.NetworkCollection(c_3x2, 1000)
+    nc = T.Population(c_3x2, 1000)
     for net in nc:
         diffs = abs(targ.as_array() - net.rates)
         scores = 1.0 - diffs

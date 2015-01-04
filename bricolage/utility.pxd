@@ -3,6 +3,7 @@ Definitions for c++ or boost classes
 """
 from libcpp.vector cimport vector
 from libcpp.set cimport set as std_set
+from libcpp.map cimport map as std_map
 from libcpp.string cimport string
 from libcpp.utility cimport pair
 from libcpp.cast import dynamic_cast, static_cast
