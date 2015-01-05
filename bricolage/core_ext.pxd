@@ -67,11 +67,16 @@ cdef class CisModule:
         readonly:
             Gene gene
 
+cdef class SelectionModel:
+    cdef:
+        cSelectionModel *_this
+
+
 cdef class Population:
     cdef:
-        readonly: 
+        cPopulation *_this
+        readonly:
             Constructor constructor
-        cNetworkVector cnetworks
 
     cdef object get_at(self, size_t i)
 

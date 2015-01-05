@@ -170,8 +170,8 @@ public:
     cNetwork_ptr clone_and_mutate_network(cNetwork_ptr &n, size_t mutations);
 
     // void mutate_network(cNetwork_ptr &n, size_t mutations);
-    void mutate_collection(
-        cNetworkVector &networks, cIndexes &mutated, double site_rate);
+    // void mutate_collection(
+    //     cNetworkVector &networks, cIndexes &mutated, double site_rate);
     cWorld_ptr world;
 };
 
@@ -229,7 +229,7 @@ struct cTarget
 
     // TODO: per env weighting
     // TODO: per output weighting
-    double assess(const cNetwork &net);
+    double assess(const cNetwork &net) const;
 };
 
 struct cSelectionModel
@@ -237,24 +237,35 @@ struct cSelectionModel
     cSelectionModel(cWorld_ptr &world);
     cWorld_ptr world;
 
+    // TODO: Make this virtual -- come up with different selection models
     bool select(
-        const cNetworkVector &networks, cTarget &target, 
-        size_t number, cIndexes &selected);
-
-    void copy_using_indexes(
-        const cNetworkVector &from, cNetworkVector &to, const cIndexes &selected);
+        const cNetworkVector &networks, const cTarget &target, 
+        size_t number, cIndexes &selected) const;
 };
 
-// cNetwork_ptr get_detached_copy(cNetwork_ptr original);
-// inline cNetwork_ptr get_detached_copy(cNetwork_ptr original)
-// {
-//     cNetwork *copy = new cNetwork(original->world, true);
-//     copy->parent_identifier = original->identifier;
-//     copy->genes = original->genes;
-//
-//     return cNetwork_ptr(copy);
-// }
-//
+class cPopulation
+{
+public:
+    cPopulation(const cConstructor_ptr &c, size_t n);
+
+    size_t mutate(double site_rate);
+    bool select(const cTarget &target, const cSelectionModel &sm, size_t size);
+
+    // cConstNetwork_ptr get_network(size_t index) const;
+    size_t get_generation() const { return generation; }
+
+// protected:
+    cConstructor_ptr constructor;
+    cWorld_ptr world;
+
+    sequence_t next_id;
+    size_t generation;
+
+    cIndexes selected;
+    cIndexes mutated;
+
+    cNetworkVector networks;
+};
 
 enum NodeType { NT_GENE=0, NT_MODULE, NT_CHANNEL };
 typedef std::pair<NodeType, size_t> Node_t;

@@ -1,7 +1,7 @@
 from .operand import Operand
 import core
 from .core_ext import (World, Network, Target, Population,
-                       NetworkAnalysis)
+                       NetworkAnalysis, SelectionModel)
 from .logic2_ext import Constructor
 
 __all__ = ["World", "Constructor", "Network", "Parameters", "Operand",

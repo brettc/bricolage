@@ -84,6 +84,26 @@ def test_bad_access(c_3x2):
 
     assert a is b
 
+def test_population_mutation(c_3x2):
+    psize = 1000
+    pop = T.Population(c_3x2, psize)
+    assert pop.size == psize
+    assert pop.mutated == []
+    # assert pop.selected == []
+    # sm = T.SelectionModel(c_3x2.world)
+    # tg = T.Target(c_3x2.world, target_3x2)
+    # ns = pop.select(tg, sm)
+    # for p in pop.selected:
+    #     print pop[p].fitness
+
+    nm = pop.mutate(.01)
+    assert len(pop.mutated) == nm
+    print pop.mutated
+    for i, n in enumerate(pop):
+        if n.parent_identifier != -1:
+            assert i in pop.mutated
+    
+
 # ---------- HERE 
 def network_cycle(network, curstate):
     """A Python version of what the C++ cycle does."""

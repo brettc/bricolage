@@ -18,4 +18,6 @@ class Parameters(object):
             if hasattr(self, k):
                 setattr(self, k, v)
             else:
-                raise RuntimeError("Invalid Setting: {}, in Parameters".format(k))
+                # TODO: Issue a warning
+                pass
+                # raise RuntimeError("Invalid Setting: {}, in Parameters".format(k))

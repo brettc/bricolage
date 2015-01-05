@@ -6,7 +6,11 @@
 from .operand import Operand
 from logic2_cpp cimport *
 cimport core_ext
+import numpy
 from cython.operator import dereference as deref, preincrement as preinc
+
+int_type = numpy.int
+tiny_type = numpy.int8
 
 cdef class Constructor(core_ext.Constructor):
     def __cinit__(self, core_ext.World w, params):
@@ -39,6 +43,20 @@ cdef class Constructor(core_ext.Constructor):
         def __get__(self):
             cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 
             return c.bindings
+
+    # def dtype(self):
+    #     return numpy.dtype([
+    #         # Used for recording information about the history
+    #         ('id', int_type),
+    #         ('parent', int_type),
+    #
+    #         # These are the randomized ones
+    #         ('pub', tiny_type, self.gene_count),
+    #         ('sub', tiny_type, (self.gene_count, self.module_count, 2)),
+    #     ])
+    #
+    # def new_items(self, population):
+
     
 
 cdef class CisModule(core_ext.CisModule):
