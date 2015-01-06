@@ -1,5 +1,5 @@
 from utility cimport *
-from grn cimport *
+from core cimport *
 
 cdef class ChannelStateFrozen:
     cdef:

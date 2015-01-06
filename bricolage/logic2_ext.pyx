@@ -3,11 +3,10 @@
 # cython: wraparound=False
 # cython: cdivision=True
 
-from .operand import Operand
-from logic2_cpp cimport *
 cimport core_ext
-import numpy
-from cython.operator import dereference as deref, preincrement as preinc
+from logic2 cimport *
+from .operand import Operand
+from cython.operator import dereference as deref
 
 # TODO: cleanup the numpy definitions here
 cimport numpy as np
@@ -17,7 +16,7 @@ ctypedef np.int8_t tiny_type
 
 cdef class Constructor(core_ext.Constructor):
     def __cinit__(self, core_ext.World w, params):
-        self._shared = grn.cConstructor_ptr(new cConstructor(
+        self._shared = core.cConstructor_ptr(new cConstructor(
             w._shared,
             params.cis_count,
             params.operands,
@@ -92,7 +91,7 @@ cdef class Constructor(core_ext.Constructor):
             tiny_type[:,:,:,:] n_sub = output['sub']
             size_t i, j, k
             cNetwork *net
-            grn.cNetwork_ptr ptr
+            core.cNetwork_ptr ptr
             cConstructor *c = dynamic_cast_cConstructor(self._this) 
 
         p._this.networks.clear()
