@@ -9,8 +9,11 @@ cimport core_ext
 import numpy
 from cython.operator import dereference as deref, preincrement as preinc
 
-int_type = numpy.int
-tiny_type = numpy.int8
+# TODO: cleanup the numpy definitions here
+cimport numpy as np
+import numpy
+ctypedef np.int_t int_type
+ctypedef np.int8_t tiny_type
 
 cdef class Constructor(core_ext.Constructor):
     def __cinit__(self, core_ext.World w, params):
@@ -44,20 +47,50 @@ cdef class Constructor(core_ext.Constructor):
             cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 
             return c.bindings
 
-    # def dtype(self):
-    #     return numpy.dtype([
-    #         # Used for recording information about the history
-    #         ('id', int_type),
-    #         ('parent', int_type),
-    #
-    #         # These are the randomized ones
-    #         ('pub', tiny_type, self.gene_count),
-    #         ('sub', tiny_type, (self.gene_count, self.module_count, 2)),
-    #     ])
-    #
-    # def new_items(self, population):
+    def dtype(self):
+        cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 
+        return numpy.dtype([
+            ('id', int),
+            ('parent', int),
+            ('op', numpy.int8, (c.gene_count, c.module_count)),
+            ('sub', numpy.int8, (c.gene_count, c.module_count, 2)),
+        ])
 
-    
+    def to_numpy(self, core_ext.Population p):
+        output = numpy.zeros(p.size, dtype=self.dtype())
+
+        cdef: 
+            int_type[:] n_id = output['id']
+            int_type[:] n_parent = output['parent']
+            tiny_type[:,:,:] n_op = output['op']
+            tiny_type[:,:,:,:] n_sub = output['sub']
+            size_t i, j, k
+            cNetwork *net
+            cConstructor *c = dynamic_cast_cConstructor(self._this) 
+
+        for i in range(p._this.networks.size()):
+            net = p._this.networks[i].get()
+            n_id[i] = net.identifier
+            n_parent[i] = net.parent_identifier
+            for j in range(c.gene_count):
+                # n_pub[i, j] = net.genes[j].pub
+                for k in range(c.module_count):
+                    n_op[i, j, k] = net.genes[j].modules[k].op
+                    n_sub[i, j, k, 0] = net.genes[j].modules[k].channels[0]
+                    n_sub[i, j, k, 1] = net.genes[j].modules[k].channels[1]
+
+        return output
+
+    # def from_numpy(self, numpy_arr, Population p):
+    #     cdef: 
+    #         int_type[:] n_id = output['id']
+    #         int_type[:] n_parent = output['parent']
+    #         tiny_type[:,:,:] n_op = output['op']
+    #         tiny_type[:,:,:,:] n_sub = output['sub']
+    #         size_t i, j, k
+    #         cNetwork *net
+    #         cConstructor *c = dynamic_cast_cConstructor(self._this) 
+
 
 cdef class CisModule(core_ext.CisModule):
     property op:

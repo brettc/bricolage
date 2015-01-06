@@ -129,7 +129,6 @@ cdef class World:
         self.sub_signals = set(range(*self._this.sub_range))
         self.pub_signals = set(range(*self._this.pub_range))
 
-
     def create_state(self):
         c = ChannelState()
         c._this.resize(self._this.channel_count)
@@ -218,20 +217,30 @@ cdef class Constructor:
         self.world = w
         self.gene_class = Gene
         self.module_class = CisModule
+        self.network_class = Network
+        self._secret_key = 0x8008008
+
+    def create_network(self):
+        cdef Network n = self.network_class(self, self._secret_key)
+        n.bind_to(self._this.construct())
+        return n
 
 cdef class Network:
-    def __cinit__(self, Constructor c):
+    def __cinit__(self, Constructor c, int key=0):
         self.constructor = c
-        cdef cNetwork_ptr ptr = c._this.construct()
-        self.bind_to(ptr)
+        self._this = NULL
+        if key != self.constructor._secret_key:
+            raise RuntimeError("You cannot create a Network directly."
+                               " Use Constructor.create_network")
 
-    cdef bind_to(self, cNetwork_ptr &ptr):
+    cdef bind_to(self, cNetwork_ptr ptr):
         self._shared = ptr
         self._this = self._shared.get()
         self._this.pyobject = <void *>(self)
 
     def __dealloc__(self):
-        self._this.pyobject = <void *>0
+        if self._this != NULL:
+            self._this.pyobject = <void *>0
 
     property identifier:
         def __get__(self):
@@ -464,7 +473,8 @@ cdef class Population:
             return <object>(net.pyobject)
 
         # Nope. We need to create a new python wrapper object
-        n = Network(self.constructor)
+        cdef Network n = self.constructor.network_class(self.constructor, 
+                                                        self.constructor._secret_key)
         n.bind_to(ptr)
         return n
 

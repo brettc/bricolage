@@ -31,6 +31,9 @@ cdef extern from "<src/logic2.hpp>" namespace "logic2":
     cConstructor* dynamic_cast_cConstructor \
         "dynamic_cast<logic2::cConstructor*>" (grn.cConstructor *) except NULL
 
+    cNetwork * dynamic_cast_cNetwork \
+        "dynamic_cast<logic2::cNetwork *>" (grn.cNetwork *) except NULL
+
     cGene * dynamic_cast_cGene \
         "dynamic_cast<logic2::cGene *>" (grn.cGene *) except NULL
 

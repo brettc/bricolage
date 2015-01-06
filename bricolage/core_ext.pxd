@@ -24,8 +24,9 @@ cdef class Constructor:
     cdef:
         cConstructor_ptr _shared
         cConstructor *_this
+        int _secret_key
         readonly:
-            object world, gene_class, module_class
+            object world, gene_class, module_class, network_class
 
 cdef class Target:
     cdef:
@@ -45,7 +46,7 @@ cdef class Network:
         cNetwork *_this
         object _genes, _attractors, _rates
 
-    cdef bind_to(self, cNetwork_ptr &ptr)
+    cdef bind_to(self, cNetwork_ptr ptr)
 
 cdef class Gene:
     cdef:
@@ -70,7 +71,6 @@ cdef class CisModule:
 cdef class SelectionModel:
     cdef:
         cSelectionModel *_this
-
 
 cdef class Population:
     cdef:

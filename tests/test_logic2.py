@@ -33,7 +33,7 @@ def test_constructor(p_3x2):
 
 def test_network_ids(c_3x2):
     for i in range(10):
-        n = T.Network(c_3x2)
+        n = c_3x2.create_network() #T.Network(c_3x2)
         assert n.identifier == i
 
     pop = T.Population(c_3x2, 10)

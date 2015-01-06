@@ -1,10 +1,10 @@
 from .operand import Operand
 import core
-from .core_ext import (World, Network, Target, Population,
+from .core_ext import (World, Target, Population,
                        NetworkAnalysis, SelectionModel)
 from .logic2_ext import Constructor
 
-__all__ = ["World", "Constructor", "Network", "Parameters", "Operand",
+__all__ = ["World", "Constructor", "Parameters", "Operand",
            "Population", "Target", "NetworkAnalysis"]
 
 class Parameters(core.Parameters):
