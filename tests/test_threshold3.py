@@ -1,5 +1,5 @@
 from bricolage.threshold3 import (
-    World, Parameters, Target, Constructor, Network, Population, SelectionModel)
+    World, Parameters, Target, Constructor, Population, SelectionModel)
 
 def xor_func(a, b):
     return (a or b) and not (a and b)
@@ -12,7 +12,7 @@ def test_network():
                         cue_channels=3,)
     world = World(params)
     const = Constructor(world, params)
-    net = Network(const)
+    net = const.create_network()
     print net.attractors
     print world.pub_signals
     # net.genes[0].pub = 3

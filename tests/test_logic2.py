@@ -53,7 +53,7 @@ def test_network_construction(c_3x2):
                     assert w.sub_range[0] <= m.get_site(i) < w.sub_range[1]
 
 def test_referencing(c_3x2):
-    original = T.Network(c_3x2)
+    original = c_3x2.create_network()
     nc = T.Population(c_3x2, 0)
 
     # Get the "pointer" value
@@ -78,7 +78,7 @@ def test_bad_access(c_3x2):
     with pytest.raises(IndexError):
         a = nc[0]
 
-    nc.add(T.Network(c_3x2))
+    nc.add(c_3x2.create_network())
     a = nc[0]
     b = nc[0]
 
@@ -118,8 +118,6 @@ def test_numpy_export(c_3x2):
                 assert m1.op == m2.op
                 assert m1.channels == m2.channels
 
-
-# ---------- HERE 
 def network_cycle(network, curstate):
     """A Python version of what the C++ cycle does."""
     nextstate = network.constructor.world.create_state()
@@ -153,7 +151,7 @@ def test_attractors(c_3x2):
         assert tuple(pattractors) == net.attractors
 
 def test_rates(c_3x2):
-    network = T.Network(c_3x2)
+    network = c_3x2.create_network()
     rates = network.rates
 
     # It should be readonly
@@ -187,7 +185,7 @@ def test_rates(c_3x2):
 #             print [str(x) for x in a2]
 
 def test_cis_manipulation(c_one_unit):
-    net = T.Network(c_one_unit)
+    net = c_one_unit.create_network()
     cis = net.genes[0].modules[0]
     for i in range(16):
         op = T.Operand(i)
@@ -196,7 +194,7 @@ def test_cis_manipulation(c_one_unit):
             assert operand.calculate(op, a, b) == cis.test(a, b)
 
 def test_cis_mutation(c_one_unit):
-    net = T.Network(c_one_unit)
+    net = c_one_unit.create_network()
     cis = net.genes[0].modules[0]
 
     # Get originals
@@ -267,64 +265,3 @@ def test_targets(c_3x2, target_3x2):
 #         cum_score += target.assess(net)
 #
 #     indexes = []
-
-# def not_test_analysis(params3x3, target_3x3):
-#     factory = T.Factory(params3x3)
-#     target = T.Target(factory, target_3x3)
-#     net = factory.create_network()
-#     ana = T.NetworkAnalysis(net)
-#     edges = ana.get_edges()
-#     ko = ana.get_knockouts()
-#     # TODO: Extend this to a large selection 
-#     for e in ko:
-#         assert e in edges
-#
-# def nottest_play(target_3x3):
-#     p = T.Parameters(
-#         seed=4,
-#         operands = [
-#             T.Operand.NOT_A_AND_B,
-#             T.Operand.A_AND_NOT_B,
-#             T.Operand.AND,
-#             T.Operand.NOR,
-#             T.Operand.A_AND_NOT_B,
-#             T.Operand.NOT_A_AND_B,
-#         ],
-#         cis_count=1,
-#         reg_channels=8,
-#         out_channels=3,
-#         cue_channels=3,
-#     )
-#
-#     factory = T.Factory(p)
-#     target = T.Target(factory, target_3x3)
-#     pop = factory.create_collection(1000)
-#     while 1:
-#         pop.select(target)
-#         maxf = max([n.fitness for n in pop])
-#         if maxf == 1.0:
-#             break
-#         pop.mutate()
-#
-#     winners = []
-#     for net in pop:
-#         if net.fitness == 1.0:
-#             winners.append(net)
-#
-#     for net in winners:
-#         for g in net.genes:
-#             print g
-#             for m in g.modules:
-#                 print '   ', m
-#         ana = T.NetworkAnalysis(net)
-#         for k in ana.knockouts:
-#             print k
-#
-#         print '--edges'
-#         for e in ana.get_edges():
-#             print e
-#
-#         break
-#
-#         print '--'
-#
