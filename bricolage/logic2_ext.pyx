@@ -52,6 +52,7 @@ cdef class Constructor(core_ext.Constructor):
         return numpy.dtype([
             ('id', int),
             ('parent', int),
+            ('pub', numpy.int8, (c.gene_count)),
             ('op', numpy.int8, (c.gene_count, c.module_count)),
             ('sub', numpy.int8, (c.gene_count, c.module_count, 2)),
         ])
@@ -62,6 +63,7 @@ cdef class Constructor(core_ext.Constructor):
         cdef: 
             int_type[:] n_id = output['id']
             int_type[:] n_parent = output['parent']
+            tiny_type[:,:] n_pub = output['pub']
             tiny_type[:,:,:] n_op = output['op']
             tiny_type[:,:,:,:] n_sub = output['sub']
             size_t i, j, k
@@ -73,7 +75,7 @@ cdef class Constructor(core_ext.Constructor):
             n_id[i] = net.identifier
             n_parent[i] = net.parent_identifier
             for j in range(c.gene_count):
-                # n_pub[i, j] = net.genes[j].pub
+                n_pub[i, j] = net.genes[j].pub
                 for k in range(c.module_count):
                     n_op[i, j, k] = net.genes[j].modules[k].op
                     n_sub[i, j, k, 0] = net.genes[j].modules[k].channels[0]
@@ -81,16 +83,37 @@ cdef class Constructor(core_ext.Constructor):
 
         return output
 
-    # def from_numpy(self, numpy_arr, Population p):
-    #     cdef: 
-    #         int_type[:] n_id = output['id']
-    #         int_type[:] n_parent = output['parent']
-    #         tiny_type[:,:,:] n_op = output['op']
-    #         tiny_type[:,:,:,:] n_sub = output['sub']
-    #         size_t i, j, k
-    #         cNetwork *net
-    #         cConstructor *c = dynamic_cast_cConstructor(self._this) 
+    def from_numpy(self, output, core_ext.Population p):
+        cdef: 
+            int_type[:] n_id = output['id']
+            int_type[:] n_parent = output['parent']
+            tiny_type[:,:] n_pub = output['pub']
+            tiny_type[:,:,:] n_op = output['op']
+            tiny_type[:,:,:,:] n_sub = output['sub']
+            size_t i, j, k
+            cNetwork *net
+            grn.cNetwork_ptr ptr
+            cConstructor *c = dynamic_cast_cConstructor(self._this) 
 
+        p._this.networks.clear()
+
+        assert n_sub.shape[1] == c.gene_count
+        assert n_sub.shape[2] == c.module_count
+
+        for i in range(output.shape[0]):
+            ptr = self._this.construct()
+            p._this.networks.push_back(ptr)
+            net = ptr.get()
+            net.identifier = n_id[i]
+            net.parent_identifier= n_parent[i]
+            for j in range(c.gene_count):
+                net.genes[j].pub = n_pub[i, j]
+                for k in range(c.module_count):
+                    net.genes[j].modules[k].op = n_op[i, j, k]
+                    net.genes[j].modules[k].channels[0] = n_sub[i, j, k, 0] 
+                    net.genes[j].modules[k].channels[1] = n_sub[i, j, k, 1] 
+            # TODO: Make a "construct blank"
+            net.calc_attractors()
 
 cdef class CisModule(core_ext.CisModule):
     property op:
