@@ -2,16 +2,16 @@
 # cython: wraparound=False
 # cython: cdivision=True
 
-from cython.operator import dereference as deref, preincrement as preinc
-# from grn cimport *
-from threshold_cpp cimport *
 cimport core_ext
+# from core cimport *
+from threshold3 cimport *
+from cython.operator import dereference as deref, preincrement as preinc
 
 from .logic_tools import boolean_func_from_coop_binding
 
 cdef class Constructor(core_ext.Constructor):
     def __cinit__(self, core_ext.World w, params):
-        self._shared = grn.cConstructor_ptr(new cConstructor(
+        self._shared = core.cConstructor_ptr(new cConstructor(
             w._shared,
             params.cis_count,
         ))

@@ -129,7 +129,6 @@ cdef class World:
         self.sub_signals = set(range(*self._this.sub_range))
         self.pub_signals = set(range(*self._this.pub_range))
 
-
     def create_state(self):
         c = ChannelState()
         c._this.resize(self._this.channel_count)
@@ -218,20 +217,30 @@ cdef class Constructor:
         self.world = w
         self.gene_class = Gene
         self.module_class = CisModule
+        self.network_class = Network
+        self._secret_key = 0x8008008
+
+    def create_network(self):
+        cdef Network n = self.network_class(self, self._secret_key)
+        n.bind_to(self._this.construct())
+        return n
 
 cdef class Network:
-    def __cinit__(self, Constructor c):
+    def __cinit__(self, Constructor c, int key=0):
         self.constructor = c
-        cdef cNetwork_ptr ptr = c._this.construct()
-        self.bind_to(ptr)
+        self._this = NULL
+        if key != self.constructor._secret_key:
+            raise RuntimeError("You cannot create a Network directly."
+                               " Use Constructor.create_network")
 
-    cdef bind_to(self, cNetwork_ptr &ptr):
+    cdef bind_to(self, cNetwork_ptr ptr):
         self._shared = ptr
         self._this = self._shared.get()
         self._this.pyobject = <void *>(self)
 
     def __dealloc__(self):
-        self._this.pyobject = <void *>0
+        if self._this != NULL:
+            self._this.pyobject = <void *>0
 
     property identifier:
         def __get__(self):
@@ -428,26 +437,32 @@ cdef class CisModule:
             w = self.gene.network.constructor.world
             return [w.name_for_channel(c) for c in self.channels]
 
+cdef class SelectionModel:
+    def __cinit__(self, World w):
+        self._this = new cSelectionModel(w._shared)
+
+    def __dealloc__(self):
+        del self._this
+
 
 cdef class Population:
     def __cinit__(self, Constructor c, size_t size):
         self.constructor = c
-        self.cnetworks.reserve(size)
-        cdef size_t i
-        for i in range(size):
-            self.cnetworks.push_back(c._this.construct())
+        self._this = new cPopulation(c._shared, size)
+
+    def __dealloc__(self):
+        del self._this
 
     def add(self, Network n):
-        # TODO: Mix different network types?
         assert n.constructor is self.constructor
-        self.cnetworks.push_back(n._shared)
+        self._this.networks.push_back(n._shared)
 
     cdef object get_at(self, size_t i):
-        if i >= self.cnetworks.size():
+        if i >= self._this.networks.size():
             raise IndexError
 
         cdef:
-            cNetwork_ptr ptr = self.cnetworks[i]
+            cNetwork_ptr ptr = self._this.networks[i]
             cNetwork *net = ptr.get()
 
         # Is there an existing python object?
@@ -458,75 +473,48 @@ cdef class Population:
             return <object>(net.pyobject)
 
         # Nope. We need to create a new python wrapper object
-        n = Network(self.constructor)
+        cdef Network n = self.constructor.network_class(self.constructor, 
+                                                        self.constructor._secret_key)
         n.bind_to(ptr)
         return n
 
     property size:
         def __get__(self):
-            return self.cnetworks.size()
+            return self._this.networks.size()
 
     property site_count:
         def __get__(self):
-            return self.constructor._this.site_count(self.cnetworks)
+            return self._this.constructor.get().site_count(self._this.networks)
 
     def __getitem__(self, size_t i):
         return self.get_at(i)
 
     def __iter__(self):
-        for i in range(self.size):
+        for i in range(self._this.networks.size()):
             yield self.get_at(i)
 
     def __repr__(self):
         return "<Population: {}>".format(self.size)
 
     def mutate(self, double site_rate):
-        cdef cIndexes mutated
-        self.constructor._this.mutate_collection(
-            self.cnetworks, mutated, site_rate)
-        # Return indexes of the mutated networks. Automatic conversion (thank
-        # you Cython)
-        return mutated
+        return self._this.mutate(site_rate)
 
-    def select(self, Target target):
-        """Inplace selection of networks, replacing networks"""
-        cdef:
-            cSelectionModel *sm
-            bint sel
-            cIndexes indexes
-            cNetworkVector new_networks
+    def select(self, Target target, SelectionModel sm, size=None):
+        cdef size_t s
+        if size is None:
+            s = self._this.networks.size()
+        else:
+            s = size
+        return self._this.select(deref(target._this), deref(sm._this), s)
 
-        sm = new cSelectionModel(self.constructor._this.world)
-        sel = sm.select(self.cnetworks, deref(target._this), 
-                     self.cnetworks.size(), indexes)
-        if sel:
-            sm.copy_using_indexes(self.cnetworks, new_networks, indexes)
+    property mutated:
+        def __get__(self):
+            return self._this.mutated
 
-            # Replace everything -- this is fast
-            self.cnetworks.swap(new_networks)
+    property selected:
+        def __get__(self):
+            return self._this.selected
 
-        # Get rid of this
-        del sm
-
-        return sel
-
-    def selection_indexes(self, Target target):
-        """Just return the indices where selection would happen.
-
-        ***This is used for testing***
-        """
-        cdef:
-            cSelectionModel *sm
-            bint sel
-            cIndexes indexes
-            cNetworkVector new_networks
-
-        sm = new cSelectionModel(self.constructor._this.world)
-
-        sel = sm.select(self.cnetworks, deref(target._this), 
-                     self.cnetworks.size(), indexes)
-
-        return indexes
 
 cdef class Target:
     def __cinit__(self, World w, init_func):
