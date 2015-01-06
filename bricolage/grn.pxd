@@ -124,11 +124,25 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         cWorld_ptr factory
 
         bint select(
-            const cNetworkVector &networks, cTarget &target, 
+            const cNetworkVector &networks, const cTarget &target, 
             size_t number, cIndexes &selected)
 
-        void copy_using_indexes(
-            const cNetworkVector &fr, cNetworkVector &to, const cIndexes &selected)
+    cdef cppclass cPopulation:
+        cPopulation(const cConstructor_ptr &c, size_t n)
+        size_t mutate(double site_rate)
+        bint select(const cTarget &target, const cSelectionModel &sm, size_t size)
+
+        cConstructor_ptr constructor
+        cWorld_ptr world
+
+        sequence_t next_id
+        size_t generation
+        size_t size
+
+        cIndexes selected, mutated
+        cNetworkVector networks
+
+
 
 # cdef extern from "<src/logic2.hpp>" namespace "pubsub2":
 #     cdef cppclass cConstructorLogic2(cConstructor):
