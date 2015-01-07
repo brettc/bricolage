@@ -478,6 +478,14 @@ cdef class Population:
         n.bind_to(ptr)
         return n
 
+    def _get_identifiers(self, np.int_t[:] output):
+        """A list of identifiers for the current population"""
+        # TODO: maybe this should be pre-allocated?
+        assert output.shape[0] == self._this.networks.size()
+        cdef size_t i
+        for i in range(self._this.networks.size()):
+            output[i] = self._this.networks[i].get().identifier
+
     property size:
         def __get__(self):
             return self._this.networks.size()
