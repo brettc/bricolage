@@ -39,7 +39,7 @@ CPP_SRCS = $(wildcard $(CPPSRC)/*.cpp)
 CPP_OBJS = $(CPP_SRCS:.cpp=.o)
 CY_SRCS = $(wildcard $(PYSRC)/*.pyx)
 CY_EXTS = $(CY_SRCS:.pyx=.so)
-CY_PXDS = $(wildcard $(PYSRC)/*.pxd)
+CY_PXDS = $(wildcard $(PYSRC)/*.pxd) $(wildcard $(CPPSRC)/*.pxd)
 
 # We need to give our library a name
 CPP_LIBNAME = grn
