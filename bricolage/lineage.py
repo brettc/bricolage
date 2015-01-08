@@ -126,7 +126,7 @@ class Lineage(object):
         self.factory.from_numpy(arr, gen_pop)
         return gen_pop
 
-    def get_lineage(self, ident):
+    def get_ancestry(self, ident):
         nets = []
         findident = ident
         while findident != -1:

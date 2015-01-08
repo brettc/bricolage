@@ -108,10 +108,18 @@ def test_restarting(tmpdir, p_3x2, target_3x2):
     # This means everything is the same!
     assert_pops_equal(p1, p2)
 
+    # Pull out an ancestry
+    anc = d.get_ancestry(z[0])
+    
+    # NOTE: should pull this out separately
+    prev_i = -1
+    for n in anc:
+        i = n.identifier
+        p = n.parent_identifier
+        assert p == prev_i
+        prev_i = i
+
 def test_ancestry():
     assert 1 == 2
-    # anc = d.get_lineage(z[0])
-    # for n in anc:
-    #     print n
     
 
