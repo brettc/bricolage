@@ -29,7 +29,6 @@ def test_numpy_export(c_3x2):
     as_array = c_3x2.to_numpy(p1)
 
     assert as_array.dtype == c_3x2.dtype()
-    print c_3x2.dtype()
 
     p2 = T.Population(c_3x2, 0)
     c_3x2.from_numpy(as_array, p2)
@@ -109,6 +108,10 @@ def test_restarting(tmpdir, p_3x2, target_3x2):
     # This means everything is the same!
     assert_pops_equal(p1, p2)
 
-    print d.get_lineage(z[0])
+def test_ancestry():
+    assert 1 == 2
+    # anc = d.get_lineage(z[0])
+    # for n in anc:
+    #     print n
     
 

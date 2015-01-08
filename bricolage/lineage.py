@@ -130,12 +130,20 @@ class Lineage(object):
         nets = []
         findident = ident
         while findident != -1:
-            print findident
-            # Do it in reverse order
+            # Work our way backwards find the parents
             found = self.networks[findident]
             nets.append(found)
             findident = found[1]
-        return nets[::-1]
+
+        # Create a numpy array (we could not do that above, as the number was
+        # not certain. Note, we do it in reverse order...
+        arr = numpy.zeros(len(nets), dtype=self.factory.dtype())
+        for i, values in enumerate(nets[::-1]):
+            arr[i] = values
+
+        anc = core_ext.Ancestry(self.factory)
+        self.factory.from_numpy(arr, anc)
+        return anc
 
     def __del__(self):
         # Avoid messages from tables

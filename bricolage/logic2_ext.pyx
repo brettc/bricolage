@@ -148,8 +148,8 @@ cdef class Constructor(core_ext.Constructor):
             # TODO: Make a "construct blank"
             net.calc_attractors()
 
-    def from_numpy(self, output, core_ext.Population p):
-        self._from_numpy(output, &p._this.networks)
+    def from_numpy(self, output, core_ext.CollectionBase c):
+        self._from_numpy(output, c._collection)
 
 cdef class CisModule(core_ext.CisModule):
     property op:
