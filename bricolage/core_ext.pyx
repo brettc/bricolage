@@ -250,6 +250,10 @@ cdef class Network:
         def __get__(self):
             return self._this.parent_identifier
 
+    property generation:
+        def __get__(self):
+            return self._this.generation
+
     property gene_count:
         def __get__(self):
             return self._this.gene_count()
@@ -504,8 +508,8 @@ cdef class Population:
     def __repr__(self):
         return "<Population: {}>".format(self.size)
 
-    def mutate(self, double site_rate):
-        return self._this.mutate(site_rate)
+    def mutate(self, double site_rate, int generation=0):
+        return self._this.mutate(site_rate, generation)
 
     def select(self, Target target, SelectionModel sm, size=None):
         cdef size_t s

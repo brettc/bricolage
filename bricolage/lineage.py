@@ -105,9 +105,9 @@ class Lineage(object):
         """Make a new generation"""
 
         # Update the population
-        self.population.select(target, selection_model)
-        self.population.mutate(mutation_rate)
         self.current_gen += 1
+        self.population.select(target, selection_model)
+        self.population.mutate(mutation_rate, self.current_gen)
 
         # Update the generation record, let the population fill out the
         # identifiers
@@ -126,58 +126,17 @@ class Lineage(object):
         self.factory.from_numpy(arr, gen_pop)
         return gen_pop
 
-    # def create_indexes(self):
-    #     log.info('Creating Indexes...')
-    #     self.individuals.cols.id.createIndex(kind='light')
-    #     self.individuals.cols.parent.createIndex(kind='light')
-    #     self.individuals.cols.generation.createIndex(kind='light')
-    #     # log.info("Finished Creating Indexes ... %d seconds", self.report_time())
-    
+    def get_lineage(self, ident):
+        nets = []
+        findident = ident
+        while findident != -1:
+            print findident
+            # Do it in reverse order
+            found = self.networks[findident]
+            nets.append(found)
+            findident = found[1]
+        return nets[::-1]
+
     def __del__(self):
         # Avoid messages from tables
         self.h5.close()
-
-    # def close(self):
-        # I think it is better to create the indexes at the end of a run ---
-        # the simulations seem to slow down significantly if the indexes are
-        # there during the run. And we only need them at the end. 
-        # if self.mode == 'w':
-        #     self.create_indexes()
-        #
-        # Close the h5 history file
-        # self.h5.flush()
-        # self.h5.close()
-    #
-    #
-    # # These two functions might be be called multiple times during an
-    # # analysis, so let's make it cheap to get the same thing.
-    # @lru_cache(maxsize=100)
-    # def get_lineage(self, ident):
-    #     lastgen = self.individuals[-1]['generation']
-    #     netsize = lastgen + 1
-    #     nets = numpy.zeros(netsize, self.parameters.network_dtype())
-    #     current = -1
-    #     findident = ident
-    #     while findident != -1:
-    #         # Do it in reverse order
-    #         nets[current] = self.individuals[findident]
-    #         findident = nets[current]['parent']
-    #         current -= 1
-    #     return nets
-    #
-    # @lru_cache(maxsize=100)
-    # def get_generation(self, g):
-    #     if g == -1:
-    #         g = self.individuals[-1]['generation']
-    #
-    #     n = self.parameters.pop_size
-    #     f, t = g * n, (g + 1) * n
-    #
-    #     nets = self.individuals[f:t]
-    #     return nets
-    #
-    # def get_where(self, query):
-    #     nets = self.individuals.readWhere(query)
-    #     log.debug("Loaded history where '%s', %d results", query, len(nets))
-    #     return nets
-

@@ -86,12 +86,11 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         void *pyobject
         cConstructor_ptr constructor
         cWorld_ptr world
-        int_t identifier, parent_identifier
+        int_t identifier, parent_identifier, generation
         cAttractors attractors
         cRatesVector rates
         int_t target
         double fitness
-        # bint is_detached()
         
         # TODO: Needed for cython bug, never used
         # See https://groups.google.com/forum/#!topic/cython-users/ko7X_fQ0n9Q
@@ -129,7 +128,7 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
 
     cdef cppclass cPopulation:
         cPopulation(const cConstructor_ptr &c, size_t n)
-        size_t mutate(double site_rate)
+        size_t mutate(double site_rate, int_t generation)
         bint select(const cTarget &target, const cSelectionModel &sm, size_t size)
 
         cConstructor_ptr constructor

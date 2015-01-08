@@ -46,6 +46,9 @@ def target_3x2():
 def assert_pops_equal(p1, p2):
     assert p1.size == p2.size
     for n1, n2 in zip(p1, p2):
+        assert n1.identifier == n2.identifier
+        assert n1.parent_identifier == n2.parent_identifier
+        assert n1.generation == n2.generation
         assert n1.attractors == n2.attractors
         assert (n1.rates == n2.rates).all()
         for g1, g2 in zip(n1.genes, n2.genes):
@@ -103,5 +106,7 @@ def test_restarting(tmpdir, p_3x2, target_3x2):
 
     # This means everything is the same!
     assert_pops_equal(p1, p2)
+
+    print d.get_lineage(z[0])
     
 
