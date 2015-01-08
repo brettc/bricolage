@@ -97,26 +97,6 @@ def test_population_mutation(c_3x2):
         if n.parent_identifier != -1:
             assert i in pop.mutated
 
-def test_numpy_export(c_3x2):
-    p1 = T.Population(c_3x2, 1000)
-    as_array = c_3x2.to_numpy(p1)
-
-    assert as_array.dtype == c_3x2.dtype()
-    print c_3x2.dtype()
-
-    p2 = T.Population(c_3x2, 0)
-    c_3x2.from_numpy(as_array, p2)
-
-    # Did we get exactly the same thing back?
-    assert p1.size == p2.size
-    for n1, n2 in zip(p1, p2):
-        assert n1.attractors == n2.attractors
-        assert (n1.rates == n2.rates).all()
-        for g1, g2 in zip(n1.genes, n2.genes):
-            assert g1.pub == g2.pub
-            for m1, m2 in zip(g1.modules, g2.modules):
-                assert m1.op == m2.op
-                assert m1.channels == m2.channels
 
 def network_cycle(network, curstate):
     """A Python version of what the C++ cycle does."""

@@ -58,16 +58,16 @@ cdef class Constructor(core_ext.Constructor):
             ('sub', numpy.int8, (c.gene_count, c.module_count, 2)),
         ])
 
-    def to_numpy(self, core_ext.Population p, bint mutations_only=False):
+    cdef _to_numpy(self, core.cNetworkVector *networks, core.cIndexes *indexes):
         cdef:
             size_t i, j, k, count, net_i
             cNetwork *net
             cConstructor *c = dynamic_cast_cConstructor(self._this) 
 
-        if mutations_only:
-            count = p._this.mutated.size()
+        if indexes == NULL:
+            count = networks.size()
         else:
-            count = p._this.networks.size()
+            count = indexes.size()
 
         output = numpy.zeros(count, dtype=self.dtype())
 
@@ -84,14 +84,14 @@ cdef class Constructor(core_ext.Constructor):
             tiny_type[:,:,:,:] n_sub = output['sub']
 
         for i in range(count):
-            if mutations_only:
+            if indexes == NULL:
                 # Either get the networks directly...
-                net_i = p._this.mutated[i]
-            else:
-                # Or indirectly via the mutated count
                 net_i = i
+            else:
+                # Or indirectly via the indexes
+                net_i = deref(indexes)[i]
 
-            net = p._this.networks[net_i].get()
+            net = deref(networks)[net_i].get()
             n_id[i] = net.identifier
             n_parent[i] = net.parent_identifier
             n_generation[i] = net.generation
@@ -104,7 +104,17 @@ cdef class Constructor(core_ext.Constructor):
 
         return output
 
-    def from_numpy(self, output, core_ext.Population p):
+    def to_numpy(self, core_ext.Population p, bint mutations_only=False):
+        cdef:
+            core.cIndexes *indexes = NULL
+            core.cNetworkVector *networks = &p._this.networks
+
+        if mutations_only:
+            indexes = &p._this.mutated
+
+        return self._to_numpy(networks, indexes)
+
+    cdef _from_numpy(self, output, core.cNetworkVector *networks):
         cdef: 
             int_type[:] n_id = output['id']
             int_type[:] n_parent = output['parent']
@@ -117,14 +127,14 @@ cdef class Constructor(core_ext.Constructor):
             core.cNetwork_ptr ptr
             cConstructor *c = dynamic_cast_cConstructor(self._this) 
 
-        p._this.networks.clear()
+        networks.clear()
 
         assert n_sub.shape[1] == c.gene_count
         assert n_sub.shape[2] == c.module_count
 
         for i in range(output.shape[0]):
             ptr = self._this.construct()
-            p._this.networks.push_back(ptr)
+            networks.push_back(ptr)
             net = ptr.get()
             net.identifier = n_id[i]
             net.parent_identifier= n_parent[i]
@@ -137,6 +147,9 @@ cdef class Constructor(core_ext.Constructor):
                     net.genes[j].modules[k].channels[1] = n_sub[i, j, k, 1] 
             # TODO: Make a "construct blank"
             net.calc_attractors()
+
+    def from_numpy(self, output, core_ext.CollectionBase c):
+        self._from_numpy(output, c._collection)
 
 cdef class CisModule(core_ext.CisModule):
     property op:

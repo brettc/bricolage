@@ -448,25 +448,16 @@ cdef class SelectionModel:
     def __dealloc__(self):
         del self._this
 
-
-cdef class Population:
-    def __cinit__(self, Constructor c, size_t size):
+cdef class CollectionBase:
+    def __cinit__(self, Constructor c, size_t size=0):
         self.constructor = c
-        self._this = new cPopulation(c._shared, size)
-
-    def __dealloc__(self):
-        del self._this
-
-    def add(self, Network n):
-        assert n.constructor is self.constructor
-        self._this.networks.push_back(n._shared)
 
     cdef object get_at(self, size_t i):
-        if i >= self._this.networks.size():
+        if i >= self._collection.size():
             raise IndexError
 
         cdef:
-            cNetwork_ptr ptr = self._this.networks[i]
+            cNetwork_ptr ptr = deref(self._collection)[i]
             cNetwork *net = ptr.get()
 
         # Is there an existing python object?
@@ -482,6 +473,43 @@ cdef class Population:
         n.bind_to(ptr)
         return n
 
+    def add(self, Network n):
+        assert n.constructor is self.constructor
+        self._collection.push_back(n._shared)
+
+    property size:
+        def __get__(self):
+            return self._collection.size()
+
+    def __getitem__(self, size_t i):
+        return self.get_at(i)
+
+    def __iter__(self):
+        for i in range(self._collection.size()):
+            yield self.get_at(i)
+
+
+cdef class Ancestry(CollectionBase):
+    def __cinit__(self, Constructor c, size_t size=0):
+        self._this = new cNetworkVector()
+        self._collection = self._this
+        
+    def __dealloc__(self):
+        del self._this
+
+
+cdef class Population(CollectionBase):
+    def __cinit__(self, Constructor c, size_t size=0):
+        self._this = new cPopulation(c._shared, size)
+        self._collection = &(self._this.networks)
+
+    def __dealloc__(self):
+        del self._this
+
+    property site_count:
+        def __get__(self):
+            return self._this.constructor.get().site_count(self._this.networks)
+
     def _get_identifiers(self, np.int_t[:] output):
         """A list of identifiers for the current population"""
         # TODO: maybe this should be pre-allocated?
@@ -489,21 +517,6 @@ cdef class Population:
         cdef size_t i
         for i in range(self._this.networks.size()):
             output[i] = self._this.networks[i].get().identifier
-
-    property size:
-        def __get__(self):
-            return self._this.networks.size()
-
-    property site_count:
-        def __get__(self):
-            return self._this.constructor.get().site_count(self._this.networks)
-
-    def __getitem__(self, size_t i):
-        return self.get_at(i)
-
-    def __iter__(self):
-        for i in range(self._this.networks.size()):
-            yield self.get_at(i)
 
     def __repr__(self):
         return "<Population: {}>".format(self.size)
