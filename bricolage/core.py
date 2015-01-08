@@ -15,9 +15,9 @@ class Parameters(object):
 
     def _override(self, kwargs):
         for k, v in kwargs.items():
-            if hasattr(self, k):
-                setattr(self, k, v)
-            else:
-                # TODO: Issue a warning
-                pass
+            setattr(self, k, v)
+            # if hasattr(self, k):
+    #         else:
+    #             # TODO: Issue a warning
+    #             pass
                 # raise RuntimeError("Invalid Setting: {}, in Parameters".format(k))

@@ -76,10 +76,12 @@ cConstructor::cConstructor(const cWorld_ptr &w)
 {
 }
 
-cNetwork_ptr cConstructor::clone_and_mutate_network(cNetwork_ptr &n, size_t nmutations)
+cNetwork_ptr cConstructor::clone_and_mutate_network(
+    cNetwork_ptr &n, size_t nmutations, int_t generation)
 {
     cNetwork_ptr copy(n->clone());
     copy->parent_identifier = n->identifier;
+    copy->generation = generation;
     copy->mutate(nmutations);
     copy->calc_attractors();
     return copy;

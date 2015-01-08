@@ -41,6 +41,7 @@ cdef class Constructor(core_ext.Constructor):
             cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 
             return [Operand(_) for _ in c.operands]
 
+    # Only used for some mutation models
     property bindings:
         def __get__(self):
             cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 
@@ -51,28 +52,49 @@ cdef class Constructor(core_ext.Constructor):
         return numpy.dtype([
             ('id', int),
             ('parent', int),
+            ('generation', int), # note this is not filled in below
             ('pub', numpy.int8, (c.gene_count)),
             ('op', numpy.int8, (c.gene_count, c.module_count)),
             ('sub', numpy.int8, (c.gene_count, c.module_count, 2)),
         ])
 
-    def to_numpy(self, core_ext.Population p):
-        output = numpy.zeros(p.size, dtype=self.dtype())
-
-        cdef: 
-            int_type[:] n_id = output['id']
-            int_type[:] n_parent = output['parent']
-            tiny_type[:,:] n_pub = output['pub']
-            tiny_type[:,:,:] n_op = output['op']
-            tiny_type[:,:,:,:] n_sub = output['sub']
-            size_t i, j, k
+    def to_numpy(self, core_ext.Population p, bint mutations_only=False):
+        cdef:
+            size_t i, j, k, count, net_i
             cNetwork *net
             cConstructor *c = dynamic_cast_cConstructor(self._this) 
 
-        for i in range(p._this.networks.size()):
-            net = p._this.networks[i].get()
+        if mutations_only:
+            count = p._this.mutated.size()
+        else:
+            count = p._this.networks.size()
+
+        output = numpy.zeros(count, dtype=self.dtype())
+
+        if count == 0:
+            return output
+
+        # Get the arrays
+        cdef: 
+            int_type[:] n_id = output['id']
+            int_type[:] n_parent = output['parent']
+            int_type[:] n_generation = output['generation']
+            tiny_type[:,:] n_pub = output['pub']
+            tiny_type[:,:,:] n_op = output['op']
+            tiny_type[:,:,:,:] n_sub = output['sub']
+
+        for i in range(count):
+            if mutations_only:
+                # Either get the networks directly...
+                net_i = p._this.mutated[i]
+            else:
+                # Or indirectly via the mutated count
+                net_i = i
+
+            net = p._this.networks[net_i].get()
             n_id[i] = net.identifier
             n_parent[i] = net.parent_identifier
+            n_generation[i] = net.generation
             for j in range(c.gene_count):
                 n_pub[i, j] = net.genes[j].pub
                 for k in range(c.module_count):
@@ -86,6 +108,7 @@ cdef class Constructor(core_ext.Constructor):
         cdef: 
             int_type[:] n_id = output['id']
             int_type[:] n_parent = output['parent']
+            int_type[:] n_generation = output['generation']
             tiny_type[:,:] n_pub = output['pub']
             tiny_type[:,:,:] n_op = output['op']
             tiny_type[:,:,:,:] n_sub = output['sub']
@@ -105,6 +128,7 @@ cdef class Constructor(core_ext.Constructor):
             net = ptr.get()
             net.identifier = n_id[i]
             net.parent_identifier= n_parent[i]
+            net.generation = n_generation[i]
             for j in range(c.gene_count):
                 net.genes[j].pub = n_pub[i, j]
                 for k in range(c.module_count):

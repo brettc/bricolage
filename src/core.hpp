@@ -166,12 +166,9 @@ public:
     virtual cNetwork_ptr construct()=0;
     virtual size_t site_count(cNetworkVector &networks)=0;
 
-    // virtual void mutate_network(cNetwork_ptr *n, size_t mutations)=0;
-    cNetwork_ptr clone_and_mutate_network(cNetwork_ptr &n, size_t mutations);
+    cNetwork_ptr clone_and_mutate_network(
+        cNetwork_ptr &n, size_t mutations, int_t generation);
 
-    // void mutate_network(cNetwork_ptr &n, size_t mutations);
-    // void mutate_collection(
-    //     cNetworkVector &networks, cIndexes &mutated, double site_rate);
     cWorld_ptr world;
 };
 
@@ -180,7 +177,7 @@ typedef std::shared_ptr<cConstructor> cConstructor_ptr;
 class cNetwork
 {
 public:
-    cNetwork(const cConstructor_ptr &c, bool no_ident=false);
+    cNetwork(const cConstructor_ptr &c);
     virtual ~cNetwork() {}
 
     virtual cNetwork_ptr clone() const=0;
@@ -194,12 +191,13 @@ public:
     void _calc_attractors(bool intervention);
     void calc_attractors() { _calc_attractors(false); }
     void calc_attractors_with_intervention() { _calc_attractors(true); }
-    // cNetwork_ptr get_detached_copy() const;
-    // bool is_detached() const { return identifier < 0; }
     
     cConstructor_ptr constructor;
     cWorld_ptr world;
     int_t identifier, parent_identifier;
+
+    // Optional -- the generation that this was created (default: 0)
+    int_t generation;
 
     // Calculated attractor and rates
     cAttractors attractors;
@@ -248,7 +246,7 @@ class cPopulation
 public:
     cPopulation(const cConstructor_ptr &c, size_t n);
 
-    size_t mutate(double site_rate);
+    size_t mutate(double site_rate, int_t generation);
     bool select(const cTarget &target, const cSelectionModel &sm, size_t size);
 
     // cConstNetwork_ptr get_network(size_t index) const;

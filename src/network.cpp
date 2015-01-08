@@ -12,19 +12,15 @@ cGene::cGene(sequence_t seq, signal_t p)
 {
 }
 
-cNetwork::cNetwork(const cConstructor_ptr &c, bool no_ident)
+cNetwork::cNetwork(const cConstructor_ptr &c)
     : constructor(c) 
     , world(c->world)
     , parent_identifier(-1)
+    , generation(0)
     , target(-1)
     , pyobject(0)
 {
-    if (!no_ident)
-        identifier = world->get_next_network_ident();
-    else
-        // A network that is not part of a lineage, for analysis only.
-        // We'll call this a "detached" network
-        identifier = -1;
+    identifier = world->get_next_network_ident();
 }
 
 // This is the outer-inner loop, where we find the attractors. 
@@ -102,12 +98,3 @@ void cNetwork::_calc_attractors(bool intervention)
 
     }
 }
-
-
-// cNetwork_ptr cNetwork::get_detached_copy() const
-// {
-//     cNetwork *copy = new cNetwork(world, true);
-//     copy->parent_identifier = identifier;
-//     copy->genes = genes;
-//     return cNetwork_ptr(copy);
-// }

@@ -118,7 +118,7 @@ cPopulation::cPopulation(const cConstructor_ptr &c, size_t size)
         networks.push_back(constructor->construct());
 }
 
-size_t cPopulation::mutate(double site_rate)
+size_t cPopulation::mutate(double site_rate, int_t generation)
 {
     // How many mutations are we going to have? That depends on the total
     // number of sites that might mutate. Per network, this is rate_per_gene *
@@ -162,7 +162,8 @@ size_t cPopulation::mutate(double site_rate)
         // apply the mutations ...
         if (it == mutes.end() || *it != network_num)
         {
-            networks[network_num] = constructor->clone_and_mutate_network(networks[network_num], count);
+            networks[network_num] = constructor->clone_and_mutate_network(
+                networks[network_num], count, generation);
 
             // Add to the indexes that changed
             mutated.push_back(network_num);
