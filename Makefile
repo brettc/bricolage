@@ -39,11 +39,12 @@ CPP_SRCS = $(wildcard $(CPPSRC)/*.cpp)
 CPP_OBJS = $(CPP_SRCS:.cpp=.o)
 CY_SRCS = $(wildcard $(PYSRC)/*.pyx)
 CY_EXTS = $(CY_SRCS:.pyx=.so)
-CY_PXDS = $(wildcard $(PYSRC)/*.pxd)
+CY_PXDS = $(wildcard $(PYSRC)/*.pxd) $(wildcard $(CPPSRC)/*.pxd)
 
 # We need to give our library a name
 CPP_LIBNAME = grn
-GRN_DYLIB = $(PYSRC)/lib$(CPP_LIBNAME).dylib
+GRN_DYLIB_NAME = lib$(CPP_LIBNAME).dylib
+GRN_DYLIB = $(PYSRC)/$(GRN_DYLIB_NAME)
 
 all: $(CY_EXTS)
 
@@ -53,8 +54,11 @@ all: $(CY_EXTS)
 cython: $(CY_SRCS:.pyx=.cpp)
 
 # Build the shared libary of all c++ code
+# NOTE: need to change the "install-name" of the dylib so that it loads
+# relative to the binaries that will be using it (the python extensions)
 $(GRN_DYLIB): $(CPP_OBJS)
 	$(CC) $(DYLIB_FLAGS) $(LIBINC) $(CPP_OBJS) -o $(GRN_DYLIB)
+	install_name_tool -id "@loader_path/$(GRN_DYLIB_NAME)" $(GRN_DYLIB)
 
 # otool shit?
 # $(CC) $(DYLIB_FLAGS) $(LIBINC) $(CPP_OBJS) -o libgrn.dylib
@@ -86,11 +90,13 @@ $(PYSRC)/%.cpp : $(PYSRC)/%.pyx $(CY_PXDS)
 # $(PYSRC)/threshold3.pyx : 
 
 clean: 
-	rm -f $(CY_EXTS) $(GRN_DYLIB)
+	rm -f $(CY_EXTS) $(GRN_DYLIB) $(MOVED_GRN_DYLIB)
 	rm -f $(CPPSRC)/*.d $(PYSRC)/*.d
 	rm -f $(CPPSRC)/*.o $(PYSRC)/*.o
 	rm -f $(PYSRC)/*.cpp
 	rm -f $(PYSRC)/*.pyc
+	rm -f $(PYSRC)/*.dylib
+	rm -f $(PYSRC)/*.so
 
 cleanall:
 	rm -f **/*.o
