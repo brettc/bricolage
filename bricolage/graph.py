@@ -1,7 +1,6 @@
 from enum import IntEnum
 import networkx as nx
 from pygraphviz import AGraph
-from operand import Operand
 
 class NodeType(IntEnum):
     # NOTE: These should be the same as those defined in pubsub2_c.h
@@ -240,11 +239,11 @@ class DotMaker(object):
 
         return A
 
-    def draw(self, f):
+    def save_picture(self, f):
         a = self.get_layout()
         a.draw(f, prog='dot', args=self._dot_default_args)
 
-    def save(self, f):
+    def save_dot(self, f):
         a = self.get_layout()
         a.write(f)
 
