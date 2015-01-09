@@ -76,7 +76,8 @@ def test_restarting(tmpdir, p_3x2, target_3x2):
 
     # Run selection for 100 generations
     for i in range(100):
-        a.next_generation(.01, target, sel)
+        a.assess(target)
+        a.next_generation(.01, sel)
     x = [net.identifier for net in a.population]
 
     # Kill off the reference (automatically closing the file)
@@ -95,7 +96,8 @@ def test_restarting(tmpdir, p_3x2, target_3x2):
     c = L.Lineage(fname)
     p1 = c.get_generation(100)
     for i in range(100):
-        c.next_generation(.01, target, sel)
+        c.assess(target)
+        c.next_generation(.01, sel)
     del c
 
     # Relead yet again. Reload the 100th generation again. Check it is exactly

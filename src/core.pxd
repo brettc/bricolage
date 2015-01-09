@@ -123,13 +123,13 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         cWorld_ptr factory
 
         bint select(
-            const cNetworkVector &networks, const cTarget &target, 
-            size_t number, cIndexes &selected)
+            const cNetworkVector &networks, size_t number, cIndexes &selected)
 
     cdef cppclass cPopulation:
         cPopulation(const cConstructor_ptr &c, size_t n)
         size_t mutate(double site_rate, int_t generation)
-        bint select(const cTarget &target, const cSelectionModel &sm, size_t size)
+        void assess(const cTarget &target)
+        bint select(const cSelectionModel &sm, size_t size)
 
         cConstructor_ptr constructor
         cWorld_ptr world

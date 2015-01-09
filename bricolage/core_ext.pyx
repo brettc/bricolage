@@ -84,7 +84,6 @@ cdef class ChannelStateFrozen:
     def __repr__(self):
         return "<ChannelsRO: {}>".format(self.__str__())
 
-
 cdef class ChannelState(ChannelStateFrozen):
 
     def __cinit__(self):
@@ -110,7 +109,6 @@ cdef class ChannelState(ChannelStateFrozen):
 
     def __repr__(self):
         return "<Channels: {}>".format(self.__str__())
-
 
 cdef class World:
     def __cinit__(self, params):
@@ -352,7 +350,6 @@ cdef class Network:
     def __repr__(self):
         return "<Network id:{} pt:{}>".format(self.identifier, self.parent_identifier)
 
-
 cdef class Gene:
     """A proxy to a gene.
     """
@@ -394,7 +391,6 @@ cdef class Gene:
     def __repr__(self):
         w = self.network.constructor.world
         return "<Gene[{}]: {}>".format(self.sequence, w.name_for_channel(self.pub))
-
 
 cdef class CisModule:
     """A proxy to a CisModule.
@@ -488,7 +484,6 @@ cdef class CollectionBase:
         for i in range(self._collection.size()):
             yield self.get_at(i)
 
-
 cdef class Ancestry(CollectionBase):
     def __cinit__(self, Constructor c, size_t size=0):
         self._this = new cNetworkVector()
@@ -496,7 +491,6 @@ cdef class Ancestry(CollectionBase):
         
     def __dealloc__(self):
         del self._this
-
 
 cdef class Population(CollectionBase):
     def __cinit__(self, Constructor c, size_t size=0):
@@ -524,13 +518,16 @@ cdef class Population(CollectionBase):
     def mutate(self, double site_rate, int generation=0):
         return self._this.mutate(site_rate, generation)
 
-    def select(self, Target target, SelectionModel sm, size=None):
+    def assess(self, Target target):
+        self._this.assess(deref(target._this))
+
+    def select(self, SelectionModel sm, size=None):
         cdef size_t s
         if size is None:
             s = self._this.networks.size()
         else:
             s = size
-        return self._this.select(deref(target._this), deref(sm._this), s)
+        return self._this.select(deref(sm._this), s)
 
     property mutated:
         def __get__(self):
@@ -539,7 +536,6 @@ cdef class Population(CollectionBase):
     property selected:
         def __get__(self):
             return self._this.selected
-
 
 cdef class Target:
     def __cinit__(self, World w, init_func):
@@ -574,7 +570,6 @@ cdef class Target:
 
     def as_array(self):
         return numpy.array(self._this.optimal_rates)
-
 
 cdef class NetworkAnalysis:
     def __cinit__(self, Network net):

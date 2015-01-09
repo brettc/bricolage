@@ -58,15 +58,13 @@ double cTarget::assess(const cNetwork &net) const
     return score;
 }
 
-
 cSelectionModel::cSelectionModel(cWorld_ptr &w)
     : world(w)
 {
 }
 
 bool cSelectionModel::select(
-    const cNetworkVector &networks, const cTarget &target,
-    size_t number, cIndexes &selected) const
+    const cNetworkVector &networks, size_t number, cIndexes &selected) const
 {
     selected.clear();
 
@@ -76,8 +74,8 @@ bool cSelectionModel::select(
     // First, score everyone
     for (size_t i = 0; i < networks.size(); ++i)
     {
-        const cNetwork &net = *(networks[i]);
-        score = target.assess(net);
+        // NOTE: There must be a fitness assigned
+        score = networks[i]->fitness;
 
         // Zero fitness has no chance
         if (score <= 0.0)
@@ -116,6 +114,30 @@ cPopulation::cPopulation(const cConstructor_ptr &c, size_t size)
 {
     for (size_t i = 0; i < size; ++i)
         networks.push_back(constructor->construct());
+}
+
+void cPopulation::assess(const cTarget &target) const
+{
+    for (size_t i = 0; i < networks.size(); ++i)
+    {
+        const cNetwork &net = *(networks[i]);
+        target.assess(net);
+    }
+}
+
+bool cPopulation::select(const cSelectionModel &sm, size_t size)
+{
+    bool done = sm.select(networks, size, selected);
+    if (!done)
+        return false;
+
+    cNetworkVector new_networks;
+    for (auto i : selected)
+        new_networks.push_back(networks[i]);
+
+    // Replace everything -- this is fast
+    networks.swap(new_networks);
+    return true;
 }
 
 size_t cPopulation::mutate(double site_rate, int_t generation)
@@ -185,17 +207,3 @@ size_t cPopulation::mutate(double site_rate, int_t generation)
     return mutated.size();
 }
 
-bool cPopulation::select(const cTarget &target, const cSelectionModel &sm, size_t size)
-{
-    bool done = sm.select(networks, target, size, selected);
-    if (!done)
-        return false;
-
-    cNetworkVector new_networks;
-    for (auto i : selected)
-        new_networks.push_back(networks[i]);
-
-    // Replace everything -- this is fast
-    networks.swap(new_networks);
-    return true;
-}

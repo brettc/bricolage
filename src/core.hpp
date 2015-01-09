@@ -236,9 +236,8 @@ struct cSelectionModel
     cWorld_ptr world;
 
     // TODO: Make this virtual -- come up with different selection models
-    bool select(
-        const cNetworkVector &networks, const cTarget &target, 
-        size_t number, cIndexes &selected) const;
+    bool select(const cNetworkVector &networks, 
+                size_t number, cIndexes &selected) const;
 };
 
 class cPopulation
@@ -247,7 +246,8 @@ public:
     cPopulation(const cConstructor_ptr &c, size_t n);
 
     size_t mutate(double site_rate, int_t generation);
-    bool select(const cTarget &target, const cSelectionModel &sm, size_t size);
+    void assess(const cTarget &target) const;
+    bool select(const cSelectionModel &sm, size_t size);
 
     // cConstNetwork_ptr get_network(size_t index) const;
     size_t get_generation() const { return generation; }

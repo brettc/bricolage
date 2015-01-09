@@ -37,7 +37,8 @@ def test_xor():
     pop = Population(const, 10000)
 
     while 1:
-        pop.select(target, select)
+        pop.assess(target)
+        pop.select(select)
         fits = [n.fitness for n in pop]
         max_fit = max(fits)
         if max_fit == 1.0:

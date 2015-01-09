@@ -101,12 +101,15 @@ class Lineage(object):
 
         self.h5.flush()
 
-    def next_generation(self, mutation_rate, target, selection_model):
+    def assess(self, target):
+        self.population.assess(target)
+
+    def next_generation(self, mutation_rate, selection_model):
         """Make a new generation"""
 
         # Update the population
         self.current_gen += 1
-        self.population.select(target, selection_model)
+        self.population.select(selection_model)
         self.population.mutate(mutation_rate, self.current_gen)
 
         # Update the generation record, let the population fill out the
