@@ -8,7 +8,7 @@ def p_3x2():
     o = T.Operand
     ops = o.NOT_A_AND_B, o.A_AND_NOT_B, o.NOR, o.AND
     return T.Parameters(seed=1, operands=ops, cis_count=2, reg_channels=5,
-                        out_channels=2, cue_channels=3, population_size=1000)
+                        out_channels=2, cue_channels=3, population_size=100)
 @pytest.fixture
 def c_3x2(p_3x2):
     world = T.World(p_3x2)
@@ -69,16 +69,19 @@ def assert_pops_equal(p1, p2):
                 assert m1.op == m2.op
                 assert m1.channels == m2.channels
 
-def test_repeatability(p_3x2, target_3x2):
+def test_repeatability(tmpdir, p_3x2, target_3x2):
     """Make sure that the same seed produces the same outcome"""
-    a = L.SnapshotLineage(params=p_3x2, factory_class=T.Constructor)
+    base = pathlib.Path(str(tmpdir))
+    path = base / 'r1.db'
+    a = L.SnapshotLineage(path, params=p_3x2, factory_class=T.Constructor)
     target = T.Target(a.world, target_3x2)
     sel = T.SelectionModel(a.world)
     for i in range(100):
         a.assess(target)
         a.next_generation(.001, sel)
 
-    b = L.SnapshotLineage(params=p_3x2, factory_class=T.Constructor)
+    path = base / 'r2.db'
+    b = L.SnapshotLineage(path, params=p_3x2, factory_class=T.Constructor)
     target = T.Target(b.world, target_3x2)
     sel = T.SelectionModel(b.world)
     for i in range(100):
@@ -86,52 +89,86 @@ def test_repeatability(p_3x2, target_3x2):
         b.next_generation(.001, sel)
 
     assert_pops_equal(a.population, b.population)
+    del a
+    del b
 
 def test_snapshot_reload(p_3x2, target_3x2, tmpdir):
     base = pathlib.Path(str(tmpdir))
     path = base / 'reload.db'
-    a = L.SnapshotLineage(params=p_3x2, factory_class=T.Constructor)
-    a.save_snapshot(path)
+    a = L.SnapshotLineage(path, params=p_3x2, factory_class=T.Constructor)
+    a.save_snapshot()
     p1 = a.population
+    r1 = a.world.get_random_state()
     del a
     # Now reload and compare the population
     b = L.SnapshotLineage(path=path)
     assert_pops_equal(p1, b.population)
+    assert b.world.get_random_state() == r1
     del b
 
 def test_snapshot_lineage(p_3x2, target_3x2, tmpdir):
     base = pathlib.Path(str(tmpdir))
+    path_1 = base / 'snap1.db'
     times = 5
     generations = 20
     mrate = .001
 
     # Generate a bunch of snapshots
-    a = L.SnapshotLineage(params=p_3x2, factory_class=T.Constructor)
-    target = T.Target(a.world, target_3x2)
-    sel = T.SelectionModel(a.world)
+    a = L.SnapshotLineage(path_1, params=p_3x2, factory_class=T.Constructor)
+    a_target = T.Target(a.world, target_3x2)
+    a_sel = T.SelectionModel(a.world)
     for i in range(times):
         for j in range(generations):
-            a.assess(target)
-            a.next_generation(mrate, sel)
-        path = base / 'snapshot-{}.db'.format(i)
-        a.save_snapshot(path)
+            a.assess(a_target)
+            a.next_generation(mrate, a_sel)
+        a.save_snapshot()
+
+    # Delete and reload a
     del a
+    a = L.SnapshotLineage(path_1) 
+    a_target = T.Target(a.world, target_3x2)
+    a_sel = T.SelectionModel(a.world)
 
     # Same seed will generate the same lineage
-    b = L.SnapshotLineage(params=p_3x2, factory_class=T.Constructor)
-    target = T.Target(b.world, target_3x2)
-    sel = T.SelectionModel(b.world)
+    path_2 = base / 'snap2.db'
+    b = L.SnapshotLineage(path_2, params=p_3x2, factory_class=T.Constructor)
+    b_target = T.Target(b.world, target_3x2)
+    b_sel = T.SelectionModel(b.world)
     for i in range(times):
         for j in range(generations):
-            b.assess(target)
-            b.next_generation(mrate, sel)
-        path = base / 'snapshot-{}.db'.format(i)
-        c = L.SnapshotLineage(path=path)
+            b.assess(b_target)
+            b.next_generation(mrate, b_sel)
+        p1 = a.get_generation(b.generation)
 
         # Reloads should be the same
-        assert_pops_equal(b.population, c.population)
+        assert_pops_equal(b.population, p1)
 
-def test_restarting(tmpdir, p_3x2, target_3x2):
+    # Now run them in parallel
+    assert_pops_equal(a.population, b.population)
+    assert a.world.get_random_state() == b.world.get_random_state()
+
+    # for i in range(times):
+    a.assess(a_target)
+    a.population.select(a_sel)
+    # a.next_generation(mrate, a_sel)
+    b.assess(b_target)
+    b.population.select(b_sel)
+    assert a.population.selected == b.population.selected
+
+    a.population.mutate(mrate)
+    b.population.mutate(mrate)
+    assert a.population.mutated == b.population.mutated
+
+    # TODO: Fix this. Network ids should not increase!
+
+    # assert_pops_equal(a.population, b.population)
+    # b.next_generation(mrate, sel)
+    # for n1, n2 in zip(a.population, b.population):
+    #     assert n1.identifier == n2.identifier
+    #     assert n1.fitness == n2.fitness
+
+
+def test_full_lineage(tmpdir, p_3x2, target_3x2):
     fname = pathlib.Path(str(tmpdir)) / 'selection.db'
 
     # Set it all up

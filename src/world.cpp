@@ -1,6 +1,7 @@
 #include "core.hpp"
 #include <cmath>
 #include <stdexcept>
+#include <sstream>
 
 using namespace pubsub2;
 
@@ -69,6 +70,20 @@ void cWorld::init_channels()
 
     pub_range.first = reg_range.first;
     pub_range.second = out_range.second;
+}
+
+
+std::string cWorld::get_random_state()
+{
+    std::stringstream ostr;
+    ostr << rand;
+    return ostr.str();
+}
+
+void cWorld::set_random_state(const std::string &s)
+{
+    std::stringstream istr(s);
+    istr >> rand;
 }
 
 cConstructor::cConstructor(const cWorld_ptr &w)

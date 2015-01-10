@@ -7,63 +7,16 @@ import tables
 from . import core_ext
 
 class BaseLineage(object):
-    def __init__(self, params=None, factory_class=None):
+    def __init__(self, path, params=None, factory_class=None):
+        if not isinstance(path, pathlib.Path):
+            path = pathlib.Path(path)
+        self.path = path
         self.params = params
         self.factory_class = factory_class
         self.world = None
         self.factory = None
         self.population = None
-        self.current_gen = 0
-
-    def _create(self):
-        assert self.params is not None
-        assert self.factory_class is not None
-        self.world = core_ext.World(self.params)
-        self.factory = self.factory_class(self.world, self.params)
-        self._size = self.params.population_size
-        self.population = core_ext.Population(self.factory, self._size)
-
-    def _new_database(self, path):
-        # Create H5 table with high compression using blosc
-        filters = tables.Filters(complib='blosc', complevel=5)
-        h5 = tables.open_file(str(path), 'w', filters=filters)
-
-        # Create the internal registry for pickled python objects
-        reg = h5.create_vlarray('/', 'registry', tables.ObjectAtom())
-        reg.append(self.params)
-        reg.append(self.factory_class)
-        reg.append(self.current_gen)
-
-        # Save the networks
-        h5.create_table('/', 'networks', numpy.zeros(0, dtype=self.factory.dtype()))
-        return h5
-
-    def _load_database(self, path, mode):
-        h5 = tables.open_file(str(path), mode=mode)
-        reg = h5.root.registry
-
-        # Recover the python objects that we need to reconstruct everything
-        self.params = reg[0]
-        self.factory_class = reg[1]
-        self.current_gen = reg[2]
-
-        return h5
-
-
-class SnapshotLineage(BaseLineage):
-    def __init__(self, params=None, factory_class=None, path=None):
-        BaseLineage.__init__(self, params, factory_class)
-        if path is None:
-            self._create()
-        else:
-            self._load(path)
-
-    def _load(self, path):
-        h5 = self._load_database(path, 'r')
-        self._create()
-        # Load everything
-        self.factory.from_numpy(h5.root.networks[:], self.population)
-        h5.close()
+        self.generation = 0
 
     def assess(self, target):
         assert target.world is self.world
@@ -72,16 +25,126 @@ class SnapshotLineage(BaseLineage):
     def next_generation(self, mutation_rate, selection_model):
         """Make a new generation"""
         assert selection_model.world is self.world
-        self.current_gen += 1
+        self.generation += 1
         self.population.select(selection_model)
-        self.population.mutate(mutation_rate, self.current_gen)
+        self.population.mutate(mutation_rate, self.generation)
 
-    def save_snapshot(self, path):
-        h5 = self._new_database(path)
+    def _create(self, loading=False):
+        assert self.params is not None
+        assert self.factory_class is not None
+        self.world = core_ext.World(self.params)
+        self.factory = self.factory_class(self.world, self.params)
+        self._size = self.params.population_size
+
+        # In addition, if we're loading, we need to set a few mutable thing
+        # from the world
+        if loading:
+            self.population = core_ext.Population(self.factory, 0)
+        else:
+            self.population = core_ext.Population(self.factory, self._size)
+
+    def _save_mutable(self):
+        self._attrs.random_state = self.world.get_random_state()
+        self._attrs.next_network_id = self.world.next_network_id
+
+    def _load_mutable(self):
+        self.world.set_random_state(self._attrs.random_state)
+        self.world.next_network_id = self._attrs.next_network_id
+
+    def _generation_dtype(self):
+        return numpy.dtype([
+            ('generation', int),
+            ('indexes', int, self._size),
+        ])
+
+    def _new_database(self):
+        # Create H5 table with high compression using blosc
+        filters = tables.Filters(complib='blosc', complevel=5)
+        h5 = tables.open_file(str(self.path), 'w', filters=filters)
+        attrs = h5.root._v_attrs
+
+        attrs.params = self.params
+        attrs.factory_class = self.factory_class
+        attrs.generation = self.generation
+
+        # Save the networks
+        z = numpy.zeros
+        n = h5.create_table('/', 'networks', z(0, dtype=self.factory.dtype()))
+        g = h5.create_table('/', 'generations', z(0, dtype=self._generation_dtype()))
+
+        self._h5 = h5
+        self._networks = n
+        self._generations = g
+        self._attrs = attrs
+
+        self._save_mutable()
+
+    def _open_database(self):
+        h5 = tables.open_file(str(self.path), mode='r+')
+        attrs = h5.root._v_attrs
+
+        # Recover the python objects that we need to reconstruct everything
+        self.params = attrs.params
+        self.factory_class = attrs.factory_class
+        self.generation = attrs.generation
+
+        self._h5 = h5
+        self._attrs = attrs 
+        self._networks = h5.root.networks
+        self._generations = h5.root.generations
+
+    def __del__(self):
+        # Avoid messages from tables
+        del self._attrs
+        self._h5.close()
+
+
+class SnapshotLineage(BaseLineage):
+    def __init__(self, path, params=None, factory_class=None):
+        BaseLineage.__init__(self, path, params, factory_class)
+        if params is None:
+            self._load()
+        else:
+            assert factory_class is not None
+            self._create()
+            self._new_database()
+
+    def _load(self):
+        self._open_database()
+        self._create(loading=True)
+        # Load the last generation
+        g, indexes = self._generations[-1]
+        self.generation = g
+        arr = self._networks.read_coordinates(indexes)
+        self.factory.from_numpy(arr, self.population)
+        self._load_mutable()
+
+    def save_snapshot(self):
+        start = len(self._networks)
+        
+        # Add all networks in the population
         arr = self.factory.to_numpy(self.population)
-        h5.root.networks.append(arr)
-        h5.close()
+        self._networks.append(arr)
 
+        # Add a generations row
+        row = self._generations.row
+        row['generation'] = self.generation
+        row['indexes'] = numpy.arange(start, start + self._size, dtype=int)
+        row.append()
+
+        self._save_mutable()
+
+        self._h5.flush()
+
+    def get_generation(self, g):
+        grecord = self._generations.read_where('generation == {}'.format(g))
+        if not grecord:
+            return None
+        g, indexes = grecord[0]
+        arr = self._networks.read_coordinates(indexes)
+        gen_pop = core_ext.Population(self.factory, 0)
+        self.factory.from_numpy(arr, gen_pop)
+        return gen_pop
 
 class Lineage(object):
     def __init__(self, path, params=None, factory_class=None, overwrite=False):
@@ -226,6 +289,3 @@ class Lineage(object):
         self.factory.from_numpy(arr, anc)
         return anc
 
-    def __del__(self):
-        # Avoid messages from tables
-        self.h5.close()

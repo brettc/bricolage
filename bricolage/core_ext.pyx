@@ -153,11 +153,23 @@ cdef class World:
     def seed_random_engine(self, int s):
         self._this.rand.seed(s)
 
+    def get_random_state(self):
+        return self._this.get_random_state()
+
+    def set_random_state(self, string s):
+        self._this.set_random_state(s)
+
     def get_random_double(self, double low, double high):
         return self._this.get_random_double(low, high)
 
     def get_random_int(self, int low, int high):
         return self._this.get_random_int(low, high)
+
+    property next_network_id:
+        def __get__(self):
+            return self._this.next_network_identifier
+        def __set__(self, sequence_t i):
+            self._this.next_network_identifier = i
 
     property cue_channels:
         def __get__(self):

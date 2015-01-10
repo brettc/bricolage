@@ -37,6 +37,7 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
     cdef cppclass cWorld:
         cWorld(size_t seed, size_t cue, size_t reg, size_t out)
         mt19937 rand
+        sequence_t next_network_identifier, next_target_identifier
         size_t cue_channels, reg_channels, out_channels
         size_t channel_count
         pair[size_t, size_t] cue_range
@@ -47,6 +48,8 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         cChannelStateVector environments
         double get_random_double(double low, double high)
         double get_random_int(int low, int high)
+        string get_random_state()
+        void set_random_state(string &s)
 
     ctypedef shared_ptr[cWorld] cWorld_ptr
 

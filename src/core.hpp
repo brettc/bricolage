@@ -141,6 +141,9 @@ public:
     // Randomising stuff
     random_engine_t rand;
 
+    std::string get_random_state();
+    void set_random_state(const std::string &s);
+
 private:
     void init_channels();
     void init_environments();
