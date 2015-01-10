@@ -6,8 +6,84 @@ import pathlib
 import tables
 from . import core_ext
 
+class BaseLineage(object):
+    def __init__(self, params=None, factory_class=None):
+        self.params = params
+        self.factory_class = factory_class
+        self.world = None
+        self.factory = None
+        self.population = None
+        self.current_gen = 0
+
+    def _create(self):
+        assert self.params is not None
+        assert self.factory_class is not None
+        self.world = core_ext.World(self.params)
+        self.factory = self.factory_class(self.world, self.params)
+        self._size = self.params.population_size
+        self.population = core_ext.Population(self.factory, self._size)
+
+    def _new_database(self, path):
+        # Create H5 table with high compression using blosc
+        filters = tables.Filters(complib='blosc', complevel=5)
+        h5 = tables.open_file(str(path), 'w', filters=filters)
+
+        # Create the internal registry for pickled python objects
+        reg = h5.create_vlarray('/', 'registry', tables.ObjectAtom())
+        reg.append(self.params)
+        reg.append(self.factory_class)
+        reg.append(self.current_gen)
+
+        # Save the networks
+        h5.create_table('/', 'networks', numpy.zeros(0, dtype=self.factory.dtype()))
+        return h5
+
+    def _load_database(self, path, mode):
+        h5 = tables.open_file(str(path), mode=mode)
+        reg = h5.root.registry
+
+        # Recover the python objects that we need to reconstruct everything
+        self.params = reg[0]
+        self.factory_class = reg[1]
+        self.current_gen = reg[2]
+
+        return h5
+
+
+class SnapshotLineage(BaseLineage):
+    def __init__(self, params=None, factory_class=None, path=None):
+        BaseLineage.__init__(self, params, factory_class)
+        if path is None:
+            self._create()
+        else:
+            self._load(path)
+
+    def _load(self, path):
+        h5 = self._load_database(path, 'r')
+        self._create()
+        # Load everything
+        self.factory.from_numpy(h5.root.networks[:], self.population)
+        h5.close()
+
+    def assess(self, target):
+        assert target.world is self.world
+        self.population.assess(target)
+
+    def next_generation(self, mutation_rate, selection_model):
+        """Make a new generation"""
+        assert selection_model.world is self.world
+        self.current_gen += 1
+        self.population.select(selection_model)
+        self.population.mutate(mutation_rate, self.current_gen)
+
+    def save_snapshot(self, path):
+        h5 = self._new_database(path)
+        arr = self.factory.to_numpy(self.population)
+        h5.root.networks.append(arr)
+        h5.close()
+
+
 class Lineage(object):
-    """Wrap a population into a saveable lineage, using pytables"""
     def __init__(self, path, params=None, factory_class=None, overwrite=False):
         if not isinstance(path, pathlib.Path):
             path = pathlib.Path(path)
@@ -27,8 +103,10 @@ class Lineage(object):
         else:
             # We're making a new one
             assert hasattr(params, 'population_size')
+            if not overwrite:
+                assert not path.exists
             assert factory_class is not None
-            self.init_factory()
+            self._create()
             self.create()
 
     def __repr__(self):
@@ -38,7 +116,7 @@ class Lineage(object):
             len(self.networks),
         )
 
-    def init_factory(self):
+    def _create(self):
         self.world = core_ext.World(self.params)
         self.factory = self.factory_class(self.world, self.params)
         self._size = self.params.population_size
@@ -64,10 +142,10 @@ class Lineage(object):
         # Create an array that can store pickled items. We keep these VERY
         # simple, only storing the initial parameters and the factory class.
         # We rely on reconstructing everything.
-        self._store = self.h5.create_vlarray('/', 'store', tables.ObjectAtom())
-        self._store.append(self.params)
-        self._store.append(self.factory_class)
-        self._store.append(self.current_gen)
+        self._registry = self.h5.create_vlarray('/', 'registry', tables.ObjectAtom())
+        self._registry.append(self.params)
+        self._registry.append(self.factory_class)
+        self._registry.append(self.current_gen)
         self._gen_record = numpy.zeros(1, dtype=self.generation_dtype())
 
         self.save_generation(initial=True)
@@ -78,14 +156,14 @@ class Lineage(object):
         self.h5 = tables.open_file(str(self.path), mode='r+')
         self.networks = self.h5.root.networks
         self.generations = self.h5.root.generations
-        self._store = self.h5.root.store
+        self._registry = self.h5.root.store
 
         # Recover the python objects that we need to reconstruct everything
-        self.params = self._store[0]
-        self.factory_class = self._store[1]
+        self.params = self._registry[0]
+        self.factory_class = self._registry[1]
         self._gen_record = self.generations[-1:]
         self.current_gen = self._gen_record['generation'][0]
-        self.init_factory()
+        self._create()
 
         # Load the last population, using the coordinates that were written
         # into the last generation 

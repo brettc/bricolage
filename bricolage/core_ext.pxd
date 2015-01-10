@@ -26,7 +26,8 @@ cdef class Constructor:
         cConstructor *_this
         int _secret_key
         readonly:
-            object world, gene_class, module_class, network_class
+            World world
+            object gene_class, module_class, network_class
 
 cdef class Target:
     cdef:
@@ -71,6 +72,8 @@ cdef class CisModule:
 cdef class SelectionModel:
     cdef:
         cSelectionModel *_this
+        readonly:
+            World world
 
 cdef class CollectionBase:
     cdef:

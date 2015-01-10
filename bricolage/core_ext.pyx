@@ -439,6 +439,7 @@ cdef class CisModule:
 
 cdef class SelectionModel:
     def __cinit__(self, World w):
+        self.world = w
         self._this = new cSelectionModel(w._shared)
 
     def __dealloc__(self):

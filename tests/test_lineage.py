@@ -44,6 +44,17 @@ def test_numpy_export(c_3x2):
                 assert m1.op == m2.op
                 assert m1.channels == m2.channels
 
+
+def test_creation(tmpdir):
+    base = pathlib.Path(str(tmpdir))
+    path = base / 'creation.db'
+    params = T.Parameters(population_size=10)
+    a = L.Lineage(path, params, T.Constructor)
+    del a
+    b = L.Lineage(path)
+    del b
+
+
 def assert_pops_equal(p1, p2):
     assert p1.size == p2.size
     for n1, n2 in zip(p1, p2):
@@ -58,13 +69,67 @@ def assert_pops_equal(p1, p2):
                 assert m1.op == m2.op
                 assert m1.channels == m2.channels
 
-def test_creation(tmpdir):
-    fname = pathlib.Path(str(tmpdir)) / 'creation.db'
-    params = T.Parameters(population_size=10)
-    a = L.Lineage(fname, params, T.Constructor)
+def test_repeatability(p_3x2, target_3x2):
+    """Make sure that the same seed produces the same outcome"""
+    a = L.SnapshotLineage(params=p_3x2, factory_class=T.Constructor)
+    target = T.Target(a.world, target_3x2)
+    sel = T.SelectionModel(a.world)
+    for i in range(100):
+        a.assess(target)
+        a.next_generation(.001, sel)
+
+    b = L.SnapshotLineage(params=p_3x2, factory_class=T.Constructor)
+    target = T.Target(b.world, target_3x2)
+    sel = T.SelectionModel(b.world)
+    for i in range(100):
+        b.assess(target)
+        b.next_generation(.001, sel)
+
+    assert_pops_equal(a.population, b.population)
+
+def test_snapshot_reload(p_3x2, target_3x2, tmpdir):
+    base = pathlib.Path(str(tmpdir))
+    path = base / 'reload.db'
+    a = L.SnapshotLineage(params=p_3x2, factory_class=T.Constructor)
+    a.save_snapshot(path)
+    p1 = a.population
     del a
-    b = L.Lineage(fname)
+    # Now reload and compare the population
+    b = L.SnapshotLineage(path=path)
+    assert_pops_equal(p1, b.population)
     del b
+
+def test_snapshot_lineage(p_3x2, target_3x2, tmpdir):
+    base = pathlib.Path(str(tmpdir))
+    times = 5
+    generations = 20
+    mrate = .001
+
+    # Generate a bunch of snapshots
+    a = L.SnapshotLineage(params=p_3x2, factory_class=T.Constructor)
+    target = T.Target(a.world, target_3x2)
+    sel = T.SelectionModel(a.world)
+    for i in range(times):
+        for j in range(generations):
+            a.assess(target)
+            a.next_generation(mrate, sel)
+        path = base / 'snapshot-{}.db'.format(i)
+        a.save_snapshot(path)
+    del a
+
+    # Same seed will generate the same lineage
+    b = L.SnapshotLineage(params=p_3x2, factory_class=T.Constructor)
+    target = T.Target(b.world, target_3x2)
+    sel = T.SelectionModel(b.world)
+    for i in range(times):
+        for j in range(generations):
+            b.assess(target)
+            b.next_generation(mrate, sel)
+        path = base / 'snapshot-{}.db'.format(i)
+        c = L.SnapshotLineage(path=path)
+
+        # Reloads should be the same
+        assert_pops_equal(b.population, c.population)
 
 def test_restarting(tmpdir, p_3x2, target_3x2):
     fname = pathlib.Path(str(tmpdir)) / 'selection.db'
