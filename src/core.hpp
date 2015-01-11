@@ -166,7 +166,7 @@ public:
     virtual ~cConstructor() {};
 
     // This is where the constructors and mutators for networks live
-    virtual cNetwork_ptr construct()=0;
+    virtual cNetwork_ptr construct(bool fill)=0;
     virtual size_t site_count(cNetworkVector &networks)=0;
 
     cNetwork_ptr clone_and_mutate_network(

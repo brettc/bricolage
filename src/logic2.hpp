@@ -27,7 +27,7 @@ struct cConstructor : public pubsub2::cConstructor
     binding_map_t bindings;
 
     // Overrides
-    pubsub2::cNetwork_ptr construct();
+    pubsub2::cNetwork_ptr construct(bool fill);
     size_t site_count(pubsub2::cNetworkVector &networks);
 
 };

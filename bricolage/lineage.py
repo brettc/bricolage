@@ -167,7 +167,7 @@ class Lineage(object):
             # We're making a new one
             assert hasattr(params, 'population_size')
             if not overwrite:
-                assert not path.exists
+                assert not path.exists()
             assert factory_class is not None
             self._create()
             self.create()

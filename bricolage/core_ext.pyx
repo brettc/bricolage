@@ -232,7 +232,7 @@ cdef class Constructor:
 
     def create_network(self):
         cdef Network n = self.network_class(self, self._secret_key)
-        n.bind_to(self._this.construct())
+        n.bind_to(self._this.construct(True))
         return n
 
 cdef class Network:

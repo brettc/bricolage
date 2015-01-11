@@ -55,7 +55,7 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
 
     cdef cppclass cConstructor:
         cConstructor()
-        cNetwork_ptr construct()
+        cNetwork_ptr construct(bint fill)
         size_t site_count(cNetworkVector &networks)
         void mutate_collection(cNetworkVector &networks, 
                                cIndexes &mutated, double site_rate)
