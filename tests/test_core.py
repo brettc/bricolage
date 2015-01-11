@@ -58,3 +58,15 @@ def test_random_engine():
     second_time += [w.get_random_int(0, 100) for _ in range(20)]
 
     assert first_time == second_time
+
+    # Now try with state setting
+    ss = w.get_random_state()
+    a = [w.get_random_double(0, 1) for _ in range(100)]
+
+    w.set_random_state(ss)
+    b = [w.get_random_double(0, 1) for _ in range(100)]
+
+    assert a == b
+        
+    
+

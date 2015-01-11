@@ -1,6 +1,7 @@
 #include "core.hpp"
 #include <cmath>
 #include <stdexcept>
+#include <sstream>
 
 using namespace pubsub2;
 
@@ -71,19 +72,22 @@ void cWorld::init_channels()
     pub_range.second = out_range.second;
 }
 
+
+std::string cWorld::get_random_state()
+{
+    std::stringstream ostr;
+    ostr << rand;
+    return ostr.str();
+}
+
+void cWorld::set_random_state(const std::string &s)
+{
+    std::stringstream istr(s);
+    istr >> rand;
+}
+
 cConstructor::cConstructor(const cWorld_ptr &w)
     : world(w)
 {
-}
-
-cNetwork_ptr cConstructor::clone_and_mutate_network(
-    cNetwork_ptr &n, size_t nmutations, int_t generation)
-{
-    cNetwork_ptr copy(n->clone());
-    copy->parent_identifier = n->identifier;
-    copy->generation = generation;
-    copy->mutate(nmutations);
-    copy->calc_attractors();
-    return copy;
 }
 

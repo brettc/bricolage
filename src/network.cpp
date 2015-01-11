@@ -12,15 +12,28 @@ cGene::cGene(sequence_t seq, signal_t p)
 {
 }
 
+cNetwork_ptr cConstructor::clone_and_mutate_network(
+    cNetwork_ptr &n, size_t nmutations, int_t generation)
+{
+    cNetwork_ptr copy(n->clone());
+    copy->identifier = world->get_next_network_ident();
+    copy->parent_identifier = n->identifier;
+    copy->generation = generation;
+    copy->mutate(nmutations);
+    copy->calc_attractors();
+    return copy;
+}
+
 cNetwork::cNetwork(const cConstructor_ptr &c)
     : constructor(c) 
     , world(c->world)
+    , identifier(-1)
     , parent_identifier(-1)
     , generation(0)
     , target(-1)
     , pyobject(0)
 {
-    identifier = world->get_next_network_ident();
+    // identifier = world->get_next_network_ident();
 }
 
 // This is the outer-inner loop, where we find the attractors. 

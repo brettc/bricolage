@@ -17,10 +17,12 @@ cConstructor::cConstructor(const pubsub2::cWorld_ptr &w, size_t cc)
 }
 
 // Construct a brand new Network with random stuff.
-pubsub2::cNetwork_ptr cConstructor::construct()
+pubsub2::cNetwork_ptr cConstructor::construct(bool fill)
 {
     pubsub2::cConstructor_ptr p = shared_from_this();
     cNetwork *net = new cNetwork(p);
+    if (fill)
+        net->identifier = world->get_next_network_ident();
 
     for (size_t pub = world->reg_range.first, gindex = 0; 
          pub < world->pub_range.second; ++pub, ++gindex)
@@ -29,11 +31,23 @@ pubsub2::cNetwork_ptr cConstructor::construct()
         auto &g = net->genes.back();
 
         for (size_t j=0; j < module_count; ++j)
+        {
             g.modules.push_back(cCisModule(*this));
+            if (fill)
+            {
+                auto &m = g.modules.back();
+                for (size_t i = 0; i < 3; ++i)
+                {
+                    m.channels[i] = r_input(world->rand);
+                    m.binding[i] = r_binding(world->rand);
+                }
+            }
+        }
     }
 
     // Calculate the attractors
-    net->calc_attractors();
+    if (fill)
+        net->calc_attractors();
     return pubsub2::cNetwork_ptr(net);
 }
 
@@ -64,11 +78,6 @@ void cNetwork::mutate(size_t nmutations)
 
 cCisModule::cCisModule(const cConstructor &c)
 {
-    for (size_t i = 0; i < 3; ++i)
-    {
-        channels[i] = c.r_input(c.world->rand);
-        binding[i] = c.r_binding(c.world->rand);
-    }
 }
 
 // This is where the action really is.
