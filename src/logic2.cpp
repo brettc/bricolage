@@ -82,10 +82,10 @@ void cNetwork::mutate(size_t nmutations)
     // Select the genes that should be mutated
     while (nmutations > 0)
     {
-        // // Choose a gene and mutate it
+        // Choose a gene and mutate it
         size_t i = ctor.r_gene();
         auto &g = genes[i];
-        //
+        
         size_t j = ctor.r_module();
         auto &c = g.modules[j];
         c.mutate(ctor);

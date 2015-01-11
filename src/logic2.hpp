@@ -14,7 +14,7 @@ typedef std::map<signal_pair_t, operand_t> binding_map_t;
 typedef std::function<int()> random_int_t;
 inline random_int_t random_int_range(int a, int b, const pubsub2::cWorld_ptr &w)
 { 
-    return std::bind(std::uniform_int_distribution<>(a, b-1), w->rand);
+    return std::bind(std::uniform_int_distribution<>(a, b-1), std::ref(w->rand));
 }
 
 struct cConstructor : public pubsub2::cConstructor

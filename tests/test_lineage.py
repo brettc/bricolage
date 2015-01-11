@@ -145,40 +145,19 @@ def test_snapshot_lineage(p_3x2, target_3x2, tmpdir):
         # Reloads should be the same
         assert_pops_equal(b.population, p1)
 
-    # FIXME: WHY don't the mutations line up!! The random engine has been
-    # reset to be the same. I don't get it.
-    # Now run them in parallel
+    # Now run them in parallel -- restarting should be the same as if we just
+    # ran it from the beginning
     assert_pops_equal(a.population, b.population)
     assert a.world.get_random_state() == b.world.get_random_state()
 
-    # apop = a.population
-    # bpop = b.population
+    for i in range(20):
+        b.assess(b_target)
+        b.next_generation(mrate, b_sel)
+        a.assess(a_target)
+        a.next_generation(mrate, a_sel)
 
-    # # for i in range(times):
-    # a.assess(a_target)
-    # a.population.select(a_sel)
-    # # a.next_generation(mrate, a_sel)
-    # b.assess(b_target)
-    # b.population.select(b_sel)
-    # assert a.population.selected == b.population.selected
-
-    # a.population.mutate(mrate)
-    # b.population.mutate(mrate)
-    # assert a.population.mutated == b.population.mutated
-    # for x, y in zip(apop.mutated, bpop.mutated):
-    #     print x, y
-    #     n1 = apop[x]
-    #     n2 = bpop[y]
-    #     for g1, g2 in zip(n1.genes, n2.genes):
-    #         for m1, m2 in zip(g1.modules, g2.modules):
-    #             print '   ', m1, m2
-    #
-    # assert a.world.get_random_state() == b.world.get_random_state()
-    # assert_pops_equal(a.population, b.population)
-    # b.next_generation(mrate, sel)
-    # for n1, n2 in zip(a.population, b.population):
-    #     assert n1.identifier == n2.identifier
-    #     assert n1.fitness == n2.fitness
+    assert_pops_equal(a.population, b.population)
+    assert a.world.get_random_state() == b.world.get_random_state()
 
 def test_full_lineage(tmpdir, p_3x2, target_3x2):
     path = pathlib.Path(str(tmpdir)) / 'selection.db'

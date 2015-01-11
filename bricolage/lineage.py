@@ -120,6 +120,13 @@ class SnapshotLineage(BaseLineage):
             self._create()
             self._new_database()
 
+    def __repr__(self):
+        return "<SnapShotLineage: '{}', {}S, {}N>".format(
+            str(self.path.name),
+            len(self._generations),
+            len(self._networks),
+        )
+
     def save_snapshot(self):
         start = len(self._networks)
         
@@ -161,7 +168,7 @@ class FullLineage(BaseLineage):
             self.save_generation(initial=True)
 
     def __repr__(self):
-        return "<Lineage: '{}', {}/{}G, {}N>".format(
+        return "<FullLineage: '{}', {}/{}G, {}N>".format(
             str(self.path.name),
             len(self._generations),
             self._size,
