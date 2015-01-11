@@ -49,7 +49,7 @@ def test_creation(tmpdir):
     base = pathlib.Path(str(tmpdir))
     path = base / 'create.db'
     params = T.Parameters(population_size=10)
-    a = L.Lineage(path, params, T.Constructor)
+    a = L.FullLineage(path, params, T.Constructor)
     del a
     # b = L.Lineage(path)
     # del b
@@ -66,6 +66,8 @@ def assert_pops_equal(p1, p2):
             for m1, m2 in zip(g1.modules, g2.modules):
                 assert m1.op == m2.op
                 assert m1.channels == m2.channels
+        # No blank attractors allowed
+        assert n1.attractors
         assert n1.attractors == n2.attractors
         assert (n1.rates == n2.rates).all()
 
@@ -179,10 +181,10 @@ def test_snapshot_lineage(p_3x2, target_3x2, tmpdir):
     #     assert n1.fitness == n2.fitness
 
 def test_full_lineage(tmpdir, p_3x2, target_3x2):
-    fname = pathlib.Path(str(tmpdir)) / 'selection.db'
+    path = pathlib.Path(str(tmpdir)) / 'selection.db'
 
     # Set it all up
-    a = L.Lineage(fname, p_3x2, T.Constructor)
+    a = L.FullLineage(path, p_3x2, T.Constructor)
     sel = T.SelectionModel(a.world)
     target = T.Target(a.world, target_3x2)
 
@@ -190,22 +192,22 @@ def test_full_lineage(tmpdir, p_3x2, target_3x2):
     for i in range(100):
         a.assess(target)
         a.next_generation(.01, sel)
-    x = [net.identifier for net in a.population]
+    pa = a.population
 
     # Kill off the reference (automatically closing the file)
     del a
 
     # Reload it and delete, but save the idents
-    b = L.Lineage(fname)
-    y = [net.identifier for net in b.population]
-    del b
-
-    # It should be the same
-    assert x == y
+    b = L.FullLineage(path)
+    pb = b.population
+    assert_pops_equal(pa, pb)
+    # print b
 
     # Reload again, this time running selection further.
     # Save the 100th generation too.
-    c = L.Lineage(fname)
+    c = L.FullLineage(path)
+    sel = T.SelectionModel(c.world)
+    target = T.Target(c.world, target_3x2)
     p1 = c.get_generation(100)
     for i in range(100):
         c.assess(target)
@@ -214,26 +216,25 @@ def test_full_lineage(tmpdir, p_3x2, target_3x2):
 
     # Relead yet again. Reload the 100th generation again. Check it is exactly
     # the same
-    d = L.Lineage(fname)
+    d = L.FullLineage(path)
     p2 = d.get_generation(100)
-    z = [net.identifier for net in p2]
-    assert y == z
-
-    # This means everything is the same!
     assert_pops_equal(p1, p2)
 
-    # Pull out an ancestry
-    anc = d.get_ancestry(z[0])
-    
-    # NOTE: should pull this out separately
-    prev_i = -1
-    for n in anc:
-        i = n.identifier
-        p = n.parent_identifier
-        assert p == prev_i
-        prev_i = i
+    # This means everything is the same!
+    # assert_pops_equal(p1, p2)
+    # anc = b.get_ancestry(pb[0].identifier)
+    # print anc
 
 # def test_ancestry():
-#     assert 1 == 2
+    # Pull out an ancestry
+    # anc = d.get_ancestry(z[0])
+    
+    # NOTE: should pull this out separately
+    # prev_i = -1
+    # for n in anc:
+    #     i = n.identifier
+    #     p = n.parent_identifier
+    #     assert p == prev_i
+    #     prev_i = i
     
 

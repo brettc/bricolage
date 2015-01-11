@@ -501,6 +501,16 @@ cdef class Ancestry(CollectionBase):
     def __cinit__(self, Constructor c, size_t size=0):
         self._this = new cNetworkVector()
         self._collection = self._this
+
+    def __repr__(self):
+        if self.size == 0:
+            return "<Ancestry: EMPTY>"
+
+        return "<Ancestry: {}N, G{}-G{}>".format(
+            self.size,
+            self._this.front().get().generation,
+            self._this.back().get().generation,
+        )
         
     def __dealloc__(self):
         del self._this
