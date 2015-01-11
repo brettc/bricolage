@@ -159,6 +159,25 @@ def test_snapshot_lineage(p_3x2, target_3x2, tmpdir):
     assert_pops_equal(a.population, b.population)
     assert a.world.get_random_state() == b.world.get_random_state()
 
+def test_snapshot_autosave(tmpdir, p_3x2, target_3x2):
+    path = pathlib.Path(str(tmpdir)) / 'autosave.db'
+
+    # Set it all up
+    a = L.SnapshotLineage(path, p_3x2, T.Constructor)
+    sel = T.SelectionModel(a.world)
+    target = T.Target(a.world, target_3x2)
+
+    # Run selection for 100 generations
+    for i in range(100):
+        a.assess(target)
+        a.next_generation(.01, sel)
+    pa = a.population
+    # No explicit save!
+    del a
+
+    b = L.SnapshotLineage(path)
+    assert_pops_equal(pa, b.population)
+
 def test_full_lineage(tmpdir, p_3x2, target_3x2):
     path = pathlib.Path(str(tmpdir)) / 'selection.db'
 

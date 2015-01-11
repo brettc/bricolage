@@ -62,6 +62,7 @@ class BaseLineage(object):
         h5 = tables.open_file(str(self.path), 'w', filters=filters)
         attrs = h5.root._v_attrs
 
+        attrs.storage_class = self.__class__.__name__
         attrs.params = self.params
         attrs.factory_class = self.factory_class
         attrs.generation = self.generation
@@ -81,6 +82,8 @@ class BaseLineage(object):
     def _open_database(self):
         h5 = tables.open_file(str(self.path), mode='r+')
         attrs = h5.root._v_attrs
+
+        assert attrs.storage_class == self.__class__.__name__
 
         # Recover the python objects that we need to reconstruct everything
         self.params = attrs.params
@@ -153,6 +156,15 @@ class SnapshotLineage(BaseLineage):
         self.factory.from_numpy(arr, gen_pop)
         return gen_pop
 
+    def close(self):
+        # If the latest generation isn't saved, the save it automatically.
+        g = -1 
+        if len(self._generations) != 0:
+            g, indexes = self._generations[-1]
+        if g < self.generation:
+            self.save_snapshot()
+
+        BaseLineage.close(self)
 
 class FullLineage(BaseLineage):
     def __init__(self, path, params=None, factory_class=None, overwrite=False):
