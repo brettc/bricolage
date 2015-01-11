@@ -1,6 +1,7 @@
 #include "core.hpp"
 #include <cmath>
 #include <stdexcept>
+#include <iostream>
 
 using namespace pubsub2;
 
@@ -113,7 +114,7 @@ cPopulation::cPopulation(const cConstructor_ptr &c, size_t size)
     , world(c->world)
 {
     for (size_t i = 0; i < size; ++i)
-        networks.push_back(constructor->construct());
+        networks.push_back(constructor->construct(true));
 }
 
 void cPopulation::assess(const cTarget &target) const

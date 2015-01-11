@@ -29,7 +29,6 @@ def test_constructor(p_3x2):
     world = T.World(p_3x2)
     const = T.Constructor(world, p_3x2)
     assert set(const.operands) == set(p_3x2.operands)
-    print const.bindings
 
 def test_network_ids(c_3x2):
     for i in range(10):

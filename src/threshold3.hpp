@@ -12,7 +12,7 @@ class cConstructor : public pubsub2::cConstructor
 public:
     cConstructor(const pubsub2::cWorld_ptr &w, size_t cis_count);
 
-    pubsub2::cNetwork_ptr construct();
+    pubsub2::cNetwork_ptr construct(bool fill);
     size_t site_count(pubsub2::cNetworkVector &networks);
 
     // Randomize binding

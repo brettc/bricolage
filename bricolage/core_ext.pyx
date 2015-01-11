@@ -153,11 +153,23 @@ cdef class World:
     def seed_random_engine(self, int s):
         self._this.rand.seed(s)
 
+    def get_random_state(self):
+        return self._this.get_random_state()
+
+    def set_random_state(self, string s):
+        self._this.set_random_state(s)
+
     def get_random_double(self, double low, double high):
         return self._this.get_random_double(low, high)
 
     def get_random_int(self, int low, int high):
         return self._this.get_random_int(low, high)
+
+    property next_network_id:
+        def __get__(self):
+            return self._this.next_network_identifier
+        def __set__(self, sequence_t i):
+            self._this.next_network_identifier = i
 
     property cue_channels:
         def __get__(self):
@@ -220,7 +232,7 @@ cdef class Constructor:
 
     def create_network(self):
         cdef Network n = self.network_class(self, self._secret_key)
-        n.bind_to(self._this.construct())
+        n.bind_to(self._this.construct(True))
         return n
 
 cdef class Network:
@@ -439,6 +451,7 @@ cdef class CisModule:
 
 cdef class SelectionModel:
     def __cinit__(self, World w):
+        self.world = w
         self._this = new cSelectionModel(w._shared)
 
     def __dealloc__(self):
@@ -488,6 +501,16 @@ cdef class Ancestry(CollectionBase):
     def __cinit__(self, Constructor c, size_t size=0):
         self._this = new cNetworkVector()
         self._collection = self._this
+
+    def __repr__(self):
+        if self.size == 0:
+            return "<Ancestry: EMPTY>"
+
+        return "<Ancestry: {}N, G{}-G{}>".format(
+            self.size,
+            self._this.front().get().generation,
+            self._this.back().get().generation,
+        )
         
     def __dealloc__(self):
         del self._this
