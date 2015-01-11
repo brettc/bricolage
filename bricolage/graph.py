@@ -95,7 +95,7 @@ class FullGraph(BaseGraph):
             self.nx_graph.add_edge(nfrom, nto)
 
     def get_gene_label(self, i):
-        mods = self.network.genes[i].modules
+        # mods = self.network.genes[i].modules
         # return "|".join([str(j) for j, m in enumerate(mods)])
         return str(self.network.genes[i])
     
