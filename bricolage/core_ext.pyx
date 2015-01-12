@@ -523,6 +523,9 @@ cdef class Population(CollectionBase):
     def __dealloc__(self):
         del self._this
 
+    def worst_and_best(self):
+        return self._this.worst_and_best()
+
     property site_count:
         def __get__(self):
             return self._this.constructor.get().site_count(self._this.networks)
@@ -561,9 +564,9 @@ cdef class Population(CollectionBase):
             return self._this.selected
 
 cdef class Target:
-    def __cinit__(self, World w, init_func):
+    def __cinit__(self, World w, init_func, name=""):
         self.world = w
-        self._this = new cTarget(w._shared)
+        self._this = new cTarget(w._shared, name)
         a, b = w._this.cue_range
 
         # Slow and cumbersome, but it doesn't matter

@@ -7,33 +7,41 @@ import tables
 from . import core_ext
 
 class BaseLineage(object):
-    def __init__(self, path, params=None, factory_class=None):
+    def __init__(self, path, params=None):
         if not isinstance(path, pathlib.Path):
             path = pathlib.Path(path)
         self.path = path
         self.params = params
-        self.factory_class = factory_class
         self.world = None
         self.factory = None
         self.population = None
+        self.targets = []
         self.generation = 0
+
+    # def add_target(self, func, target_class=None):
+    #     if target_class is None:
+    #         target_class = self.params.target_class
+    #
+    #     # Add locally and save
+    #     t = target_class(self.world, func)
+    #     self._targets.append(t)
+    #     self.targets.append(t)
 
     def assess(self, target):
         assert target.world is self.world
         self.population.assess(target)
 
-    def next_generation(self, mutation_rate, selection_model):
+    def next_generation(self):
         """Make a new generation"""
-        assert selection_model.world is self.world
         self.generation += 1
-        self.population.select(selection_model)
-        self.population.mutate(mutation_rate, self.generation)
+        self.population.select(self.selection_model)
+        self.population.mutate(self.params.mutation_rate, self.generation)
 
     def _create(self, loading=False):
         assert self.params is not None
-        assert self.factory_class is not None
         self.world = core_ext.World(self.params)
-        self.factory = self.factory_class(self.world, self.params)
+        self.factory = self.params.factory_class(self.world, self.params)
+        self.selection_model = self.params.selection_class(self.world)
         self._size = self.params.population_size
 
         if loading:
@@ -64,16 +72,17 @@ class BaseLineage(object):
 
         attrs.storage_class = self.__class__.__name__
         attrs.params = self.params
-        attrs.factory_class = self.factory_class
         attrs.generation = self.generation
 
         # Save the networks
         z = numpy.zeros
         n = h5.create_table('/', 'networks', z(0, dtype=self.factory.dtype()))
         g = h5.create_table('/', 'generations', z(0, dtype=self._generation_dtype()))
+        t = h5.create_vlarray('/', 'targets', tables.ObjectAtom())
 
         self._h5 = h5
         self._networks = n
+        self._targets = t
         self._generations = g
         self._attrs = attrs
 
@@ -87,13 +96,13 @@ class BaseLineage(object):
 
         # Recover the python objects that we need to reconstruct everything
         self.params = attrs.params
-        self.factory_class = attrs.factory_class
         self.generation = attrs.generation
 
         self._h5 = h5
         self._attrs = attrs 
         self._networks = h5.root.networks
         self._generations = h5.root.generations
+        self._targets = h5.root.targets
 
     def _load(self):
         self._open_database()
@@ -104,6 +113,8 @@ class BaseLineage(object):
         arr = self._networks.read_coordinates(indexes)
         self.factory.from_numpy(arr, self.population)
         self._load_mutable()
+        # for i in range(len(self._targets)):
+        #     self.targets.append(self._targets[i])
 
     def close(self):
         # Avoid messages from tables
@@ -114,12 +125,11 @@ class BaseLineage(object):
 
 
 class SnapshotLineage(BaseLineage):
-    def __init__(self, path, params=None, factory_class=None):
-        BaseLineage.__init__(self, path, params, factory_class)
+    def __init__(self, path, params=None):
+        BaseLineage.__init__(self, path, params)
         if params is None:
             self._load()
         else:
-            assert factory_class is not None
             self._create()
             self._new_database()
 
@@ -167,12 +177,11 @@ class SnapshotLineage(BaseLineage):
         BaseLineage.close(self)
 
 class FullLineage(BaseLineage):
-    def __init__(self, path, params=None, factory_class=None, overwrite=False):
-        BaseLineage.__init__(self, path, params, factory_class)
+    def __init__(self, path, params=None):
+        BaseLineage.__init__(self, path, params)
         if params is None:
             self._load()
         else:
-            assert factory_class is not None
             # if not overwrite:
             #     assert not path.exists()
             self._create()
@@ -204,9 +213,9 @@ class FullLineage(BaseLineage):
 
         self._h5.flush()
 
-    def next_generation(self, mutation_rate, selection_model):
+    def next_generation(self):
         """Make a new generation"""
-        BaseLineage.next_generation(self, mutation_rate, selection_model)
+        BaseLineage.next_generation(self)
         self.save_generation()
 
     def get_generation(self, wanted_g):

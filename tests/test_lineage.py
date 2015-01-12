@@ -1,18 +1,26 @@
 import pytest
-import bricolage.logic2 as T
+import bricolage.logic2 as L2
 import bricolage.lineage as L
 import pathlib
 
 @pytest.fixture
 def p_3x2():
-    o = T.Operand
+    o = L2.Operand
     ops = o.NOT_A_AND_B, o.A_AND_NOT_B, o.NOR, o.AND
-    return T.Parameters(seed=1, operands=ops, cis_count=2, reg_channels=5,
-                        out_channels=2, cue_channels=3, population_size=100)
+    return L2.Parameters(
+        seed=1, 
+        operands=ops, 
+        cis_count=2, 
+        reg_channels=5,
+        out_channels=2, 
+        cue_channels=3, 
+        population_size=100,
+        mutation_rate=.001,
+    )
 @pytest.fixture
 def c_3x2(p_3x2):
-    world = T.World(p_3x2)
-    return T.Constructor(world, p_3x2)
+    world = L2.World(p_3x2)
+    return L2.Constructor(world, p_3x2)
 
 @pytest.fixture
 def target_3x2():
@@ -25,12 +33,12 @@ def target_3x2():
     return make_target
 
 def test_numpy_export(c_3x2):
-    p1 = T.Population(c_3x2, 1000)
+    p1 = L2.Population(c_3x2, 1000)
     as_array = c_3x2.to_numpy(p1)
 
     assert as_array.dtype == c_3x2.dtype()
 
-    p2 = T.Population(c_3x2, 0)
+    p2 = L2.Population(c_3x2, 0)
     c_3x2.from_numpy(as_array, p2)
 
     # Did we get exactly the same thing back?
@@ -48,8 +56,8 @@ def test_numpy_export(c_3x2):
 def test_creation(tmpdir):
     base = pathlib.Path(str(tmpdir))
     path = base / 'create.db'
-    params = T.Parameters(population_size=10)
-    a = L.FullLineage(path, params, T.Constructor)
+    params = L2.Parameters(population_size=10)
+    a = L.FullLineage(path, params)
     del a
     # b = L.Lineage(path)
     # del b
@@ -75,29 +83,44 @@ def test_repeatability(tmpdir, p_3x2, target_3x2):
     """Make sure that the same seed produces the same outcome"""
     base = pathlib.Path(str(tmpdir))
     path = base / 'r1.db'
-    a = L.SnapshotLineage(path, params=p_3x2, factory_class=T.Constructor)
-    target = T.Target(a.world, target_3x2)
-    sel = T.SelectionModel(a.world)
+    a = L.SnapshotLineage(path, params=p_3x2)
+    target = L2.Target(a.world, target_3x2)
     for i in range(100):
         a.assess(target)
-        a.next_generation(.001, sel)
+        a.next_generation()
 
     path = base / 'r2.db'
-    b = L.SnapshotLineage(path, params=p_3x2, factory_class=T.Constructor)
-    target = T.Target(b.world, target_3x2)
-    sel = T.SelectionModel(b.world)
+    b = L.SnapshotLineage(path, params=p_3x2)
+    target = L2.Target(b.world, target_3x2)
     for i in range(100):
         b.assess(target)
-        b.next_generation(.001, sel)
+        b.next_generation()
 
     assert_pops_equal(a.population, b.population)
     del a
     del b
 
+@pytest.mark.xfail 
+def test_target_add(p_3x2, target_3x2, tmpdir):
+    base = pathlib.Path(str(tmpdir))
+    path = base / 'targets.db'
+    a = L.SnapshotLineage(path, params=p_3x2)
+    a.add_target(target_3x2)
+    a.save_snapshot()
+    del a
+    # p1 = a.population
+    # r1 = a.world.get_random_state()
+    # del a
+    b = L.SnapshotLineage(path=path)
+    print b.targets
+    # assert_pops_equal(p1, b.population)
+    # assert b.world.get_random_state() == r1
+    # del b
+
 def test_snapshot_reload(p_3x2, target_3x2, tmpdir):
     base = pathlib.Path(str(tmpdir))
     path = base / 'reload.db'
-    a = L.SnapshotLineage(path, params=p_3x2, factory_class=T.Constructor)
+    a = L.SnapshotLineage(path, params=p_3x2)
     a.save_snapshot()
     p1 = a.population
     r1 = a.world.get_random_state()
@@ -108,38 +131,35 @@ def test_snapshot_reload(p_3x2, target_3x2, tmpdir):
     assert b.world.get_random_state() == r1
     del b
 
+
 def test_snapshot_lineage(p_3x2, target_3x2, tmpdir):
     base = pathlib.Path(str(tmpdir))
     path_1 = base / 'snap1.db'
     times = 5
     generations = 20
-    mrate = .001
 
     # Generate a bunch of snapshots
-    a = L.SnapshotLineage(path_1, params=p_3x2, factory_class=T.Constructor)
-    a_target = T.Target(a.world, target_3x2)
-    a_sel = T.SelectionModel(a.world)
+    a = L.SnapshotLineage(path_1, params=p_3x2)
+    a_target = L2.Target(a.world, target_3x2)
     for i in range(times):
         for j in range(generations):
             a.assess(a_target)
-            a.next_generation(mrate, a_sel)
+            a.next_generation()
         a.save_snapshot()
 
     # Delete and reload a
     del a
     a = L.SnapshotLineage(path_1) 
-    a_target = T.Target(a.world, target_3x2)
-    a_sel = T.SelectionModel(a.world)
+    a_target = L2.Target(a.world, target_3x2)
 
     # Same seed will generate the same lineage
     path_2 = base / 'snap2.db'
-    b = L.SnapshotLineage(path_2, params=p_3x2, factory_class=T.Constructor)
-    b_target = T.Target(b.world, target_3x2)
-    b_sel = T.SelectionModel(b.world)
+    b = L.SnapshotLineage(path_2, params=p_3x2)
+    b_target = L2.Target(b.world, target_3x2)
     for i in range(times):
         for j in range(generations):
             b.assess(b_target)
-            b.next_generation(mrate, b_sel)
+            b.next_generation()
         p1 = a.get_generation(b.generation)
 
         # Reloads should be the same
@@ -152,9 +172,9 @@ def test_snapshot_lineage(p_3x2, target_3x2, tmpdir):
 
     for i in range(20):
         b.assess(b_target)
-        b.next_generation(mrate, b_sel)
+        b.next_generation()
         a.assess(a_target)
-        a.next_generation(mrate, a_sel)
+        a.next_generation()
 
     assert_pops_equal(a.population, b.population)
     assert a.world.get_random_state() == b.world.get_random_state()
@@ -163,14 +183,13 @@ def test_snapshot_autosave(tmpdir, p_3x2, target_3x2):
     path = pathlib.Path(str(tmpdir)) / 'autosave.db'
 
     # Set it all up
-    a = L.SnapshotLineage(path, p_3x2, T.Constructor)
-    sel = T.SelectionModel(a.world)
-    target = T.Target(a.world, target_3x2)
+    a = L.SnapshotLineage(path, p_3x2)
+    target = L2.Target(a.world, target_3x2)
 
     # Run selection for 100 generations
     for i in range(100):
         a.assess(target)
-        a.next_generation(.01, sel)
+        a.next_generation()
     pa = a.population
     # No explicit save!
     del a
@@ -182,14 +201,13 @@ def test_full_lineage(tmpdir, p_3x2, target_3x2):
     path = pathlib.Path(str(tmpdir)) / 'selection.db'
 
     # Set it all up
-    a = L.FullLineage(path, p_3x2, T.Constructor)
-    sel = T.SelectionModel(a.world)
-    target = T.Target(a.world, target_3x2)
+    a = L.FullLineage(path, p_3x2)
+    target = L2.Target(a.world, target_3x2)
 
     # Run selection for 100 generations
     for i in range(100):
         a.assess(target)
-        a.next_generation(.01, sel)
+        a.next_generation()
     pa = a.population
 
     # Kill off the reference (automatically closing the file)
@@ -204,12 +222,11 @@ def test_full_lineage(tmpdir, p_3x2, target_3x2):
     # Reload again, this time running selection further.
     # Save the 100th generation too.
     c = L.FullLineage(path)
-    sel = T.SelectionModel(c.world)
-    target = T.Target(c.world, target_3x2)
+    target = L2.Target(c.world, target_3x2)
     p1 = c.get_generation(100)
     for i in range(100):
         c.assess(target)
-        c.next_generation(.01, sel)
+        c.next_generation()
     del c
 
     # Relead yet again. Reload the 100th generation again. Check it is exactly

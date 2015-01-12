@@ -115,10 +115,11 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
     # ctypedef vector[cNetwork_ptr] cNetworkVector
     #
     cdef cppclass cTarget:
-        cTarget(cWorld_ptr &w)
+        cTarget(cWorld_ptr &w, string name)
         double assess(cNetwork &net)
         cWorld *factory
         int_t identifier
+        string name
         cRatesVector optimal_rates
 
     cdef cppclass cSelectionModel:
@@ -133,7 +134,7 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         size_t mutate(double site_rate, int_t generation)
         void assess(const cTarget &target)
         bint select(const cSelectionModel &sm, size_t size)
-
+        pair[double, double] worst_and_best()
         cConstructor_ptr constructor
         cWorld_ptr world
 
