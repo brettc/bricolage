@@ -223,8 +223,9 @@ private:
 
 struct cTarget
 {
-    cTarget(const cWorld_ptr &world);
+    cTarget(const cWorld_ptr &world, const std::string &name);
     cWorld_ptr world;
+    std::string name;
     int_t identifier;
     cRatesVector optimal_rates;
 
@@ -251,6 +252,7 @@ public:
     size_t mutate(double site_rate, int_t generation);
     void assess(const cTarget &target) const;
     bool select(const cSelectionModel &sm, size_t size);
+    std::pair<double, double> worst_and_best() const;
 
     // cConstNetwork_ptr get_network(size_t index) const;
     size_t get_generation() const { return generation; }

@@ -1,6 +1,6 @@
-from core_ext import World
+from .core_ext import SelectionModel, World
 
-__all__ = ["World", "Parameters"]
+__all__ = ["World", "SelectionModel", "Parameters"]
 
 class Parameters(object):
     def __init__(self, **kwargs):
@@ -11,9 +11,13 @@ class Parameters(object):
         self.cue_channels = 2
         self.reg_channels = 1
         self.out_channels = 1
+        self.selection_class = SelectionModel
+        self.population_size = 100
+
         self._override(kwargs)
 
     def _override(self, kwargs):
+        # TODO: Something clever here
         for k, v in kwargs.items():
             setattr(self, k, v)
             # if hasattr(self, k):
