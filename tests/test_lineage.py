@@ -250,23 +250,23 @@ def test_treatment(tmpdir, p_3x2, target_3x2):
     path = pathlib.Path(str(tmpdir)) / name
     treat = L.Treatment(path, p_3x2)
 
-    def callback(rep):
+    def callback(rep, max_gen):
         lineage = rep.get_lineage()
         target = L2.Target(lineage.world, target_3x2)
-        while lineage.generation < 100:
+        while lineage.generation < max_gen:
             lineage.next_generation(target)
 
-    treat.run(callback)
+    treat.run(callback, max_gen=100)
 
     l5 = treat.replicates[5].get_lineage()
     del l5
     del treat
 
-    def re_callback(rep):
+    def re_callback(rep, max_gen):
         lineage = rep.get_lineage()
-        assert lineage.generation == 100
+        assert lineage.generation == max_gen
 
     treat = L.Treatment(path, p_3x2)
 
-    treat.run(re_callback)
+    treat.run(re_callback, max_gen=100)
 

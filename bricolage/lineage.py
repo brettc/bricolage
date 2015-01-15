@@ -326,6 +326,8 @@ class Treatment(object):
     def __init__(self, path, params=None, overwrite=False):
         if not isinstance(path, pathlib.Path):
             path = pathlib.Path(path)
+        assert path.parent.exists()
+
         self.path = path
         self.params = params
         if overwrite or not self.path.exists():
@@ -338,9 +340,9 @@ class Treatment(object):
     def filename(self):
         return str(self.path / self.TREATMENT_FILENAME)
 
-    def run(self, callback):
+    def run(self, callback, **kwargs):
         for r in self.replicates:
-            callback(r)
+            callback(r, **kwargs)
 
     def _create(self):
         self.rand = random.Random(self.params.seed)
