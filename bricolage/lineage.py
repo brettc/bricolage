@@ -40,10 +40,7 @@ class BaseLineage(object):
         """Make a new generation"""
         assert target.world is self.world
 
-        # TODO: THIS IS STILL NOT COOL. We could change targets across loading
-        # and this could screw things up. Really need to keep targets in the
-        # lineage...?
-        #
+        # TODO: is this right?
         # If we're completely fresh, then we need to regenerate the fitnesses,
         # as these are not stored.
         if self.fresh:
