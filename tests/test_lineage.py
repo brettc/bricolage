@@ -16,6 +16,7 @@ def p_3x2():
         cue_channels=3, 
         population_size=100,
         mutation_rate=.001,
+        replicates=10,
     )
 @pytest.fixture
 def c_3x2(p_3x2):
@@ -86,15 +87,13 @@ def test_repeatability(tmpdir, p_3x2, target_3x2):
     a = L.SnapshotLineage(path, params=p_3x2)
     target = L2.Target(a.world, target_3x2)
     for i in range(100):
-        a.assess(target)
-        a.next_generation()
+        a.next_generation(target)
 
     path = base / 'r2.db'
     b = L.SnapshotLineage(path, params=p_3x2)
     target = L2.Target(b.world, target_3x2)
     for i in range(100):
-        b.assess(target)
-        b.next_generation()
+        b.next_generation(target)
 
     assert_pops_equal(a.population, b.population)
     del a
@@ -143,8 +142,7 @@ def test_snapshot_lineage(p_3x2, target_3x2, tmpdir):
     a_target = L2.Target(a.world, target_3x2)
     for i in range(times):
         for j in range(generations):
-            a.assess(a_target)
-            a.next_generation()
+            a.next_generation(a_target)
         a.save_snapshot()
 
     # Delete and reload a
@@ -158,8 +156,7 @@ def test_snapshot_lineage(p_3x2, target_3x2, tmpdir):
     b_target = L2.Target(b.world, target_3x2)
     for i in range(times):
         for j in range(generations):
-            b.assess(b_target)
-            b.next_generation()
+            b.next_generation(b_target)
         p1 = a.get_generation(b.generation)
 
         # Reloads should be the same
@@ -171,10 +168,8 @@ def test_snapshot_lineage(p_3x2, target_3x2, tmpdir):
     assert a.world.get_random_state() == b.world.get_random_state()
 
     for i in range(20):
-        b.assess(b_target)
-        b.next_generation()
-        a.assess(a_target)
-        a.next_generation()
+        b.next_generation(b_target)
+        a.next_generation(a_target)
 
     assert_pops_equal(a.population, b.population)
     assert a.world.get_random_state() == b.world.get_random_state()
@@ -188,8 +183,7 @@ def test_snapshot_autosave(tmpdir, p_3x2, target_3x2):
 
     # Run selection for 100 generations
     for i in range(100):
-        a.assess(target)
-        a.next_generation()
+        a.next_generation(target)
     pa = a.population
     # No explicit save!
     del a
@@ -206,8 +200,7 @@ def test_full_lineage(tmpdir, p_3x2, target_3x2):
 
     # Run selection for 100 generations
     for i in range(100):
-        a.assess(target)
-        a.next_generation()
+        a.next_generation(target)
     pa = a.population
 
     # Kill off the reference (automatically closing the file)
@@ -225,8 +218,7 @@ def test_full_lineage(tmpdir, p_3x2, target_3x2):
     target = L2.Target(c.world, target_3x2)
     p1 = c.get_generation(100)
     for i in range(100):
-        c.assess(target)
-        c.next_generation()
+        c.next_generation(target)
     del c
 
     # Relead yet again. Reload the 100th generation again. Check it is exactly
@@ -252,4 +244,29 @@ def test_full_lineage(tmpdir, p_3x2, target_3x2):
     #     assert p == prev_i
     #     prev_i = i
     
+
+def test_treatment(tmpdir, p_3x2, target_3x2):
+    name = 'treat'
+    path = pathlib.Path(str(tmpdir)) / name
+    treat = L.Treatment(path, p_3x2)
+
+    def callback(rep, max_gen):
+        lineage = rep.get_lineage()
+        target = L2.Target(lineage.world, target_3x2)
+        while lineage.generation < max_gen:
+            lineage.next_generation(target)
+
+    treat.run(callback, max_gen=100)
+
+    l5 = treat.replicates[5].get_lineage()
+    del l5
+    del treat
+
+    def re_callback(rep, max_gen):
+        lineage = rep.get_lineage()
+        assert lineage.generation == max_gen
+
+    treat = L.Treatment(path, p_3x2)
+
+    treat.run(re_callback, max_gen=100)
 
