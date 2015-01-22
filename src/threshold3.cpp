@@ -7,12 +7,12 @@ cConstructor::cConstructor(const pubsub2::cWorld_ptr &w, size_t cc)
     : pubsub2::cConstructor(w)
     , gene_count(w->reg_channels + w->out_channels)
     , module_count(cc)
-    , r_binding(-3, 3)
-    , r_direction(0, 1)
-    , r_site(0, 2)
-    , r_input(0, w->sub_range.second-1)
-    , r_gene(boost::bind(pubsub2::randint_t(0, gene_count-1), w->rand))
-    , r_cis(boost::bind(pubsub2::randint_t(0, cc-1), w->rand))
+    , r_gene(random_int_range(0, gene_count, w))
+    , r_module(random_int_range(0, module_count, w))
+    , r_site(random_int_range(0, 3, w))
+    , r_binding(random_int_range(-3, 4, w))
+    , r_direction(random_int_range(0, 2, w))
+    , r_input(random_int_range(w->sub_range.first, w->sub_range.second, w))
 {
 }
 
@@ -38,8 +38,8 @@ pubsub2::cNetwork_ptr cConstructor::construct(bool fill)
                 auto &m = g.modules.back();
                 for (size_t i = 0; i < 3; ++i)
                 {
-                    m.channels[i] = r_input(world->rand);
-                    m.binding[i] = r_binding(world->rand);
+                    m.channels[i] = r_input();
+                    m.binding[i] = r_binding();
                 }
             }
         }
@@ -69,7 +69,7 @@ void cNetwork::mutate(size_t nmutations)
         size_t i = ctor.r_gene();
         auto &g = genes[i];
 
-        size_t j = ctor.r_cis();
+        size_t j = ctor.r_module();
         auto &c = g.modules[j];
         c.mutate(ctor);
         --nmutations;
@@ -106,9 +106,9 @@ void cCisModule::mutate(const cConstructor &c)
 {
     // TODO: mutation size is ....
     // 1 + poisson something?
-    size_t i = c.r_site(c.world->rand);
-    channels[i] = c.r_input(c.world->rand);
-    binding[i] = c.r_binding(c.world->rand);
+    size_t i = c.r_site();
+    channels[i] = c.r_input();
+    binding[i] = c.r_binding();
 }
 
 bool cCisModule::is_active(pubsub2::cChannelState const &state) const 

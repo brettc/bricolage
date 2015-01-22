@@ -9,7 +9,8 @@ __all__ = ["World", "Constructor", "Parameters",
 class Parameters(core.Parameters):
     def __init__(self, **kwargs):
         # Add new parameters here-->
-        
+        self.factory_class = Constructor
+        self.target_class = Target
         # <---
         core.Parameters.__init__(self, **kwargs)
 
