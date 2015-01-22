@@ -1,13 +1,19 @@
 import pytest
-import bricolage.logic2 as L2
+from bricolage.operand import Operand
+# from bricolage import logic2 as module
+from bricolage import threshold3 as module
 import bricolage.lineage as L
 import pathlib
 
+# @pytest.fixture(scope="module", params=[logic2, threshold3])
+# def module(request):
+#     return request.param
+
 @pytest.fixture
 def p_3x2():
-    o = L2.Operand
+    o = Operand
     ops = o.NOT_A_AND_B, o.A_AND_NOT_B, o.NOR, o.AND
-    return L2.Parameters(
+    return module.Parameters(
         seed=1, 
         operands=ops, 
         cis_count=2, 
@@ -20,8 +26,8 @@ def p_3x2():
     )
 @pytest.fixture
 def c_3x2(p_3x2):
-    world = L2.World(p_3x2)
-    return L2.Constructor(world, p_3x2)
+    world = module.World(p_3x2)
+    return module.Constructor(world, p_3x2)
 
 @pytest.fixture
 def target_3x2():
@@ -34,12 +40,12 @@ def target_3x2():
     return make_target
 
 def test_numpy_export(c_3x2):
-    p1 = L2.Population(c_3x2, 1000)
+    p1 = module.Population(c_3x2, 1000)
     as_array = c_3x2.to_numpy(p1)
 
     assert as_array.dtype == c_3x2.dtype()
 
-    p2 = L2.Population(c_3x2, 0)
+    p2 = module.Population(c_3x2, 0)
     c_3x2.from_numpy(as_array, p2)
 
     # Did we get exactly the same thing back?
@@ -50,14 +56,14 @@ def test_numpy_export(c_3x2):
         for g1, g2 in zip(n1.genes, n2.genes):
             assert g1.pub == g2.pub
             for m1, m2 in zip(g1.modules, g2.modules):
-                assert m1.op == m2.op
+                assert m1.same_as(m2)
                 assert m1.channels == m2.channels
 
 
 def test_creation(tmpdir):
     base = pathlib.Path(str(tmpdir))
     path = base / 'create.db'
-    params = L2.Parameters(population_size=10)
+    params = module.Parameters(population_size=10)
     a = L.FullLineage(path, params)
     del a
     # b = L.Lineage(path)
@@ -73,8 +79,8 @@ def assert_pops_equal(p1, p2):
         for g1, g2 in zip(n1.genes, n2.genes):
             assert g1.pub == g2.pub
             for m1, m2 in zip(g1.modules, g2.modules):
-                assert m1.op == m2.op
-                assert m1.channels == m2.channels
+                assert m1.same_as(m2)
+
         # No blank attractors allowed
         assert n1.attractors
         assert n1.attractors == n2.attractors
@@ -85,13 +91,13 @@ def test_repeatability(tmpdir, p_3x2, target_3x2):
     base = pathlib.Path(str(tmpdir))
     path = base / 'r1.db'
     a = L.SnapshotLineage(path, params=p_3x2)
-    target = L2.Target(a.world, target_3x2)
+    target = module.Target(a.world, target_3x2)
     for i in range(100):
         a.next_generation(target)
 
     path = base / 'r2.db'
     b = L.SnapshotLineage(path, params=p_3x2)
-    target = L2.Target(b.world, target_3x2)
+    target = module.Target(b.world, target_3x2)
     for i in range(100):
         b.next_generation(target)
 
@@ -139,7 +145,7 @@ def test_snapshot_lineage(p_3x2, target_3x2, tmpdir):
 
     # Generate a bunch of snapshots
     a = L.SnapshotLineage(path_1, params=p_3x2)
-    a_target = L2.Target(a.world, target_3x2)
+    a_target = module.Target(a.world, target_3x2)
     for i in range(times):
         for j in range(generations):
             a.next_generation(a_target)
@@ -148,12 +154,12 @@ def test_snapshot_lineage(p_3x2, target_3x2, tmpdir):
     # Delete and reload a
     del a
     a = L.SnapshotLineage(path_1) 
-    a_target = L2.Target(a.world, target_3x2)
+    a_target = module.Target(a.world, target_3x2)
 
     # Same seed will generate the same lineage
     path_2 = base / 'snap2.db'
     b = L.SnapshotLineage(path_2, params=p_3x2)
-    b_target = L2.Target(b.world, target_3x2)
+    b_target = module.Target(b.world, target_3x2)
     for i in range(times):
         for j in range(generations):
             b.next_generation(b_target)
@@ -179,7 +185,7 @@ def test_snapshot_autosave(tmpdir, p_3x2, target_3x2):
 
     # Set it all up
     a = L.SnapshotLineage(path, p_3x2)
-    target = L2.Target(a.world, target_3x2)
+    target = module.Target(a.world, target_3x2)
 
     # Run selection for 100 generations
     for i in range(100):
@@ -196,7 +202,7 @@ def test_full_lineage(tmpdir, p_3x2, target_3x2):
 
     # Set it all up
     a = L.FullLineage(path, p_3x2)
-    target = L2.Target(a.world, target_3x2)
+    target = module.Target(a.world, target_3x2)
 
     # Run selection for 100 generations
     for i in range(100):
@@ -215,7 +221,7 @@ def test_full_lineage(tmpdir, p_3x2, target_3x2):
     # Reload again, this time running selection further.
     # Save the 100th generation too.
     c = L.FullLineage(path)
-    target = L2.Target(c.world, target_3x2)
+    target = module.Target(c.world, target_3x2)
     p1 = c.get_generation(100)
     for i in range(100):
         c.next_generation(target)
@@ -252,7 +258,7 @@ def test_treatment(tmpdir, p_3x2, target_3x2):
 
     def callback(rep, max_gen):
         lineage = rep.get_lineage()
-        target = L2.Target(lineage.world, target_3x2)
+        target = module.Target(lineage.world, target_3x2)
         while lineage.generation < max_gen:
             lineage.next_generation(target)
 

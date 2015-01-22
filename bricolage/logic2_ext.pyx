@@ -178,3 +178,8 @@ cdef class CisModule(core_ext.CisModule):
     def __repr__(self):
         return "<CisModule: {}>".format(self.__str__())
 
+    def same_as(self, other):
+        return \
+            self.channels == other.channels and\
+            self.op == other.op
+

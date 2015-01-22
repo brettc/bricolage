@@ -3,11 +3,15 @@
 # cython: cdivision=True
 
 cimport core_ext
-# from core cimport *
 from threshold3 cimport *
 from cython.operator import dereference as deref, preincrement as preinc
 
 from .logic_tools import boolean_func_from_coop_binding
+
+cimport numpy as np
+import numpy
+ctypedef np.int_t int_type
+ctypedef np.int8_t tiny_type
 
 cdef class Constructor(core_ext.Constructor):
     def __cinit__(self, core_ext.World w, params):
@@ -20,6 +24,103 @@ cdef class Constructor(core_ext.Constructor):
         # Specialise the python classes
         self.module_class = CisModule
 
+    def dtype(self):
+        cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 
+        return numpy.dtype([
+            ('id', int),
+            ('parent', int),
+            ('generation', int), # note this is not filled in below
+            ('sub', numpy.int8, (c.gene_count, c.module_count, 3)),
+            ('binding', numpy.int8, (c.gene_count, c.module_count, 3)),
+        ])
+
+    cdef _to_numpy(self, core.cNetworkVector *networks, core.cIndexes *indexes):
+        cdef:
+            size_t i, j, k, l, count, net_i
+            cNetwork *net
+            cConstructor *c = dynamic_cast_cConstructor(self._this) 
+
+        if indexes == NULL:
+            count = networks.size()
+        else:
+            count = indexes.size()
+
+        output = numpy.zeros(count, dtype=self.dtype())
+
+        if count == 0:
+            return output
+
+        # Get the arrays
+        cdef: 
+            int_type[:] n_id = output['id']
+            int_type[:] n_parent = output['parent']
+            int_type[:] n_generation = output['generation']
+            tiny_type[:,:,:,:] n_sub = output['sub']
+            tiny_type[:,:,:,:] n_bnd = output['binding']
+
+        for i in range(count):
+            if indexes == NULL:
+                # Either get the networks directly...
+                net_i = i
+            else:
+                # Or indirectly via the indexes
+                net_i = deref(indexes)[i]
+
+            net = deref(networks)[net_i].get()
+            n_id[i] = net.identifier
+            n_parent[i] = net.parent_identifier
+            n_generation[i] = net.generation
+            for j in range(c.gene_count):
+                for k in range(c.module_count):
+                    for l in range(3):
+                        n_sub[i, j, k, l] = net.genes[j].modules[k].channels[l]
+                        n_bnd[i, j, k, l] = net.genes[j].modules[k].binding[l]
+
+        return output
+
+    def to_numpy(self, core_ext.Population p, bint mutations_only=False):
+        cdef:
+            core.cIndexes *indexes = NULL
+            core.cNetworkVector *networks = &p._this.networks
+
+        if mutations_only:
+            indexes = &p._this.mutated
+
+        return self._to_numpy(networks, indexes)
+
+    cdef _from_numpy(self, output, core.cNetworkVector *networks):
+        cdef: 
+            int_type[:] n_id = output['id']
+            int_type[:] n_parent = output['parent']
+            int_type[:] n_generation = output['generation']
+            tiny_type[:,:,:,:] n_sub = output['sub']
+            tiny_type[:,:,:,:] n_bnd = output['binding']
+            size_t i, j, k, l
+            cNetwork *net
+            core.cNetwork_ptr ptr
+            cConstructor *c = dynamic_cast_cConstructor(self._this) 
+
+        networks.clear()
+
+        assert n_sub.shape[1] == c.gene_count
+        assert n_sub.shape[2] == c.module_count
+
+        for i in range(output.shape[0]):
+            ptr = self._this.construct(False)
+            networks.push_back(ptr)
+            net = ptr.get()
+            net.identifier = n_id[i]
+            net.parent_identifier= n_parent[i]
+            net.generation = n_generation[i]
+            for j in range(c.gene_count):
+                for k in range(c.module_count):
+                    for l in range(3):
+                        net.genes[j].modules[k].channels[l] = n_sub[i, j, k, l] 
+                        net.genes[j].modules[k].binding[l] = n_bnd[i, j, k, l] 
+            net.calc_attractors()
+
+    def from_numpy(self, output, core_ext.CollectionBase c):
+        self._from_numpy(output, c._collection)
         
 cdef class CisModule(core_ext.CisModule):
     # def __cinit__(self, core_ext.Gene g, size_t i):
@@ -52,3 +153,7 @@ cdef class CisModule(core_ext.CisModule):
     def __repr__(self):
         return "<CisT3: {}>".format(self.__str__())
 
+    def same_as(self, other):
+        return \
+            self.channels == other.channels and\
+            self.bindings == other.bindings
