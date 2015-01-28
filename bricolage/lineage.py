@@ -375,6 +375,8 @@ class Treatment(object):
             shutil.rmtree(str(self.path))
         self.path.mkdir()
         if self.path is not self.analysis_path:
+            if self.analysis_path.exists():
+                shutil.rmtree(str(self.analysis_path))
             self.analysis_path.mkdir()
         with open(self.filename, 'wb') as f:
             pickle.dump(self.params, f, protocol=pickle.HIGHEST_PROTOCOL)
