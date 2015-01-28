@@ -291,10 +291,18 @@ class Replicate(object):
     def path(self):
         return self.treatment.path / self.name
 
+    @property
+    def analysis_path(self):
+        return self.treatment.analysis_path / self.name
+
     def get_lineage(self):
         p = self.path
         if not p.exists():
             p.mkdir()
+
+        # We don't use this, but users of the class might depend on it
+        if not self.analysis_path.exists():
+            self.analysis_path.mkdir()
 
         db_path = p / self.LINEAGE_FILENAME
 
@@ -320,16 +328,28 @@ class Treatment(object):
 
     TREATMENT_FILENAME = 'treatment.pickle'
 
-    def __init__(self, path, params=None, overwrite=False, full=True):
-        if not isinstance(path, pathlib.Path):
-            path = pathlib.Path(path)
-        assert path.parent.exists()
+    def __init__(self, path, params=None, analysis_path=None, overwrite=False, full=True):
+        # Sort out class to use
         if full:
             self.lineage_class = FullLineage
         else:
             self.lineage_class = SnapshotLineage
 
+        # Set up paths
+        if not isinstance(path, pathlib.Path):
+            path = pathlib.Path(path)
+        assert path.parent.exists()
         self.path = path
+
+        if analysis_path is None:
+            self.analysis_path = self.path
+        else:
+            if not isinstance(analysis_path, pathlib.Path):
+                analysis_path = pathlib.Path(analysis_path)
+            self.analysis_path = analysis_path
+        assert self.analysis_path.parent.exists()
+
+        # Now establish how we load
         self.params = params
         if overwrite or not self.path.exists():
             self._new()
@@ -354,6 +374,8 @@ class Treatment(object):
         if self.path.exists():
             shutil.rmtree(str(self.path))
         self.path.mkdir()
+        if self.path is not self.analysis_path:
+            self.analysis_path.mkdir()
         with open(self.filename, 'wb') as f:
             pickle.dump(self.params, f, protocol=pickle.HIGHEST_PROTOCOL)
 

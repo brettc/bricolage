@@ -5,6 +5,8 @@ from bricolage import threshold3 as module
 import bricolage.lineage as L
 import pathlib
 
+# TODO: How to make this work with the Pytest in VIM?
+#
 # @pytest.fixture(scope="module", params=[logic2, threshold3])
 # def module(request):
 #     return request.param
@@ -252,15 +254,19 @@ def test_full_lineage(tmpdir, p_3x2, target_3x2):
     
 
 def test_treatment(tmpdir, p_3x2, target_3x2):
+    tmpdir = pathlib.Path(str(tmpdir))
     name = 'treat'
-    path = pathlib.Path(str(tmpdir)) / name
-    treat = L.Treatment(path, p_3x2)
+    path = tmpdir / name
+    apath = tmpdir / (name + '_analysis')
+    treat = L.Treatment(path, p_3x2, analysis_path=apath)
 
     def callback(rep, max_gen):
         lineage = rep.get_lineage()
         target = module.Target(lineage.world, target_3x2)
         while lineage.generation < max_gen:
             lineage.next_generation(target)
+        assert rep.analysis_path is not rep.path
+        assert rep.analysis_path.exists()
 
     treat.run(callback, max_gen=100)
 
