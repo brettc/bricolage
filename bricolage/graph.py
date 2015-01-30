@@ -7,6 +7,8 @@ class NodeType(IntEnum):
     GENE = 0
     MODULE = 1
     CHANNEL = 2
+    BEGIN = 3
+    END = 4
 
 
 # NOTE: Should mirror "encode_module_id" in pubsub2_c.h
@@ -67,8 +69,13 @@ class BaseGraph(object):
         elif ntype == NodeType.MODULE:
             gindex, mindex = _decode_module_id(nindex)
             return "M{}-{}".format(gindex, mindex)
-        else:
+        elif ntype == NodeType.CHANNEL:
             return "C{}".format(nindex)
+        elif ntype == NodeType.BEGIN:
+            return "begin-{}".format(nindex)
+        elif ntype == NodeType.END:
+            return "end-{}".format(nindex)
+        raise RuntimeError("Unknown node type {}".format(ntype))
 
     _ntype_lookup = {"G":NodeType.GENE, "M":NodeType.MODULE, "C":NodeType.CHANNEL}
     def name_to_node(self, name):
@@ -80,6 +87,21 @@ class BaseGraph(object):
         else:
             nindex = int(name[1:])
         return ntype, nindex
+
+    def remove_nodes(self, nodetype, internal_only=False):
+        G = self.nx_graph
+        for nd in G.nodes():
+            if nd[0] != nodetype:
+                continue
+            if internal_only:
+                if self.is_input(nd) or self.is_output(nd):
+                    continue
+            pred = G.predecessors(nd)
+            succ = G.successors(nd)
+            for p in pred:
+                for s in succ:
+                    G.add_edge(p, s)
+            G.remove_node(nd)
 
 
 class FullGraph(BaseGraph):
@@ -107,21 +129,49 @@ class FullGraph(BaseGraph):
     def get_channel_label(self, i):
         return self.world.name_for_channel(i)
 
-class GCGraph(FullGraph):
+
+class SignalFlowGraph(FullGraph):
+    def __init__(self, analysis):
+        FullGraph.__init__(self, analysis, knockouts=True)
+        G = self.nx_graph
+        self.begin_node = (NodeType.BEGIN, 0)
+        self.end_node = (NodeType.END, 0)
+
+        # Replace input nodes with "begin"
+        inp_nodes = [n for n in G.nodes_iter() if self.is_input(n)]
+        for n in inp_nodes:
+            G.add_edge((NodeType.BEGIN, 0), n)
+            succ = G.successors(n)
+            for s in succ:
+                G.add_edge(self.begin_node, s)
+            G.remove_node(n)
+
+        # Replace output nodes with "end"
+        out_nodes = [n for n in G.nodes_iter() if self.is_output(n)]
+        for n in out_nodes:
+            pred = G.predecessors(n)
+            for p in pred:
+                G.add_edge(p, self.end_node)
+            G.remove_node(n)
+
+        # Now remove the other stuff
+        self.remove_nodes(NodeType.MODULE)
+        self.remove_nodes(NodeType.GENE)
+
+    def minimum_cut(self):
+        return nx.minimum_node_cut(
+            self.nx_graph, self.begin_node, self.end_node)
+
+class GeneSignalGraph(FullGraph):
     def __init__(self, analysis, knockouts=True):
         FullGraph.__init__(self, analysis, knockouts)
-        G = self.nx_graph
-        # Remove the modules nodes, joining the others
-        for nd in G.nodes():
-            if nd[0] != NodeType.MODULE:
-                continue
-            pred = G.predecessors(nd)
-            succ = G.successors(nd)
-            for p in pred:
-                for s in succ:
-                    G.add_edge(p, s)
-            G.remove_node(nd)
+        self.remove_nodes(NodeType.MODULE)
 
+class GeneGraph(FullGraph):
+    def __init__(self, analysis, knockouts=True):
+        FullGraph.__init__(self, analysis, knockouts)
+        self.remove_nodes(NodeType.MODULE)
+        self.remove_nodes(NodeType.CHANNEL, internal_only=True)
 
 class DotMaker(object):
     """Convert an NXGraph into an AGraph."""
@@ -167,6 +217,9 @@ class DotMaker(object):
                 'shape': shape,
                 'label': self.graph.get_channel_label(i),
             }
+        else:
+            attrs = {}
+
         return name, attrs
 
     def get_layout(self):
