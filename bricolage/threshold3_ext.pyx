@@ -14,10 +14,10 @@ ctypedef np.int_t int_type
 ctypedef np.int8_t tiny_type
 
 cdef class Constructor(core_ext.Constructor):
-    def __cinit__(self, core_ext.World w, params):
+    def __cinit__(self, core_ext.World w):
         self._shared = core.cConstructor_ptr(new cConstructor(
             w._shared,
-            params.cis_count,
+            w._params.cis_count,
         ))
         self._this = self._shared.get()
 

@@ -1,5 +1,7 @@
 # import pytest
 import bricolage.core as T
+import cPickle as pickle
+import pathlib
 
 def test_world():
     cue = 3
@@ -15,6 +17,25 @@ def test_world():
     assert w.reg_channels == reg
     assert w.out_channels == out
     assert w.channel_count == 2 + cue + reg + out
+
+def test_pickle_world(tmpdir):
+    tmpdir = pathlib.Path(str(tmpdir))
+    p = T.Parameters(
+        cue_channels=3,
+        reg_channels=3,
+        out_channels=3,
+    )
+    w = T.World(p)
+    with open(str(tmpdir / 'world1.pickle'), 'wb') as f:
+        pickle.dump(w, f, -1)
+
+    with open(str(tmpdir / 'world1.pickle'), 'rb') as f:
+        w2 = pickle.load(f)
+
+    assert dir(w2.params) == dir(w.params)
+    assert w.cue_channels == w2.cue_channels
+    assert w.reg_channels == w2.reg_channels
+    assert w.out_channels == w2.out_channels
 
 def test_channelstate():
     p = T.Parameters(

@@ -29,7 +29,7 @@ def p_3x2():
 @pytest.fixture
 def c_3x2(p_3x2):
     world = module.World(p_3x2)
-    return module.Constructor(world, p_3x2)
+    return module.Constructor(world)
 
 @pytest.fixture
 def target_3x2():

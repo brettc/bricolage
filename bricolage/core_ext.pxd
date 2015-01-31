@@ -14,6 +14,7 @@ cdef class World:
     cdef:
         cWorld_ptr _shared
         cWorld *_this
+        object _params
         readonly:
             object sub_signals, pub_signals
             object cue_signals, reg_signals, out_signals

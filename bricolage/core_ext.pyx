@@ -5,6 +5,7 @@
 
 import cython
 import numpy
+import copy
 # from operand import Operand
 
 # cimports
@@ -110,8 +111,12 @@ cdef class ChannelState(ChannelStateFrozen):
     def __repr__(self):
         return "<Channels: {}>".format(self.__str__())
 
+def _construct_world(params):
+    return World(params)
+
 cdef class World:
     def __cinit__(self, params):
+        self._params = copy.deepcopy(params)
         self._shared = cWorld_ptr(new cWorld(
             params.seed, 
             params.cue_channels, 
@@ -126,6 +131,13 @@ cdef class World:
         self.out_signals = set(range(*self._this.out_range))
         self.sub_signals = set(range(*self._this.sub_range))
         self.pub_signals = set(range(*self._this.pub_range))
+
+    def __reduce__(self):
+        return _construct_world, (self._params,)
+
+    property params:
+        def __get__(self):
+            return copy.deepcopy(self._params)
 
     def create_state(self):
         c = ChannelState()
@@ -223,7 +235,7 @@ cdef class World:
             c + 1 - self._this.cue_range.first, sz)
 
 cdef class Constructor:
-    def __cinit__(self, World w, params):
+    def __cinit__(self, World w):
         self.world = w
         self.gene_class = Gene
         self.module_class = CisModule
@@ -563,6 +575,9 @@ cdef class Population(CollectionBase):
         def __get__(self):
             return self._this.selected
 
+
+
+
 cdef class Target:
     def __cinit__(self, World w, init_func, name=""):
         self.world = w
@@ -596,6 +611,9 @@ cdef class Target:
 
     def as_array(self):
         return numpy.array(self._this.optimal_rates)
+
+    def __reduce__(self):
+        return 
 
 cdef class NetworkAnalysis:
     def __cinit__(self, Network net):

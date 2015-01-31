@@ -1,7 +1,7 @@
 import pytest
 from bricolage import threshold3, lineage, graph
 import pathlib
-import networkx
+# import networkx
 
 @pytest.fixture
 def target_2x2():

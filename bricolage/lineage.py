@@ -59,7 +59,7 @@ class BaseLineage(object):
     def _create(self, loading=False):
         assert self.params is not None
         self.world = core_ext.World(self.params)
-        self.factory = self.params.factory_class(self.world, self.params)
+        self.factory = self.params.factory_class(self.world)
         self.selection_model = self.params.selection_class(self.world)
         self._size = self.params.population_size
 
