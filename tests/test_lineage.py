@@ -68,8 +68,6 @@ def test_creation(tmpdir):
     params = module.Parameters(population_size=10)
     a = L.FullLineage(path, params)
     del a
-    # b = L.Lineage(path)
-    # del b
 
 
 def assert_pops_equal(p1, p2):
@@ -88,50 +86,37 @@ def assert_pops_equal(p1, p2):
         assert n1.attractors == n2.attractors
         assert (n1.rates == n2.rates).all()
 
+
 def test_repeatability(tmpdir, p_3x2, target_3x2):
     """Make sure that the same seed produces the same outcome"""
     base = pathlib.Path(str(tmpdir))
     path = base / 'r1.db'
     a = L.SnapshotLineage(path, params=p_3x2)
-    target = module.Target(a.world, target_3x2)
+    a.add_target(target_3x2)
     for i in range(100):
-        a.next_generation(target)
+        a.next_generation()
 
     path = base / 'r2.db'
     b = L.SnapshotLineage(path, params=p_3x2)
-    target = module.Target(b.world, target_3x2)
+    b.add_target(target_3x2)
     for i in range(100):
-        b.next_generation(target)
+        b.next_generation()
 
     assert_pops_equal(a.population, b.population)
     del a
     del b
 
-@pytest.mark.xfail 
-def test_target_add(p_3x2, target_3x2, tmpdir):
-    base = pathlib.Path(str(tmpdir))
-    path = base / 'targets.db'
-    a = L.SnapshotLineage(path, params=p_3x2)
-    a.add_target(target_3x2)
-    a.save_snapshot()
-    del a
-    # p1 = a.population
-    # r1 = a.world.get_random_state()
-    # del a
-    b = L.SnapshotLineage(path=path)
-    print b.targets
-    # assert_pops_equal(p1, b.population)
-    # assert b.world.get_random_state() == r1
-    # del b
 
 def test_snapshot_reload(p_3x2, target_3x2, tmpdir):
     base = pathlib.Path(str(tmpdir))
     path = base / 'reload.db'
     a = L.SnapshotLineage(path, params=p_3x2)
+    a.add_target(target_3x2)
     a.save_snapshot()
     p1 = a.population
     r1 = a.world.get_random_state()
     del a
+
     # Now reload and compare the population
     b = L.SnapshotLineage(path=path)
     assert_pops_equal(p1, b.population)
@@ -147,24 +132,23 @@ def test_snapshot_lineage(p_3x2, target_3x2, tmpdir):
 
     # Generate a bunch of snapshots
     a = L.SnapshotLineage(path_1, params=p_3x2)
-    a_target = module.Target(a.world, target_3x2)
+    a.add_target(target_3x2)
     for i in range(times):
         for j in range(generations):
-            a.next_generation(a_target)
+            a.next_generation()
         a.save_snapshot()
 
     # Delete and reload a
     del a
     a = L.SnapshotLineage(path_1) 
-    a_target = module.Target(a.world, target_3x2)
 
     # Same seed will generate the same lineage
     path_2 = base / 'snap2.db'
     b = L.SnapshotLineage(path_2, params=p_3x2)
-    b_target = module.Target(b.world, target_3x2)
+    b.add_target(target_3x2)
     for i in range(times):
         for j in range(generations):
-            b.next_generation(b_target)
+            b.next_generation()
         p1 = a.get_generation(b.generation)
 
         # Reloads should be the same
@@ -176,22 +160,23 @@ def test_snapshot_lineage(p_3x2, target_3x2, tmpdir):
     assert a.world.get_random_state() == b.world.get_random_state()
 
     for i in range(20):
-        b.next_generation(b_target)
-        a.next_generation(a_target)
+        b.next_generation()
+        a.next_generation()
 
     assert_pops_equal(a.population, b.population)
     assert a.world.get_random_state() == b.world.get_random_state()
+
 
 def test_snapshot_autosave(tmpdir, p_3x2, target_3x2):
     path = pathlib.Path(str(tmpdir)) / 'autosave.db'
 
     # Set it all up
     a = L.SnapshotLineage(path, p_3x2)
-    target = module.Target(a.world, target_3x2)
+    a.add_target(target_3x2)
 
     # Run selection for 100 generations
     for i in range(100):
-        a.next_generation(target)
+        a.next_generation()
     pa = a.population
     # No explicit save!
     del a
@@ -204,11 +189,11 @@ def test_full_lineage(tmpdir, p_3x2, target_3x2):
 
     # Set it all up
     a = L.FullLineage(path, p_3x2)
-    target = module.Target(a.world, target_3x2)
+    a.add_target(target_3x2)
 
     # Run selection for 100 generations
     for i in range(100):
-        a.next_generation(target)
+        a.next_generation()
     pa = a.population
 
     # Kill off the reference (automatically closing the file)
@@ -223,10 +208,10 @@ def test_full_lineage(tmpdir, p_3x2, target_3x2):
     # Reload again, this time running selection further.
     # Save the 100th generation too.
     c = L.FullLineage(path)
-    target = module.Target(c.world, target_3x2)
+    c.add_target(target_3x2)
     p1 = c.get_generation(100)
     for i in range(100):
-        c.next_generation(target)
+        c.next_generation()
     del c
 
     # Relead yet again. Reload the 100th generation again. Check it is exactly
@@ -262,9 +247,9 @@ def test_treatment(tmpdir, p_3x2, target_3x2):
 
     def callback(rep, max_gen):
         lineage = rep.get_lineage()
-        target = module.Target(lineage.world, target_3x2)
+        lineage.add_target(target_3x2)
         while lineage.generation < max_gen:
-            lineage.next_generation(target)
+            lineage.next_generation()
         assert rep.analysis_path is not rep.path
         assert rep.analysis_path.exists()
 
@@ -282,3 +267,19 @@ def test_treatment(tmpdir, p_3x2, target_3x2):
 
     treat.run(re_callback, max_gen=100)
 
+@pytest.mark.xfail 
+def test_target_add(p_3x2, target_3x2, tmpdir):
+    base = pathlib.Path(str(tmpdir))
+    path = base / 'targets.db'
+    a = L.SnapshotLineage(path, params=p_3x2)
+    a.add_target(target_3x2)
+    a.save_snapshot()
+    del a
+    # p1 = a.population
+    # r1 = a.world.get_random_state()
+    # del a
+    b = L.SnapshotLineage(path=path)
+    print b.targets
+    # assert_pops_equal(p1, b.population)
+    # assert b.world.get_random_state() == r1
+    # del b

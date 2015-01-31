@@ -111,8 +111,12 @@ cdef class ChannelState(ChannelStateFrozen):
     def __repr__(self):
         return "<Channels: {}>".format(self.__str__())
 
-def _construct_world(params):
-    return World(params)
+def _construct_world(params, net_id, target_id, r_state):
+    w = World(params)
+    w._this.next_network_identifier = net_id
+    w._this.next_target_identifier = target_id
+    w._this.set_random_state(r_state)
+    return w
 
 cdef class World:
     def __cinit__(self, params):
@@ -133,8 +137,10 @@ cdef class World:
         self.pub_signals = set(range(*self._this.pub_range))
 
     def __reduce__(self):
-        return _construct_world, (self._params,)
-
+        return _construct_world, (self._params, 
+                                  self._this.next_network_identifier,
+                                  self._this.next_target_identifier,
+                                  self._this.get_random_state())
     property params:
         def __get__(self):
             return copy.deepcopy(self._params)
@@ -168,6 +174,7 @@ cdef class World:
     def get_random_state(self):
         return self._this.get_random_state()
 
+    # TODO: Remove me
     def set_random_state(self, string s):
         self._this.set_random_state(s)
 
@@ -180,8 +187,14 @@ cdef class World:
     property next_network_id:
         def __get__(self):
             return self._this.next_network_identifier
-        def __set__(self, sequence_t i):
-            self._this.next_network_identifier = i
+        # def __set__(self, sequence_t i):
+        #     self._this.next_network_identifier = i
+
+    property next_target_id:
+        def __get__(self):
+            return self._this.next_target_identifier
+        # def __set__(self, sequence_t i):
+        #     self._this.next_network_identifier = i
 
     property cue_channels:
         def __get__(self):
@@ -575,15 +588,16 @@ cdef class Population(CollectionBase):
         def __get__(self):
             return self._this.selected
 
-def _construct_target(World w, name, rates):
-    t = Target(w, None, name)
+def _construct_target(World w, name, ident, rates):
+    t = Target(w, None, name, ident)
+    # Manually construct these
     t._this.optimal_rates = rates
     return t
 
 cdef class Target:
-    def __cinit__(self, World w, init_func=None, name=""):
+    def __cinit__(self, World w, init_func=None, name="", ident=-1):
         self.world = w
-        self._this = new cTarget(w._shared, name)
+        self._this = new cTarget(w._shared, name, ident)
         if init_func:
             self._construct_from_function(init_func)
 
@@ -610,7 +624,10 @@ cdef class Target:
                 self._this.optimal_rates[i][j] = float(val)
 
     def __reduce__(self):
-        return _construct_target, (self.world, self._this.name, self._this.optimal_rates)
+        return _construct_target, (self.world, 
+                                   self._this.name, 
+                                   self._this.identifier,
+                                   self._this.optimal_rates)
 
     def __dealloc__(self):
         del self._this
