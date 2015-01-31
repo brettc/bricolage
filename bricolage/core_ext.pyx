@@ -575,17 +575,23 @@ cdef class Population(CollectionBase):
         def __get__(self):
             return self._this.selected
 
-
-
+def _construct_target(World w, name, rates):
+    t = Target(w, None, name)
+    t._this.optimal_rates = rates
+    return t
 
 cdef class Target:
-    def __cinit__(self, World w, init_func, name=""):
+    def __cinit__(self, World w, init_func=None, name=""):
         self.world = w
         self._this = new cTarget(w._shared, name)
-        a, b = w._this.cue_range
+        if init_func:
+            self._construct_from_function(init_func)
+
+    def _construct_from_function(self, init_func):
+        a, b = self.world._this.cue_range
 
         # Slow and cumbersome, but it doesn't matter
-        for i, e in enumerate(w.environments):
+        for i, e in enumerate(self.world.environments):
             # TODO: Clean up the refs here
             outputs = init_func(*e.as_array()[a:b])
             try:
@@ -595,12 +601,16 @@ cdef class Target:
                 outputs = [outputs]
                 s = 1
 
-            if len(outputs) != w.out_channels:
+            if len(outputs) != self.world.out_channels:
                 raise RuntimeError(
-                    "return value of Target function must be length %s" % w.out_channels)
+                    "return value of Target function must be length %s" \
+                    % self.world.out_channels)
 
             for j, val in enumerate(outputs):
                 self._this.optimal_rates[i][j] = float(val)
+
+    def __reduce__(self):
+        return _construct_target, (self.world, self._this.name, self._this.optimal_rates)
 
     def __dealloc__(self):
         del self._this
@@ -612,8 +622,14 @@ cdef class Target:
     def as_array(self):
         return numpy.array(self._this.optimal_rates)
 
-    def __reduce__(self):
-        return 
+    property identifier:
+        def __get__(self):
+            return self._this.identifier
+
+    property name:
+        def __get__(self):
+            return self._this.name
+
 
 cdef class NetworkAnalysis:
     def __cinit__(self, Network net):

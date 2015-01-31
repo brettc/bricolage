@@ -1,7 +1,17 @@
-# import pytest
 import bricolage.core as T
 import cPickle as pickle
 import pathlib
+import pytest
+
+@pytest.fixture
+def target_3x2():
+    """Return a function for initialising a target that has 3 inputs and 2
+    outputs"""
+    def make_target(a, b, c):
+        f1 = .5 if a and b or not c else 1.0
+        f2 = 1 if ((a or c) and not (a and b)) and b else 0
+        return f1, f2
+    return make_target
 
 def test_world():
     cue = 3
@@ -18,12 +28,23 @@ def test_world():
     assert w.out_channels == out
     assert w.channel_count == 2 + cue + reg + out
 
-def test_pickle_world(tmpdir):
+def test_target(target_3x2):
+    p = T.Parameters(
+        cue_channels=3,
+        reg_channels=3,
+        out_channels=2,
+    )
+    w = T.World(p)
+    t = T.Target(w, target_3x2)
+    assert t.as_array().shape == (pow(2, 3), 2)
+
+
+def test_pickling(tmpdir, target_3x2):
     tmpdir = pathlib.Path(str(tmpdir))
     p = T.Parameters(
         cue_channels=3,
         reg_channels=3,
-        out_channels=3,
+        out_channels=2,
     )
     w = T.World(p)
     with open(str(tmpdir / 'world1.pickle'), 'wb') as f:
@@ -36,6 +57,18 @@ def test_pickle_world(tmpdir):
     assert w.cue_channels == w2.cue_channels
     assert w.reg_channels == w2.reg_channels
     assert w.out_channels == w2.out_channels
+
+    t = T.Target(w, target_3x2)
+    with open(str(tmpdir / 'target1.pickle'), 'wb') as f:
+        pickle.dump(t, f, -1)
+
+    with open(str(tmpdir / 'target1.pickle'), 'rb') as f:
+        t2 = pickle.load(f)
+
+    assert (t.as_array() == t2.as_array()).all()
+    assert t.name == t2.name
+    assert t.identifier == t2.identifier
+
 
 def test_channelstate():
     p = T.Parameters(

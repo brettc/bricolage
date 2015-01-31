@@ -1,6 +1,6 @@
-from .core_ext import SelectionModel, World
+from .core_ext import SelectionModel, World, Target
 
-__all__ = ["World", "SelectionModel", "Parameters"]
+__all__ = ["World", "SelectionModel", "Parameters", "Target"]
 
 class Parameters(object):
     def __init__(self, **kwargs):

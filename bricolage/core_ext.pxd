@@ -36,6 +36,7 @@ cdef class Target:
         readonly:
             World world
 
+
 cdef class Network:
     cdef:
         readonly:
