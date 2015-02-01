@@ -223,7 +223,7 @@ private:
 
 struct cTarget
 {
-    cTarget(const cWorld_ptr &world, const std::string &name);
+    cTarget(const cWorld_ptr &world, const std::string &name, int_t id=-1);
     cWorld_ptr world;
     std::string name;
     int_t identifier;

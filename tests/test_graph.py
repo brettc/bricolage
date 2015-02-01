@@ -1,7 +1,7 @@
 import pytest
 from bricolage import threshold3, lineage, graph
 import pathlib
-import networkx
+# import networkx
 
 @pytest.fixture
 def target_2x2():
@@ -36,11 +36,11 @@ def interesting_network(tmpdir, p_2x2, target_2x2):
     base = pathlib.Path(str(tmpdir))
     path = base / 'signal_flow.db'
     a = lineage.SnapshotLineage(path, params=p_2x2)
-    target = threshold3.Target(a.world, target_2x2)
+    a.add_target(target_2x2)
 
     # Get some nice graphs
     for i in range(100):
-        a.next_generation(target)
+        a.next_generation()
         w, b = a.population.worst_and_best()
         if b == 1.0:
             break

@@ -11,7 +11,7 @@ def test_network():
     params = Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
                         cue_channels=3,)
     world = World(params)
-    const = Constructor(world, params)
+    const = Constructor(world)
     net = const.create_network()
     print net.attractors
     print world.pub_signals
@@ -22,7 +22,7 @@ def test_population():
     params = Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
                         cue_channels=3,)
     world = World(params)
-    const = Constructor(world, params)
+    const = Constructor(world)
     popul = Population(const, 1000)
     print popul[0].attractors[1]
 
@@ -31,7 +31,7 @@ def test_xor():
     params = Parameters(seed=2, cis_count=2, cue_channels=2, reg_channels=0,
                         out_channels=1)
     world = World(params)
-    const = Constructor(world, params)
+    const = Constructor(world)
     target = Target(world, fitness_func1)
     select = SelectionModel(world)
     pop = Population(const, 10000)

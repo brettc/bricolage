@@ -4,13 +4,13 @@ cdef extern from "<src/logic2.hpp>" namespace "logic2":
     ctypedef unsigned int operand_t
     ctypedef core.vector[operand_t] cOperands
     ctypedef core.pair[core.signal_t, core.signal_t] signal_pair_t
-    ctypedef core.std_map[signal_pair_t, operand_t] binding_map_t
+    # ctypedef core.std_map[signal_pair_t, operand_t] binding_map_t
 
     cdef cppclass cConstructor(core.cConstructor):
         cConstructor(core.cWorld_ptr &w, size_t cc, cOperands &ops)
         size_t gene_count, module_count
         cOperands operands
-        binding_map_t bindings
+        # binding_map_t bindings
 
     cdef cppclass cCisModule(core.cCisModule):
         cCisModule(cConstructor &c)

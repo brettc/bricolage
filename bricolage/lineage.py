@@ -22,44 +22,57 @@ class BaseLineage(object):
         self.targets = []
         self.generation = 0
 
-        # Just created or just loaded? This means that the networks have no
-        # fitness assigned to them yet (as we don't yet have a target)
-        self.fresh = True
+        # You need to set a target before doing anything
+        self.current_target = None
+        self.target_index = -1
 
-    # TODO: target adding
-    # def add_target(self, func, target_class=None):
-    #     if target_class is None:
-    #         target_class = self.params.target_class
-    #
-    #     # Add locally and save
-    #     t = target_class(self.world, func)
-    #     self._targets.append(t)
-    #     self.targets.append(t)
+    def add_target(self, func, name="", target_class=None):
+        if target_class is None:
+            target_class = self.params.target_class
 
-    def next_generation(self, target):
+        # Make up a name if none is given
+        if name == "":
+            name = str(len(self.targets))
+
+        # Add locally and save
+        t = target_class(self.world, func, name=name)
+        self._targets.append(t)
+        self.targets.append(t)
+
+        # By default, set the target to the latest
+        self.set_target(len(self.targets) - 1)
+
+    # TODO: add by name?
+    def set_target(self, index):
+        assert 0 <= index < len(self.targets)
+        self.target_index = index
+        self.current_target = self.targets[self.target_index]
+
+        # Make sure our population is assessed by the current target
+        self.population.assess(self.current_target)
+
+    def next_generation(self):
         """Make a new generation"""
-        assert target.world is self.world
+        assert self.current_target is not None
 
-        # TODO: is this right?
-        # If we're completely fresh, then we need to regenerate the fitnesses,
-        # as these are not stored.
-        if self.fresh:
-            self.population.assess(target)
-            self.fresh = False
-
+        # At this stage, the fitnesses MUST have already been calculated when
+        # the initial target was set, or from the previous call to
+        # next_generation
         self.generation += 1
         self.population.select(self.selection_model)
         self.population.mutate(self.params.mutation_rate, self.generation)
 
         # Now we re-assess the population to ensure that each of them has
-        # fitnesses, ready for the next round of selection, plus the
-        # population can also be assessed for fitness characteristics
-        self.population.assess(target)
+        # fitnesses, ready for the next round of selection. Plus, we always want the
+        # population to be in a state that everything has a fitness
+        self.population.assess(self.current_target)
 
     def _create(self, loading=False):
-        assert self.params is not None
-        self.world = core_ext.World(self.params)
-        self.factory = self.params.factory_class(self.world, self.params)
+        if not loading:
+            assert self.params is not None
+            self.world = core_ext.World(self.params)
+
+        self.factory = self.params.factory_class(self.world)
         self.selection_model = self.params.selection_class(self.world)
         self._size = self.params.population_size
 
@@ -67,21 +80,26 @@ class BaseLineage(object):
             # Don't bother creating anything, we're about to fill it out
             self.population = core_ext.Population(self.factory, 0)
         else:
+            # Randomizes using the engine in the World
             self.population = core_ext.Population(self.factory, self._size)
 
     def _save_mutable(self):
-        self._attrs.random_state = self.world.get_random_state()
-        self._attrs.next_network_id = self.world.next_network_id
-
-    def _load_mutable(self):
-        self.world.set_random_state(self._attrs.random_state)
-        self.world.next_network_id = self._attrs.next_network_id
-
+        self._attrs.world = self.world
+    
     def _generation_dtype(self):
         return numpy.dtype([
             ('generation', int),
+            ('target', int),
             ('indexes', int, self._size),
         ])
+
+    def _add_generation(self, indexes):
+        # Add a generations row
+        row = self._generations.row
+        row['generation'] = self.generation
+        row['target'] = self.target_index
+        row['indexes'] = indexes
+        row.append()
 
     def _new_database(self):
         # Create H5 table with high compression using blosc
@@ -89,9 +107,8 @@ class BaseLineage(object):
         h5 = tables.open_file(str(self.path), 'w', filters=filters)
         attrs = h5.root._v_attrs
 
+        # This is fixed
         attrs.storage_class = self.__class__.__name__
-        attrs.params = self.params
-        attrs.generation = self.generation
 
         # Save the networks
         z = numpy.zeros
@@ -105,8 +122,6 @@ class BaseLineage(object):
         self._generations = g
         self._attrs = attrs
 
-        self._save_mutable()
-
     def _open_database(self):
         h5 = tables.open_file(str(self.path), mode='r+')
         attrs = h5.root._v_attrs
@@ -114,9 +129,10 @@ class BaseLineage(object):
         assert attrs.storage_class == self.__class__.__name__
 
         # Recover the python objects that we need to reconstruct everything
-        self.params = attrs.params
-        self.generation = attrs.generation
+        self.world = attrs.world
+        self.params = self.world.params
 
+        # Assign the arrays
         self._h5 = h5
         self._attrs = attrs 
         self._networks = h5.root.networks
@@ -126,14 +142,17 @@ class BaseLineage(object):
     def _load(self):
         self._open_database()
         self._create(loading=True)
+
         # Load the last generation
-        g, indexes = self._generations[-1]
+        g, t, indexes = self._generations[-1]
         self.generation = g
+
         arr = self._networks.read_coordinates(indexes)
         self.factory.from_numpy(arr, self.population)
-        self._load_mutable()
-        # for i in range(len(self._targets)):
-        #     self.targets.append(self._targets[i])
+        for i in range(len(self._targets)):
+            self.targets.append(self._targets[i])
+
+        self.set_target(t)
 
     def close(self):
         # Avoid messages from tables
@@ -155,11 +174,14 @@ class SnapshotLineage(BaseLineage):
     def __repr__(self):
         return "<SnapShotLineage: '{}', {}S, {}N>".format(
             str(self.path.name),
-            len(self._generations),
-            len(self._networks),
+            "", ""
+            # len(self._generations),
+            # len(self._networks),
         )
 
     def save_snapshot(self):
+        self._save_mutable()
+
         start = len(self._networks)
         
         # Add all networks in the population
@@ -167,33 +189,34 @@ class SnapshotLineage(BaseLineage):
         self._networks.append(arr)
 
         # Add a generations row
-        row = self._generations.row
-        row['generation'] = self.generation
-        row['indexes'] = numpy.arange(start, start + self._size, dtype=int)
-        row.append()
+        indexes = numpy.arange(start, start + self._size, dtype=int)
+        self._add_generation(indexes)
 
-        self._save_mutable()
         self._h5.flush()
 
     def get_generation(self, g):
         grecord = self._generations.read_where('generation == {}'.format(g))
         if not grecord:
             return None
-        g, indexes = grecord[0]
+        gen, t_index, indexes = grecord[0]
         arr = self._networks.read_coordinates(indexes)
         gen_pop = core_ext.Population(self.factory, 0)
         self.factory.from_numpy(arr, gen_pop)
+
+        # Assess the population by the same target 
+        # gen_pop.assess(self.targets[t_index])
         return gen_pop
 
     def close(self):
         # If the latest generation isn't saved, the save it automatically.
         g = -1 
         if len(self._generations) != 0:
-            g, indexes = self._generations[-1]
+            g, t, indexes = self._generations[-1]
         if g < self.generation:
             self.save_snapshot()
 
         BaseLineage.close(self)
+
 
 class FullLineage(BaseLineage):
     def __init__(self, path, params=None):
@@ -201,8 +224,6 @@ class FullLineage(BaseLineage):
         if params is None:
             self._load()
         else:
-            # if not overwrite:
-            #     assert not path.exists()
             self._create()
             self._new_database()
             self.save_generation(initial=True)
@@ -210,9 +231,10 @@ class FullLineage(BaseLineage):
     def __repr__(self):
         return "<FullLineage: '{}', {}/{}G, {}N>".format(
             str(self.path.name),
-            len(self._generations),
-            self._size,
-            len(self._networks),
+            "", "", ""
+            # len(self._generations),
+            # self._size,
+            # len(self._networks),
         )
 
     def save_generation(self, initial=False):
@@ -225,25 +247,25 @@ class FullLineage(BaseLineage):
         self.population._get_identifiers(idents)
 
         # Add a generations row
-        row = self._generations.row
-        row['generation'] = self.generation
-        row['indexes'] = idents
-        row.append()
+        self._add_generation(idents)
 
         self._h5.flush()
 
-    def next_generation(self, target):
+    def next_generation(self):
         """Make a new generation"""
-        BaseLineage.next_generation(self, target)
+        BaseLineage.next_generation(self)
         self.save_generation()
 
     def get_generation(self, wanted_g):
         assert wanted_g <= self.generation
-        actual_g, identifiers = self._generations[wanted_g]
+        actual_g, t_index, identifiers = self._generations[wanted_g]
         assert actual_g == wanted_g
         arr = self._networks.read_coordinates(identifiers)
         gen_pop = core_ext.Population(self.factory, 0)
         self.factory.from_numpy(arr, gen_pop)
+
+        # Assess the population by the same target 
+        gen_pop.assess(self.targets[t_index])
         return gen_pop
 
     def get_ancestry(self, ident):
@@ -385,5 +407,15 @@ class Treatment(object):
         with open(self.filename, 'rb') as f:
             self.params = pickle.load(f)
 
+# class Experiment(object):
+#     """Gather together a number of Treatments"""
+#     
+#     def __init__(self, path, analysis_path=None, overwrite=False, full=True):
+#         if not isinstance(path, pathlib.Path):
+#             path = pathlib.Path(path)
+#         assert path.parent.exists()
+#         if path.exists():
+#             if overwrite
+#
 
 
