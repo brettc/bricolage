@@ -42,10 +42,10 @@ cdef class Constructor(core_ext.Constructor):
             return [Operand(_) for _ in c.operands]
 
     # Only used for some mutation models
-    property bindings:
-        def __get__(self):
-            cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 
-            return c.bindings
+    # property bindings:
+    #     def __get__(self):
+    #         cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 
+    #         return c.bindings
 
     def dtype(self):
         cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 

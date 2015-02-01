@@ -647,7 +647,6 @@ cdef class Target:
         def __get__(self):
             return self._this.name
 
-
 cdef class NetworkAnalysis:
     def __cinit__(self, Network net):
         self.network = net
