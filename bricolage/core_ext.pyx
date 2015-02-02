@@ -6,6 +6,7 @@
 import cython
 import numpy
 import copy
+import sys
 # from operand import Operand
 
 # cimports
@@ -550,6 +551,19 @@ cdef class Population(CollectionBase):
 
     def worst_and_best(self):
         return self._this.worst_and_best()
+
+    def best_indexes(self):
+        cdef cIndexes best;
+        self._this.best_indexes(best)
+        return best
+
+    def get_best(self, maxn=sys.maxint):
+        best = []
+        for i, ndx in enumerate(self.best_indexes()):
+            if i == maxn:
+                break
+            best.append(self[ndx])
+        return best
 
     property site_count:
         def __get__(self):

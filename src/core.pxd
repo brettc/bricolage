@@ -135,6 +135,7 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         void assess(const cTarget &target)
         bint select(const cSelectionModel &sm, size_t size)
         pair[double, double] worst_and_best()
+        void best_indexes(cIndexes &best)
         cConstructor_ptr constructor
         cWorld_ptr world
 

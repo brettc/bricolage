@@ -18,7 +18,7 @@ def p_3x2():
         seed=1, 
         operands=ops, 
         cis_count=2, 
-        reg_channels=5,
+        reg_channels=10,
         out_channels=2, 
         cue_channels=3, 
         population_size=100,
@@ -92,16 +92,12 @@ def test_snapshot_reload(p_3x2, tmpdir):
     p1 = a.population
 
     a.save_snapshot()
-
-    print
-    print r1[:10]
     del a
 
     # Now reload and compare the population
     b = L.SnapshotLineage(path=path)
     assert_pops_equal(p1, b.population)
     r2 = b.world.get_random_state()
-    print r2[:10]
     assert r1 == r2
     del b
 
@@ -217,6 +213,8 @@ def test_full_lineage(tmpdir, p_3x2):
     d = L.FullLineage(path)
     p2 = d.get_generation(100)
     assert_pops_equal(p1, p2)
+
+    print {n.identifier: n for n in p2.get_best()}.items()
 
 def test_ancestry(tmpdir, p_3x2):
     path = pathlib.Path(str(tmpdir)) / 'ancestry.db'

@@ -1,7 +1,6 @@
 import bricolage.core as T
 import cPickle as pickle
 import pathlib
-import pytest
 
 def make_target1(a, b, c):
     f1 = .5 if a and b or not c else 1.0

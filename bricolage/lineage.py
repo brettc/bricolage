@@ -90,12 +90,16 @@ class BaseLineage(object):
         return numpy.dtype([
             ('generation', int),
             ('target', int),
+            ('best', float),
             ('indexes', int, self._size),
         ])
 
     def _add_generation(self, indexes):
         # Add a generations row
         row = self._generations.row
+
+        w, b = self.population.worst_and_best()
+        row['best'] = b
         row['generation'] = self.generation
         row['target'] = self.target_index
         row['indexes'] = indexes
@@ -144,18 +148,20 @@ class BaseLineage(object):
         self._create(loading=True)
 
         # Load the last generation
-        g, t, indexes = self._generations[-1]
-        self.generation = g
+        rec = self._generations[-1]
+        self.generation = rec['generation']
+        indexes = rec['indexes']
 
         arr = self._networks.read_coordinates(indexes)
         self.factory.from_numpy(arr, self.population)
         for i in range(len(self._targets)):
             self.targets.append(self._targets[i])
 
-        self.set_target(t)
+        self.set_target(rec['target'])
 
     def close(self):
         # Avoid messages from tables
+        self._save_mutable()
         self._h5.close()
 
     def __del__(self):
@@ -174,9 +180,8 @@ class SnapshotLineage(BaseLineage):
     def __repr__(self):
         return "<SnapShotLineage: '{}', {}S, {}N>".format(
             str(self.path.name),
-            "", ""
-            # len(self._generations),
-            # len(self._networks),
+            len(self._generations),
+            len(self._networks),
         )
 
     def save_snapshot(self):
@@ -194,17 +199,21 @@ class SnapshotLineage(BaseLineage):
 
         self._h5.flush()
 
-    def get_generation(self, g):
-        grecord = self._generations.read_where('generation == {}'.format(g))
-        if not grecord:
+    def get_generation(self, wanted_g):
+        results = self._generations.read_where('generation == {}'.format(wanted_g))
+        if not results:
             return None
-        gen, t_index, indexes = grecord[0]
+        rec = results[0]
+        gen = rec['generation']
+        assert gen == wanted_g
+        t_index = rec['target']
+        indexes = rec['indexes']
         arr = self._networks.read_coordinates(indexes)
         gen_pop = core_ext.Population(self.factory, 0)
         self.factory.from_numpy(arr, gen_pop)
 
         # Assess the population by the same target 
-        # gen_pop.assess(self.targets[t_index])
+        gen_pop.assess(self.targets[t_index])
         return gen_pop
 
     def close(self):
@@ -231,10 +240,9 @@ class FullLineage(BaseLineage):
     def __repr__(self):
         return "<FullLineage: '{}', {}/{}G, {}N>".format(
             str(self.path.name),
-            "", "", ""
-            # len(self._generations),
-            # self._size,
-            # len(self._networks),
+            len(self._generations),
+            self._size,
+            len(self._networks),
         )
 
     def save_generation(self, initial=False):
@@ -248,7 +256,6 @@ class FullLineage(BaseLineage):
 
         # Add a generations row
         self._add_generation(idents)
-
         self._h5.flush()
 
     def next_generation(self):
@@ -258,9 +265,12 @@ class FullLineage(BaseLineage):
 
     def get_generation(self, wanted_g):
         assert wanted_g <= self.generation
-        actual_g, t_index, identifiers = self._generations[wanted_g]
-        assert actual_g == wanted_g
-        arr = self._networks.read_coordinates(identifiers)
+        rec = self._generations[wanted_g]
+        gen = rec['generation']
+        assert gen == wanted_g
+        t_index = rec['target']
+        indexes = rec['indexes']
+        arr = self._networks.read_coordinates(indexes)
         gen_pop = core_ext.Population(self.factory, 0)
         self.factory.from_numpy(arr, gen_pop)
 
@@ -287,9 +297,10 @@ class FullLineage(BaseLineage):
         self.factory.from_numpy(arr, anc)
         return anc
 
-    def close(self):
-        self._save_mutable()
-        self._h5.close()
+    # def close(self):
+    #     self._save_mutable()
+    #     BaseLineage.close(self)
+    #     self._h5.close()
 
     def __del__(self):
         self.close()
@@ -344,6 +355,8 @@ class Replicate(object):
 
         return lin
 
+class StopReplicates(Exception):
+    pass
 
 class Treatment(object):
     """Replicate a set of experiments into different folders"""
@@ -385,7 +398,9 @@ class Treatment(object):
 
     def run(self, callback, **kwargs):
         for r in self.replicates:
-            if not callback(r, **kwargs):
+            try:
+                callback(r, **kwargs)
+            except StopReplicates:
                 break
 
     def _create(self):
