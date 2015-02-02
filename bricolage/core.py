@@ -27,7 +27,7 @@ class Parameters(object):
                 # raise RuntimeError("Invalid Setting: {}, in Parameters".format(k))
                 #
     def dump(self, stream):
-        for k, v in self.__dict__:
+        for k, v in self.__dict__.items():
             stream.write(k)
             stream.write(": ")
             stream.write(str(v))
