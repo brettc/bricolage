@@ -591,7 +591,7 @@ cdef class Target:
         del self._this
 
     def assess(self, Network net):
-        assert net.constructor.world is self.world
+        # assert net.constructor.world is self.world
         return self._this.assess(deref(net._this));
 
     def as_array(self):

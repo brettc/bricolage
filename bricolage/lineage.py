@@ -266,7 +266,6 @@ class FullLineage(BaseLineage):
         return anc
 
     def close(self):
-        self._save_mutable()
         self._h5.close()
 
     def __del__(self):
