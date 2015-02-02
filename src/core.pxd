@@ -115,7 +115,7 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
     # ctypedef vector[cNetwork_ptr] cNetworkVector
     #
     cdef cppclass cTarget:
-        cTarget(cWorld_ptr &w, string name)
+        cTarget(cWorld_ptr &w, string name, int_t ident)
         double assess(cNetwork &net)
         cWorld *factory
         int_t identifier
@@ -135,6 +135,7 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         void assess(const cTarget &target)
         bint select(const cSelectionModel &sm, size_t size)
         pair[double, double] worst_and_best()
+        void best_indexes(cIndexes &best)
         cConstructor_ptr constructor
         cWorld_ptr world
 

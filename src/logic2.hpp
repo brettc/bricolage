@@ -9,7 +9,7 @@ namespace logic2 {
 typedef int_fast16_t operand_t;
 typedef std::vector<operand_t> cOperands;
 typedef std::pair<pubsub2::signal_t, pubsub2::signal_t> signal_pair_t;
-typedef std::map<signal_pair_t, operand_t> binding_map_t;
+// typedef std::map<signal_pair_t, operand_t> binding_map_t;
 
 typedef std::function<int()> random_int_t;
 inline random_int_t random_int_range(int a, int b, const pubsub2::cWorld_ptr &w)
@@ -24,7 +24,7 @@ struct cConstructor : public pubsub2::cConstructor
     size_t gene_count, module_count;
     cOperands operands;
     random_int_t r_gene, r_module, r_operand, r_site, r_input;
-    binding_map_t bindings;
+    // binding_map_t bindings;
 
     // Overrides
     pubsub2::cNetwork_ptr construct(bool fill);

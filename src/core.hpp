@@ -223,7 +223,7 @@ private:
 
 struct cTarget
 {
-    cTarget(const cWorld_ptr &world, const std::string &name);
+    cTarget(const cWorld_ptr &world, const std::string &name, int_t id=-1);
     cWorld_ptr world;
     std::string name;
     int_t identifier;
@@ -253,6 +253,7 @@ public:
     void assess(const cTarget &target) const;
     bool select(const cSelectionModel &sm, size_t size);
     std::pair<double, double> worst_and_best() const;
+    void best_indexes(cIndexes &best) const;
 
     // cConstNetwork_ptr get_network(size_t index) const;
     size_t get_generation() const { return generation; }

@@ -30,6 +30,17 @@ std::pair<double, double> cPopulation::worst_and_best() const
     return std::make_pair(worst, best);
 }
 
+void cPopulation::best_indexes(cIndexes &best) const
+{
+    best.clear();
+    std::pair<double, double> wb = worst_and_best();
+    for (size_t i = 0; i < networks.size(); ++i)
+    {
+        if (networks[i]->fitness == wb.second)
+            best.push_back(i);
+    }
+}
+
 void cPopulation::assess(const cTarget &target) const
 {
     for (size_t i = 0; i < networks.size(); ++i)

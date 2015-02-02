@@ -5,11 +5,15 @@
 
 using namespace pubsub2;
 
-cTarget::cTarget(const cWorld_ptr &w, const std::string &n)
+cTarget::cTarget(const cWorld_ptr &w, const std::string &n, int_t id)
     : world(w) 
     , name(n)
-    , identifier(w->get_next_target_ident())
 {
+    if (id == -1)
+        identifier = w->get_next_target_ident();
+    else
+        identifier = id;
+
     cRates temp;
     std::fill_n(std::back_inserter(temp), w->out_channels, 0.0);
     std::fill_n(std::back_inserter(optimal_rates), w->environments.size(), temp);

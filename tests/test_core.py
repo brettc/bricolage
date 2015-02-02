@@ -1,5 +1,16 @@
-# import pytest
 import bricolage.core as T
+import cPickle as pickle
+import pathlib
+
+def make_target1(a, b, c):
+    f1 = .5 if a and b or not c else 1.0
+    f2 = 1 if ((a or c) and not (a and b)) and b else 0
+    return f1, f2
+
+def make_target2(a, b, c):
+    f1 = .25 if (a or b) and (not a and not c) else 1.0
+    f2 = 1 if ((a or b) and not (a and b)) and c else 0
+    return f1, f2
 
 def test_world():
     cue = 3
@@ -15,6 +26,69 @@ def test_world():
     assert w.reg_channels == reg
     assert w.out_channels == out
     assert w.channel_count == 2 + cue + reg + out
+
+def test_target():
+    p = T.Parameters(
+        cue_channels=3,
+        reg_channels=3,
+        out_channels=2,
+    )
+    w = T.World(p)
+    t = T.Target(w, make_target1)
+    assert t.as_array().shape == (pow(2, 3), 2)
+
+
+def test_pickling_world(tmpdir):
+    tmpdir = pathlib.Path(str(tmpdir))
+    p = T.Parameters(
+        seed=99,
+        cue_channels=3,
+        reg_channels=3,
+        out_channels=2,
+    )
+    w = T.World(p)
+    with open(str(tmpdir / 'world1.pickle'), 'wb') as f:
+        pickle.dump(w, f, -1)
+
+    with open(str(tmpdir / 'world1.pickle'), 'rb') as f:
+        w2 = pickle.load(f)
+
+    assert dir(w2.params) == dir(w.params)
+    assert w.cue_channels == w2.cue_channels
+    assert w.reg_channels == w2.reg_channels
+    assert w.out_channels == w2.out_channels
+    assert w.get_random_state() == w2.get_random_state()
+    assert w.next_network_id == w2.next_network_id
+    assert w.next_target_id == w2.next_target_id
+
+
+def test_pickling_target(tmpdir):
+    tmpdir = pathlib.Path(str(tmpdir))
+    p = T.Parameters(
+        cue_channels=3,
+        reg_channels=3,
+        out_channels=2,
+    )
+    w = T.World(p)
+
+    # Now ensure that pickling Targets works too
+    t1 = T.Target(w, make_target1, name='a')
+    t2 = T.Target(w, make_target2, name='b')
+
+    with open(str(tmpdir / 'target1.pickle'), 'wb') as f:
+        pickle.dump((t1, t2), f, -1)
+
+    with open(str(tmpdir / 'target1.pickle'), 'rb') as f:
+        rt1, rt2 = pickle.load(f)
+
+    assert (t1.as_array() == rt1.as_array()).all()
+    assert (t2.as_array() == rt2.as_array()).all()
+
+    assert t1.name == rt1.name
+    assert t2.name == rt2.name
+
+    assert t1.identifier == rt1.identifier
+    assert t2.identifier == rt2.identifier
 
 def test_channelstate():
     p = T.Parameters(
