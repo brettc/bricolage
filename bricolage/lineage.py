@@ -193,7 +193,7 @@ class SnapshotLineage(BaseLineage):
         start = len(self._networks)
         
         # Add all networks in the population
-        arr = self.factory.to_numpy(self.population)
+        arr = self.factory.pop_to_numpy(self.population)
         self._networks.append(arr)
 
         # Add a generations row
@@ -256,7 +256,7 @@ class FullLineage(BaseLineage):
 
     def save_generation(self, initial=False):
         # If it is not the initial save, then just save the mutations only
-        arr = self.factory.to_numpy(self.population, not initial)
+        arr = self.factory.pop_to_numpy(self.population, not initial)
         self._networks.append(arr)
 
         # TODO: make this more efficient?

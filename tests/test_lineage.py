@@ -1,17 +1,21 @@
 import pytest
 from bricolage.operand import Operand
-# from bricolage import logic2 as module
-from bricolage import threshold3 as module
+from bricolage import logic2
+from bricolage import threshold3
 import bricolage.lineage as L
 import pathlib
 
-# TODO: How to make this work with the Pytest in VIM?
-# @pytest.fixture(scope="module", params=[logic2, threshold3])
-# def module(request):
-#     return request.param
+@pytest.fixture(scope="module", params=[logic2, threshold3])
+def module(request):
+    return request.param
+
+# Used for simple testing of one module
+# @pytest.fixture
+# def module():
+#     return threshold3
 
 @pytest.fixture
-def p_3x2():
+def p_3x2(module):
     o = Operand
     ops = o.NOT_A_AND_B, o.A_AND_NOT_B, o.NOR, o.AND
     return module.Parameters(
@@ -36,7 +40,7 @@ def target2(a, b, c):
     f2 = 1 if ((a or c) and not (a and c)) or b else 0.5
     return f1, f2
 
-def test_numpy_export(p_3x2):
+def test_numpy_export(p_3x2, module):
     world = module.World(p_3x2)
     factory = module.Constructor(world)
     
@@ -59,7 +63,7 @@ def test_numpy_export(p_3x2):
                 assert m1.same_as(m2)
                 assert m1.channels == m2.channels
 
-def test_creation(tmpdir):
+def test_creation(tmpdir, module):
     base = pathlib.Path(str(tmpdir))
     path = base / 'create.db'
     params = module.Parameters(population_size=10)

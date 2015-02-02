@@ -84,14 +84,15 @@ cdef class Constructor(core_ext.Constructor):
 
         return output
 
-    def to_numpy(self, core_ext.Population p, bint mutations_only=False):
+    def to_numpy(self, core_ext.CollectionBase c):
+        return self._to_numpy(c._collection, NULL)
+
+    def pop_to_numpy(self, core_ext.Population p, bint mutations_only=False):
         cdef:
             core.cIndexes *indexes = NULL
             core.cNetworkVector *networks = &p._this.networks
-
         if mutations_only:
             indexes = &p._this.mutated
-
         return self._to_numpy(networks, indexes)
 
     cdef _from_numpy(self, output, core.cNetworkVector *networks):
