@@ -99,6 +99,8 @@ def test_snapshot_reload(p_3x2, tmpdir):
     assert_pops_equal(p1, b.population)
     r2 = b.world.get_random_state()
     assert r1 == r2
+    assert b.world == b.targets[0].world
+    assert b.world == b.factory.world
     del b
 
 def test_snapshot_autosave(tmpdir, p_3x2):
@@ -117,6 +119,7 @@ def test_snapshot_autosave(tmpdir, p_3x2):
 
     b = L.SnapshotLineage(path)
     assert_pops_equal(pa, b.population)
+    b.close()
 
 def test_snapshot_lineage(p_3x2, tmpdir):
     base = pathlib.Path(str(tmpdir))

@@ -10,11 +10,18 @@ import shutil
 import random
 from . import core_ext
 
+# Utility class for storing attributes for pickling
+class Attributes(object):
+    def __init__(self, **kw):
+        self.__dict__.update(kw)
+
+
 class BaseLineage(object):
     def __init__(self, path, params=None):
         if not isinstance(path, pathlib.Path):
             path = pathlib.Path(path)
         self.path = path
+
         self.params = params
         self.world = None
         self.factory = None
@@ -36,7 +43,6 @@ class BaseLineage(object):
 
         # Add locally and save
         t = target_class(self.world, func, name=name)
-        self._targets.append(t)
         self.targets.append(t)
 
         # By default, set the target to the latest
@@ -67,25 +73,6 @@ class BaseLineage(object):
         # population to be in a state that everything has a fitness
         self.population.assess(self.current_target)
 
-    def _create(self, loading=False):
-        if not loading:
-            assert self.params is not None
-            self.world = core_ext.World(self.params)
-
-        self.factory = self.params.factory_class(self.world)
-        self.selection_model = self.params.selection_class(self.world)
-        self._size = self.params.population_size
-
-        if loading:
-            # Don't bother creating anything, we're about to fill it out
-            self.population = core_ext.Population(self.factory, 0)
-        else:
-            # Randomizes using the engine in the World
-            self.population = core_ext.Population(self.factory, self._size)
-
-    def _save_mutable(self):
-        self._attrs.world = self.world
-    
     def _generation_dtype(self):
         return numpy.dtype([
             ('generation', int),
@@ -118,11 +105,9 @@ class BaseLineage(object):
         z = numpy.zeros
         n = h5.create_table('/', 'networks', z(0, dtype=self.factory.dtype()))
         g = h5.create_table('/', 'generations', z(0, dtype=self._generation_dtype()))
-        t = h5.create_vlarray('/', 'targets', tables.ObjectAtom())
 
         self._h5 = h5
         self._networks = n
-        self._targets = t
         self._generations = g
         self._attrs = attrs
 
@@ -132,20 +117,34 @@ class BaseLineage(object):
 
         assert attrs.storage_class == self.__class__.__name__
 
-        # Recover the python objects that we need to reconstruct everything
-        self.world = attrs.world
-        self.params = self.world.params
-
         # Assign the arrays
         self._h5 = h5
         self._attrs = attrs 
         self._networks = h5.root.networks
         self._generations = h5.root.generations
-        self._targets = h5.root.targets
+
+    def _create(self):
+        assert self.params is not None
+        self.world = core_ext.World(self.params)
+        self.factory = self.params.factory_class(self.world)
+
+        self._size = self.params.population_size
+        self.population = core_ext.Population(self.factory, self._size)
+        self.selection_model = self.params.selection_class(self.world)
 
     def _load(self):
-        self._open_database()
-        self._create(loading=True)
+        # Recover the python objects that we need to reconstruct everything
+        data = self._attrs.data
+
+        self.params = data.params
+        self.world = data.world
+        self.factory = data.factory
+        self.targets = data.targets
+        self._size = self.params.population_size
+
+        # Don't bother creating anything, we're about to fill it out
+        self.population = core_ext.Population(self.factory, 0)
+        self.selection_model = self.params.selection_class(self.world)
 
         # Load the last generation
         rec = self._generations[-1]
@@ -154,24 +153,26 @@ class BaseLineage(object):
 
         arr = self._networks.read_coordinates(indexes)
         self.factory.from_numpy(arr, self.population)
-        for i in range(len(self._targets)):
-            self.targets.append(self._targets[i])
-
         self.set_target(rec['target'])
 
-    def close(self):
-        # Avoid messages from tables
-        self._save_mutable()
-        self._h5.close()
+    def _save(self):
+        # Only things that can be pickled go in here
+        data = Attributes(
+            params = self.params,
+            world = self.world,
+            factory = self.factory,
+            targets = self.targets,
+        )
+        # This pickles it all
+        self._attrs.data = data
 
-    def __del__(self):
-        self.close()
 
 
 class SnapshotLineage(BaseLineage):
     def __init__(self, path, params=None):
         BaseLineage.__init__(self, path, params)
         if params is None:
+            self._open_database()
             self._load()
         else:
             self._create()
@@ -185,8 +186,10 @@ class SnapshotLineage(BaseLineage):
         )
 
     def save_snapshot(self):
-        self._save_mutable()
+        # TODO: is this needed
+        self._save()
 
+        # Check how big networks is now...
         start = len(self._networks)
         
         # Add all networks in the population
@@ -220,17 +223,23 @@ class SnapshotLineage(BaseLineage):
         # If the latest generation isn't saved, the save it automatically.
         g = -1 
         if len(self._generations) != 0:
-            g, t, indexes = self._generations[-1]
+            rec = self._generations[-1]
+            g = rec['generation']
         if g < self.generation:
             self.save_snapshot()
 
-        BaseLineage.close(self)
+        self._save()
+        self._h5.close()
+
+    def __del__(self):
+        self.close()
 
 
 class FullLineage(BaseLineage):
     def __init__(self, path, params=None):
         BaseLineage.__init__(self, path, params)
         if params is None:
+            self._open_database()
             self._load()
         else:
             self._create()
@@ -297,10 +306,10 @@ class FullLineage(BaseLineage):
         self.factory.from_numpy(arr, anc)
         return anc
 
-    # def close(self):
-    #     self._save_mutable()
-    #     BaseLineage.close(self)
-    #     self._h5.close()
+    def close(self):
+        # Avoid messages from tables
+        self._save()
+        self._h5.close()
 
     def __del__(self):
         self.close()
