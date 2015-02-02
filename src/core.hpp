@@ -141,6 +141,9 @@ public:
     // Randomising stuff
     random_engine_t rand;
 
+    std::string get_random_state();
+    void set_random_state(const std::string &s);
+
 private:
     void init_channels();
     void init_environments();
@@ -163,15 +166,12 @@ public:
     virtual ~cConstructor() {};
 
     // This is where the constructors and mutators for networks live
-    virtual cNetwork_ptr construct()=0;
+    virtual cNetwork_ptr construct(bool fill)=0;
     virtual size_t site_count(cNetworkVector &networks)=0;
 
-    // virtual void mutate_network(cNetwork_ptr *n, size_t mutations)=0;
-    cNetwork_ptr clone_and_mutate_network(cNetwork_ptr &n, size_t mutations);
+    cNetwork_ptr clone_and_mutate_network(
+        cNetwork_ptr &n, size_t mutations, int_t generation);
 
-    // void mutate_network(cNetwork_ptr &n, size_t mutations);
-    // void mutate_collection(
-    //     cNetworkVector &networks, cIndexes &mutated, double site_rate);
     cWorld_ptr world;
 };
 
@@ -180,7 +180,7 @@ typedef std::shared_ptr<cConstructor> cConstructor_ptr;
 class cNetwork
 {
 public:
-    cNetwork(const cConstructor_ptr &c, bool no_ident=false);
+    cNetwork(const cConstructor_ptr &c);
     virtual ~cNetwork() {}
 
     virtual cNetwork_ptr clone() const=0;
@@ -194,12 +194,13 @@ public:
     void _calc_attractors(bool intervention);
     void calc_attractors() { _calc_attractors(false); }
     void calc_attractors_with_intervention() { _calc_attractors(true); }
-    // cNetwork_ptr get_detached_copy() const;
-    // bool is_detached() const { return identifier < 0; }
     
     cConstructor_ptr constructor;
     cWorld_ptr world;
     int_t identifier, parent_identifier;
+
+    // Optional -- the generation that this was created (default: 0)
+    int_t generation;
 
     // Calculated attractor and rates
     cAttractors attractors;
@@ -222,8 +223,9 @@ private:
 
 struct cTarget
 {
-    cTarget(const cWorld_ptr &world);
+    cTarget(const cWorld_ptr &world, const std::string &name);
     cWorld_ptr world;
+    std::string name;
     int_t identifier;
     cRatesVector optimal_rates;
 
@@ -238,9 +240,8 @@ struct cSelectionModel
     cWorld_ptr world;
 
     // TODO: Make this virtual -- come up with different selection models
-    bool select(
-        const cNetworkVector &networks, const cTarget &target, 
-        size_t number, cIndexes &selected) const;
+    bool select(const cNetworkVector &networks, 
+                size_t number, cIndexes &selected) const;
 };
 
 class cPopulation
@@ -248,8 +249,10 @@ class cPopulation
 public:
     cPopulation(const cConstructor_ptr &c, size_t n);
 
-    size_t mutate(double site_rate);
-    bool select(const cTarget &target, const cSelectionModel &sm, size_t size);
+    size_t mutate(double site_rate, int_t generation);
+    void assess(const cTarget &target) const;
+    bool select(const cSelectionModel &sm, size_t size);
+    std::pair<double, double> worst_and_best() const;
 
     // cConstNetwork_ptr get_network(size_t index) const;
     size_t get_generation() const { return generation; }

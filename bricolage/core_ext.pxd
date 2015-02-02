@@ -26,7 +26,8 @@ cdef class Constructor:
         cConstructor *_this
         int _secret_key
         readonly:
-            object world, gene_class, module_class, network_class
+            World world
+            object gene_class, module_class, network_class
 
 cdef class Target:
     cdef:
@@ -71,14 +72,24 @@ cdef class CisModule:
 cdef class SelectionModel:
     cdef:
         cSelectionModel *_this
+        readonly:
+            World world
 
-cdef class Population:
+cdef class CollectionBase:
     cdef:
-        cPopulation *_this
+        cNetworkVector *_collection
         readonly:
             Constructor constructor
 
     cdef object get_at(self, size_t i)
+
+cdef class Ancestry(CollectionBase):
+    cdef:
+        cNetworkVector *_this
+
+cdef class Population(CollectionBase):
+    cdef:
+        cPopulation *_this
 
 cdef class NetworkAnalysis:
     cdef:

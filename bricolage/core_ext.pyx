@@ -84,7 +84,6 @@ cdef class ChannelStateFrozen:
     def __repr__(self):
         return "<ChannelsRO: {}>".format(self.__str__())
 
-
 cdef class ChannelState(ChannelStateFrozen):
 
     def __cinit__(self):
@@ -110,7 +109,6 @@ cdef class ChannelState(ChannelStateFrozen):
 
     def __repr__(self):
         return "<Channels: {}>".format(self.__str__())
-
 
 cdef class World:
     def __cinit__(self, params):
@@ -155,11 +153,23 @@ cdef class World:
     def seed_random_engine(self, int s):
         self._this.rand.seed(s)
 
+    def get_random_state(self):
+        return self._this.get_random_state()
+
+    def set_random_state(self, string s):
+        self._this.set_random_state(s)
+
     def get_random_double(self, double low, double high):
         return self._this.get_random_double(low, high)
 
     def get_random_int(self, int low, int high):
         return self._this.get_random_int(low, high)
+
+    property next_network_id:
+        def __get__(self):
+            return self._this.next_network_identifier
+        def __set__(self, sequence_t i):
+            self._this.next_network_identifier = i
 
     property cue_channels:
         def __get__(self):
@@ -222,7 +232,7 @@ cdef class Constructor:
 
     def create_network(self):
         cdef Network n = self.network_class(self, self._secret_key)
-        n.bind_to(self._this.construct())
+        n.bind_to(self._this.construct(True))
         return n
 
 cdef class Network:
@@ -249,6 +259,10 @@ cdef class Network:
     property parent_identifier:
         def __get__(self):
             return self._this.parent_identifier
+
+    property generation:
+        def __get__(self):
+            return self._this.generation
 
     property gene_count:
         def __get__(self):
@@ -348,7 +362,6 @@ cdef class Network:
     def __repr__(self):
         return "<Network id:{} pt:{}>".format(self.identifier, self.parent_identifier)
 
-
 cdef class Gene:
     """A proxy to a gene.
     """
@@ -390,7 +403,6 @@ cdef class Gene:
     def __repr__(self):
         w = self.network.constructor.world
         return "<Gene[{}]: {}>".format(self.sequence, w.name_for_channel(self.pub))
-
 
 cdef class CisModule:
     """A proxy to a CisModule.
@@ -439,30 +451,22 @@ cdef class CisModule:
 
 cdef class SelectionModel:
     def __cinit__(self, World w):
+        self.world = w
         self._this = new cSelectionModel(w._shared)
 
     def __dealloc__(self):
         del self._this
 
-
-cdef class Population:
-    def __cinit__(self, Constructor c, size_t size):
+cdef class CollectionBase:
+    def __cinit__(self, Constructor c, size_t size=0):
         self.constructor = c
-        self._this = new cPopulation(c._shared, size)
-
-    def __dealloc__(self):
-        del self._this
-
-    def add(self, Network n):
-        assert n.constructor is self.constructor
-        self._this.networks.push_back(n._shared)
 
     cdef object get_at(self, size_t i):
-        if i >= self._this.networks.size():
+        if i >= self._collection.size():
             raise IndexError
 
         cdef:
-            cNetwork_ptr ptr = self._this.networks[i]
+            cNetwork_ptr ptr = deref(self._collection)[i]
             cNetwork *net = ptr.get()
 
         # Is there an existing python object?
@@ -478,34 +482,78 @@ cdef class Population:
         n.bind_to(ptr)
         return n
 
+    def add(self, Network n):
+        assert n.constructor is self.constructor
+        self._collection.push_back(n._shared)
+
     property size:
         def __get__(self):
-            return self._this.networks.size()
-
-    property site_count:
-        def __get__(self):
-            return self._this.constructor.get().site_count(self._this.networks)
+            return self._collection.size()
 
     def __getitem__(self, size_t i):
         return self.get_at(i)
 
     def __iter__(self):
-        for i in range(self._this.networks.size()):
+        for i in range(self._collection.size()):
             yield self.get_at(i)
+
+cdef class Ancestry(CollectionBase):
+    def __cinit__(self, Constructor c, size_t size=0):
+        self._this = new cNetworkVector()
+        self._collection = self._this
+
+    def __repr__(self):
+        if self.size == 0:
+            return "<Ancestry: EMPTY>"
+
+        return "<Ancestry: {}N, G{}-G{}>".format(
+            self.size,
+            self._this.front().get().generation,
+            self._this.back().get().generation,
+        )
+        
+    def __dealloc__(self):
+        del self._this
+
+cdef class Population(CollectionBase):
+    def __cinit__(self, Constructor c, size_t size=0):
+        self._this = new cPopulation(c._shared, size)
+        self._collection = &(self._this.networks)
+
+    def __dealloc__(self):
+        del self._this
+
+    def worst_and_best(self):
+        return self._this.worst_and_best()
+
+    property site_count:
+        def __get__(self):
+            return self._this.constructor.get().site_count(self._this.networks)
+
+    def _get_identifiers(self, np.int_t[:] output):
+        """A list of identifiers for the current population"""
+        # TODO: maybe this should be pre-allocated?
+        assert output.shape[0] == self._this.networks.size()
+        cdef size_t i
+        for i in range(self._this.networks.size()):
+            output[i] = self._this.networks[i].get().identifier
 
     def __repr__(self):
         return "<Population: {}>".format(self.size)
 
-    def mutate(self, double site_rate):
-        return self._this.mutate(site_rate)
+    def mutate(self, double site_rate, int generation=0):
+        return self._this.mutate(site_rate, generation)
 
-    def select(self, Target target, SelectionModel sm, size=None):
+    def assess(self, Target target):
+        self._this.assess(deref(target._this))
+
+    def select(self, SelectionModel sm, size=None):
         cdef size_t s
         if size is None:
             s = self._this.networks.size()
         else:
             s = size
-        return self._this.select(deref(target._this), deref(sm._this), s)
+        return self._this.select(deref(sm._this), s)
 
     property mutated:
         def __get__(self):
@@ -515,11 +563,10 @@ cdef class Population:
         def __get__(self):
             return self._this.selected
 
-
 cdef class Target:
-    def __cinit__(self, World w, init_func):
+    def __cinit__(self, World w, init_func, name=""):
         self.world = w
-        self._this = new cTarget(w._shared)
+        self._this = new cTarget(w._shared, name)
         a, b = w._this.cue_range
 
         # Slow and cumbersome, but it doesn't matter
@@ -549,7 +596,6 @@ cdef class Target:
 
     def as_array(self):
         return numpy.array(self._this.optimal_rates)
-
 
 cdef class NetworkAnalysis:
     def __cinit__(self, Network net):

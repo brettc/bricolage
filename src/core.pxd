@@ -37,6 +37,7 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
     cdef cppclass cWorld:
         cWorld(size_t seed, size_t cue, size_t reg, size_t out)
         mt19937 rand
+        sequence_t next_network_identifier, next_target_identifier
         size_t cue_channels, reg_channels, out_channels
         size_t channel_count
         pair[size_t, size_t] cue_range
@@ -47,12 +48,14 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         cChannelStateVector environments
         double get_random_double(double low, double high)
         double get_random_int(int low, int high)
+        string get_random_state()
+        void set_random_state(string &s)
 
     ctypedef shared_ptr[cWorld] cWorld_ptr
 
     cdef cppclass cConstructor:
         cConstructor()
-        cNetwork_ptr construct()
+        cNetwork_ptr construct(bint fill)
         size_t site_count(cNetworkVector &networks)
         void mutate_collection(cNetworkVector &networks, 
                                cIndexes &mutated, double site_rate)
@@ -86,12 +89,11 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         void *pyobject
         cConstructor_ptr constructor
         cWorld_ptr world
-        int_t identifier, parent_identifier
+        int_t identifier, parent_identifier, generation
         cAttractors attractors
         cRatesVector rates
         int_t target
         double fitness
-        # bint is_detached()
         
         # TODO: Needed for cython bug, never used
         # See https://groups.google.com/forum/#!topic/cython-users/ko7X_fQ0n9Q
@@ -113,10 +115,11 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
     # ctypedef vector[cNetwork_ptr] cNetworkVector
     #
     cdef cppclass cTarget:
-        cTarget(cWorld_ptr &w)
+        cTarget(cWorld_ptr &w, string name)
         double assess(cNetwork &net)
         cWorld *factory
         int_t identifier
+        string name
         cRatesVector optimal_rates
 
     cdef cppclass cSelectionModel:
@@ -124,14 +127,14 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         cWorld_ptr factory
 
         bint select(
-            const cNetworkVector &networks, const cTarget &target, 
-            size_t number, cIndexes &selected)
+            const cNetworkVector &networks, size_t number, cIndexes &selected)
 
     cdef cppclass cPopulation:
         cPopulation(const cConstructor_ptr &c, size_t n)
-        size_t mutate(double site_rate)
-        bint select(const cTarget &target, const cSelectionModel &sm, size_t size)
-
+        size_t mutate(double site_rate, int_t generation)
+        void assess(const cTarget &target)
+        bint select(const cSelectionModel &sm, size_t size)
+        pair[double, double] worst_and_best()
         cConstructor_ptr constructor
         cWorld_ptr world
 
