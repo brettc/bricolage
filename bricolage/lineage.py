@@ -371,6 +371,7 @@ class Treatment(object):
     """Replicate a set of experiments into different folders"""
 
     TREATMENT_FILENAME = 'treatment.pickle'
+    DESCRIPTION_FILENAME = 'description.txt'
 
     def __init__(self, path, params=None, analysis_path=None, overwrite=False, full=True):
         # Sort out class to use
@@ -405,6 +406,10 @@ class Treatment(object):
     def filename(self):
         return str(self.path / self.TREATMENT_FILENAME)
 
+    @property
+    def description_filename(self):
+        return str(self.path / self.DESCRIPTION_FILENAME)
+
     def run(self, callback, **kwargs):
         for r in self.replicates:
             try:
@@ -426,6 +431,11 @@ class Treatment(object):
             self.analysis_path.mkdir()
         with open(self.filename, 'wb') as f:
             pickle.dump(self.params, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+        with open(self.description_filename, 'wb') as f:
+            if hasattr(self.params, 'description'):
+                f.write(self.params.description + "\n\n")
+            self.params.dump(f)
 
     def _load(self):
         with open(self.filename, 'rb') as f:
