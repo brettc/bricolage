@@ -85,6 +85,10 @@ cdef class CollectionBase:
 
     cdef object get_at(self, size_t i)
 
+cdef class Collection(CollectionBase):
+    cdef:
+        cNetworkVector *_this
+
 cdef class Ancestry(CollectionBase):
     cdef:
         cNetworkVector *_this

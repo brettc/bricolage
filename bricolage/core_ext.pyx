@@ -261,6 +261,11 @@ cdef class Constructor:
         n.bind_to(self._this.construct(True))
         return n
 
+def _construct_network(Constructor factory, array):
+    c = Collection(factory)
+    factory.from_numpy(array, c)
+    return c[0]
+
 cdef class Network:
     def __cinit__(self, Constructor c, int key=0):
         self.constructor = c
@@ -268,6 +273,12 @@ cdef class Network:
         if key != self.constructor._secret_key:
             raise RuntimeError("You cannot create a Network directly."
                                " Use Constructor.create_network")
+
+    def __reduce__(self):
+        c = Collection(self.constructor)
+        c.add(self)
+        return _construct_network, (self.constructor, 
+                                    self.constructor.to_numpy(c))
 
     cdef bind_to(self, cNetwork_ptr ptr):
         self._shared = ptr
@@ -522,6 +533,14 @@ cdef class CollectionBase:
     def __iter__(self):
         for i in range(self._collection.size()):
             yield self.get_at(i)
+
+cdef class Collection(CollectionBase):
+    def __cinit__(self, Constructor c, size_t size=0):
+        self._this = new cNetworkVector()
+        self._collection = self._this
+
+    def __dealloc__(self):
+        del self._this
 
 cdef class Ancestry(CollectionBase):
     def __cinit__(self, Constructor c, size_t size=0):

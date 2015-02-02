@@ -13,6 +13,9 @@ import numpy
 ctypedef np.int_t int_type
 ctypedef np.int8_t tiny_type
 
+def _construct_factory(core_ext.World w):
+    return Constructor(w)
+
 cdef class Constructor(core_ext.Constructor):
     def __cinit__(self, core_ext.World w):
         self._shared = core.cConstructor_ptr(new cConstructor(
@@ -23,6 +26,9 @@ cdef class Constructor(core_ext.Constructor):
 
         # Specialise the python classes
         self.module_class = CisModule
+
+    def __reduce__(self):
+        return _construct_factory, (self.world, )
 
     def dtype(self):
         cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 
@@ -78,14 +84,15 @@ cdef class Constructor(core_ext.Constructor):
 
         return output
 
-    def to_numpy(self, core_ext.Population p, bint mutations_only=False):
+    def to_numpy(self, core_ext.CollectionBase c):
+        return self._to_numpy(c._collection, NULL)
+
+    def pop_to_numpy(self, core_ext.Population p, bint mutations_only=False):
         cdef:
             core.cIndexes *indexes = NULL
             core.cNetworkVector *networks = &p._this.networks
-
         if mutations_only:
             indexes = &p._this.mutated
-
         return self._to_numpy(networks, indexes)
 
     cdef _from_numpy(self, output, core.cNetworkVector *networks):
