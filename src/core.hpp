@@ -8,8 +8,9 @@
 
 // #include <tr1/memory> Another shared_ptr?
 // #include <boost/shared_ptr.hpp>
-// #include <boost/multi_array.hpp>
+//
 #include <boost/dynamic_bitset.hpp>
+#include <boost/multi_array.hpp>
 #include <tuple>
 #include <random>
 
@@ -220,7 +221,6 @@ private:
     cNetwork(const cNetwork &);
 };
 
-
 struct cTarget
 {
     cTarget(const cWorld_ptr &world, const std::string &name, int_t id=-1);
@@ -232,6 +232,24 @@ struct cTarget
     // TODO: per env weighting
     // TODO: per output weighting
     double assess(const cNetwork &net) const;
+};
+
+typedef boost::multi_array<double, 3> freqs_t;
+typedef boost::multi_array<double, 4> networks_probs_t;
+typedef boost::multi_array_ref<double, 4> networks_probs_ref_t;
+struct cEnvironmentI
+{
+    cEnvironmentI(const cWorld_ptr &world, size_t nc);
+    ~cEnvironmentI();
+    cWorld_ptr world;
+    size_t category_count;
+    freqs_t *frequencies;
+    cIndexes categories;
+    void copy_frequencies(double *view) const;
+    void calculate(const cNetwork &net);
+
+    void get_extents(size_t &channels, size_t &categories, size_t &on_off);
+    void calc_collection(double *data, const cNetworkVector &networks);
 };
 
 struct cSelectionModel

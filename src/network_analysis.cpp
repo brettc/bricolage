@@ -106,3 +106,88 @@ void cNetworkAnalysis::make_active_edges(cEdgeList &edges)
     }
 }
 
+typedef boost::multi_array_ref<double, 3> freqs_t_ref;
+cEnvironmentI::cEnvironmentI(
+    const cWorld_ptr &w, size_t ncat)
+    : world(w)
+    , category_count(ncat)
+{
+    frequencies = new freqs_t(boost::extents[w->reg_channels][ncat][2]);
+    std::fill_n(std::back_inserter(categories), w->environments.size(), 0);
+}
+
+cEnvironmentI::~cEnvironmentI()
+{
+    delete frequencies;
+}
+
+void cEnvironmentI::copy_frequencies(double *view) const
+{
+    freqs_t_ref arr_view(view, boost::extents[world->reg_channels]
+                           [category_count][2]);
+
+    // Rely on the copy constructor
+    arr_view = *frequencies;
+
+}
+
+void cEnvironmentI::get_extents(size_t &channels, 
+                                size_t &categories,
+                                size_t &on_off)
+{
+    channels = world->reg_channels;
+    categories = category_count;
+    on_off = 2;
+}
+
+void cEnvironmentI::calculate(const cNetwork &net)
+{
+    double normal_p_event = 1.0 / double(world->environments.size());
+    size_t reg_base = world->reg_range.first;
+    for (size_t i = 0; i < world->reg_channels; ++i)
+    {
+        for (size_t j = 0; j < net.attractors.size(); ++j)
+        {
+            double p_event = normal_p_event;
+            auto attrs = net.attractors[j];
+            p_event /= double(attrs.size());
+            for (auto &a : attrs)
+            {
+                size_t on_off = a.test(reg_base+i);
+                (*frequencies)[i][categories[j]][on_off] += p_event;
+            }
+        }
+    }
+}
+
+void cEnvironmentI::calc_collection(double *data,
+                                    const cNetworkVector &networks)
+{
+    typedef boost::multi_array_ref<double, 4> array_type;
+    size_t a, b, c, d;
+    a = networks.size();
+    get_extents(b, c, d);
+    array_type arr(data, boost::extents[a][b][c][d]);
+    double normal_p_event = 1.0 / double(world->environments.size());
+    size_t reg_base = world->reg_range.first;
+
+    for (size_t i = 0; i < a; ++i)
+    {
+        const cNetwork &net = *networks[i];
+        for (size_t j = 0; j < b; ++j)
+        {
+            for (size_t k = 0; k < c; ++k)
+            {
+                double p_event = normal_p_event;
+                auto attrs = net.attractors[k];
+                p_event /= double(attrs.size());
+                for (auto &a : attrs)
+                {
+                    size_t on_off = a.test(reg_base+j);
+                    arr[i][j][categories[k]][on_off] += p_event;
+                }
+            }
+        }
+    }
+}
+

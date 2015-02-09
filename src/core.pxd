@@ -146,7 +146,16 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         cIndexes selected, mutated
         cNetworkVector networks
 
+    cdef cppclass cEnvironmentI:
+        cEnvironmentI(const cWorld_ptr &world, size_t ncategories)
+        cWorld_ptr world
+        size_t category_count
+        cIndexes categories
+        void calculate(cNetwork &net)
+        void copy_frequencies(double *view)
 
+        void get_extents(size_t &channels, size_t &categories, size_t &on_off)
+        void calc_collection(double *data, cNetworkVector &networks)
 
 # cdef extern from "<src/logic2.hpp>" namespace "pubsub2":
 #     cdef cppclass cConstructorLogic2(cConstructor):

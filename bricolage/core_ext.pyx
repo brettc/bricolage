@@ -11,6 +11,7 @@ import sys
 
 # cimports
 cimport numpy as np
+import numpy
 from cython.operator import dereference as deref, preincrement as preinc
 
 import random
@@ -699,3 +700,49 @@ cdef class NetworkAnalysis:
             cEdgeList edges
         self._this.make_active_edges(edges)
         return edges
+
+cdef class EnvironmentI:
+    def __cinit__(self, World w, init_func):
+        self.world = w
+        a, b = self.world._this.cue_range
+        cats = []
+        for i, e in enumerate(self.world.environments):
+            cats.append(init_func(*e.as_array()[a:b]))
+
+        # Make sure the categories are consecutive 0, 1, 2 ...
+        catset = list(set(cats))
+        catset.sort()
+        assert catset == range(len(catset))
+        ncats = len(catset)
+
+        self._this = new cEnvironmentI(w._shared, ncats)
+        self._this.categories = cats
+
+    property categories:
+        def __get__(self):
+            return self._this.categories
+
+    def calculate(self, Network n):
+        self._this.calculate(deref(n._this))
+
+    def get_frequencies(self):
+        narr = numpy.zeros((self.world._this.reg_channels, self._this.category_count, 2))
+        cdef double [:, :, :] narr_view = narr 
+        self._this.copy_frequencies(&narr_view[0][0][0])
+        return narr
+
+    def calc_collection(self, CollectionBase coll):
+        cdef:
+            size_t a, b=0, c=0, d=0
+
+        a = coll._collection.size()
+        self._this.get_extents(b, c, d)
+        np_arr = numpy.zeros((a, b, c, d))
+
+        cdef double [:, :, :, :] np_arr_view = np_arr
+        self._this.calc_collection(&np_arr_view[0][0][0][0],
+                                   deref(coll._collection))
+        return np_arr
+
+    def __dealloc__(self):
+        del self._this
