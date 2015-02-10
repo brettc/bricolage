@@ -1,7 +1,7 @@
 import pytest
 import pathlib
 from math import log as logarithm
-from bricolage.core_ext import EnvironmentI
+from bricolage.core_ext import InfoE
 from bricolage import threshold3, lineage, graph
 import numpy
 
@@ -110,16 +110,16 @@ def test_cython_pop_info(lineage_2x2):
     pop = lineage_2x2.population
     w = lineage_2x2.world
 
-    e = EnvironmentI(w, feature1)
+    e = InfoE(w, feature1)
 
     # Calculate it via cython
-    c_probs = e.calc_collection(pop)
-    c_info = e.calc_info(pop)
+    c_probs = e.collection_probs(pop)
+    c_info = e.collection_info(pop)
 
     # Calculate it via cython
     c_probs_net = [] 
     for n in pop:
-        c_probs_net.append(e.calc_network(n))
+        c_probs_net.append(e.network_probs(n))
 
     # Calculate it using the test function
     p_probs = []

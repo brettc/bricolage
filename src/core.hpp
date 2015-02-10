@@ -237,17 +237,17 @@ struct cTarget
 typedef boost::multi_array<double, 3> freqs_t;
 typedef boost::multi_array<double, 4> networks_probs_t;
 typedef boost::multi_array_ref<double, 4> networks_probs_ref_t;
-struct cEnvironmentI
+struct cInfoE
 {
-    cEnvironmentI(const cWorld_ptr &world, size_t nc);
+    cInfoE(const cWorld_ptr &world, size_t nc);
     cWorld_ptr world;
     size_t category_count;
     cIndexes categories;
 
     void get_extents(size_t &channels, size_t &categories, size_t &on_off);
-    void calc_network(double *data, const cNetwork &net);
-    void calc_collection(double *data, const cNetworkVector &networks);
-    void calc_info(double *data, const cNetworkVector &networks);
+    void network_probs(double *data, const cNetwork &net);
+    void collection_probs(double *data, const cNetworkVector &networks);
+    void collection_info(double *data, const cNetworkVector &networks);
 };
 
 struct cSelectionModel

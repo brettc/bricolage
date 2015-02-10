@@ -102,8 +102,8 @@ cdef class NetworkAnalysis:
         readonly:
             Network network
 
-cdef class EnvironmentI:
+cdef class InfoE:
     cdef:
-        cEnvironmentI *_this
+        cInfoE *_this
         readonly:
             World world

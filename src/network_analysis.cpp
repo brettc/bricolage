@@ -2,6 +2,7 @@
 #include <cmath>
 #include <stdexcept>
 
+
 using namespace pubsub2;
 
 cNetworkAnalysis::cNetworkAnalysis(cNetwork_ptr &n)
@@ -106,14 +107,17 @@ void cNetworkAnalysis::make_active_edges(cEdgeList &edges)
     }
 }
 
-cEnvironmentI::cEnvironmentI(const cWorld_ptr &w, size_t ncat)
+// TODO: Fix cut and paste, once I figure out multi_array propertly (using
+// views?) 
+
+cInfoE::cInfoE(const cWorld_ptr &w, size_t ncat)
     : world(w)
     , category_count(ncat)
 {
     std::fill_n(std::back_inserter(categories), w->environments.size(), 0);
 }
 
-void cEnvironmentI::get_extents(size_t &channels, 
+void cInfoE::get_extents(size_t &channels, 
                                 size_t &categories,
                                 size_t &on_off)
 {
@@ -122,48 +126,14 @@ void cEnvironmentI::get_extents(size_t &channels,
     on_off = 2;
 }
 
-void cEnvironmentI::calc_network(double *data, const cNetwork &net)
-{
-    typedef boost::multi_array_ref<double, 3> array_type;
-    size_t b, c, d;
-    get_extents(b, c, d);
-    array_type arr(data, boost::extents[b][c][d]);
-
-    double normal_p_event = 1.0 / double(world->environments.size());
-    size_t reg_base = world->reg_range.first;
-
-    for (size_t j = 0; j < b; ++j)
-    {
-        for (size_t k = 0; k < net.attractors.size(); ++k)
-        {
-            double p_event = normal_p_event;
-            auto attrs = net.attractors[k];
-            p_event /= double(attrs.size());
-            for (auto &a : attrs)
-            {
-                size_t on_off = a.test(reg_base+j);
-                arr[j][categories[k]][on_off] += p_event;
-            }
-        }
-    }
-}
-
 typedef boost::multi_array<double, 4> prob_array_type;
+// typedef boost::multi_array<double, 3> prob_array_net_type;
 typedef boost::multi_array_ref<double, 4> prob_array_ref_type;
 typedef boost::multi_array_ref<double, 2> info_array_ref_type;
+typedef std::vector<double> sum_type;
 
-// void testing_2(boost::multi_array_ref<double, 4>::reference r)
-// {
-//     r[0][0][0] = 5.0;
-// }
-//
-// void testing_3(boost::multi_array_ref<double, 4> &arr)
-// {
-//     arr[0][0][0][0] = 99.0;
-//     testing_2(arr[1]);
-// }
 
-void calc_collection(cEnvironmentI &ei, prob_array_ref_type &arr,
+void calc_probs(cInfoE &ei, prob_array_ref_type &arr,
                      const cNetworkVector &networks)
 {
     double normal_p_event = 1.0 / double(ei.world->environments.size());
@@ -172,6 +142,7 @@ void calc_collection(cEnvironmentI &ei, prob_array_ref_type &arr,
     for (size_t i = 0; i < networks.size(); ++i)
     {
         const cNetwork &net = *networks[i];
+        // calc_probs_network(ei, net, arr[i]);
         for (size_t j = 0; j < ei.world->reg_channels; ++j)
         {
             for (size_t k = 0; k < net.attractors.size(); ++k)
@@ -189,67 +160,127 @@ void calc_collection(cEnvironmentI &ei, prob_array_ref_type &arr,
     }
 }
 
-void cEnvironmentI::calc_collection(double *data,
-                                    const cNetworkVector &networks)
+void cInfoE::network_probs(double *data, const cNetwork &net)
 {
-    size_t a, b, c, d;
-    a = networks.size();
-    get_extents(b, c, d);
-    prob_array_ref_type arr(data, boost::extents[a][b][c][d]);
+    typedef boost::multi_array_ref<double, 3> array_type;
+    size_t chan_size, cat_size, stat_size;
+    get_extents(chan_size, cat_size, stat_size);
+    array_type arr(data, boost::extents[chan_size][cat_size][stat_size]);
 
-    ::calc_collection(*this, arr, networks);
-}
+    double normal_p_event = 1.0 / double(world->environments.size());
+    size_t reg_base = world->reg_range.first;
 
-void cEnvironmentI::calc_info(double *data,
-                              const cNetworkVector &networks)
-{
-    size_t a, b, c, d;
-    a = networks.size();
-    get_extents(b, c, d);
-
-    // NOTE: We allocate this ourself this time...
-    prob_array_type arr(boost::extents[a][b][c][d]);
-    ::calc_collection(*this, arr, networks);
-
-    std::vector<double> feat_sum(c, 0.0);
-    std::vector<double> chan_sum(d, 0.0);
-
-    info_array_ref_type info(data, boost::extents[a][b]);
-    for (size_t i = 0; i < networks.size(); ++i)
+    for (size_t j = 0; j < chan_size; ++j)
     {
-        // iterate over channels
-        for (size_t j = 0; j < b; ++j)
+        for (size_t k = 0; k < net.attractors.size(); ++k)
         {
-            // Reset to 0
-            for (size_t k = 0; k < c; ++k)
-                feat_sum[k] = 0.0;
-            for (size_t l = 0; l < d; ++l)
-                chan_sum[l] = 0.0;
-
-            // Sum the marginals
-            for (size_t k = 0; k < c; ++k)
-                for (size_t l = 0; l < d; ++l)
-                {
-                    double val = arr[i][j][k][l];
-                    feat_sum[k] += val;
-                    chan_sum[l] += val;
-                }
-
-            // Calculate the info
-            double I = 0.0;
-            for (size_t k = 0; k < c; ++k)
+            double p_event = normal_p_event;
+            auto attrs = net.attractors[k];
+            p_event /= double(attrs.size());
+            for (auto &att : attrs)
             {
-                for (size_t l = 0; l < d; ++l)
-                {
-                    double val = arr[i][j][k][l];
-                    if (val != 0.0)
-                        I += val * log2(val / (feat_sum[k] * chan_sum[l]));
-                }
+                size_t on_off = att.test(reg_base+j);
+                arr[j][categories[k]][on_off] += p_event;
             }
-            info[i][j] = I;
         }
     }
 }
+
+
+void cInfoE::collection_probs(double *data,
+                              const cNetworkVector &networks)
+{
+    size_t net_size, chan_size, cat_size, stat_size;
+    net_size = networks.size();
+    get_extents(chan_size, cat_size, stat_size);
+    prob_array_ref_type arr(data, boost::extents[net_size][chan_size][cat_size][stat_size]);
+
+    ::calc_probs(*this, arr, networks);
+}
+
+void calc_info(cInfoE &ei, 
+               info_array_ref_type::reference i_arr,
+               prob_array_ref_type::reference p_arr,
+               sum_type &feat_sum, 
+               sum_type &chan_sum,
+               size_t chan_size, size_t cat_size, size_t stat_size
+               )
+{
+    // iterate over channels
+    for (size_t j = 0; j < chan_size; ++j)
+    {
+        // Reset to 0
+        for (size_t k = 0; k < cat_size; ++k)
+            feat_sum[k] = 0.0;
+        for (size_t l = 0; l < stat_size; ++l)
+            chan_sum[l] = 0.0;
+
+        // Sum the marginals
+        for (size_t k = 0; k < cat_size; ++k)
+            for (size_t l = 0; l < stat_size; ++l)
+            {
+                double val = p_arr[j][k][l];
+                feat_sum[k] += val;
+                chan_sum[l] += val;
+            }
+
+        // Calculate the info
+        double I = 0.0;
+        for (size_t k = 0; k < cat_size; ++k)
+        {
+            for (size_t l = 0; l < stat_size; ++l)
+            {
+                double val = p_arr[j][k][l];
+                if (val != 0.0)
+                    I += val * log2(val / (feat_sum[k] * chan_sum[l]));
+            }
+        }
+        i_arr[j] = I;
+    }
+}
+
+void cInfoE::collection_info(double *data,
+                              const cNetworkVector &networks)
+{
+    size_t net_size, chan_size, cat_size, stat_size;
+    net_size = networks.size();
+    get_extents(chan_size, cat_size, stat_size);
+
+    // NOTE: We allocate this ourself this time, not like above
+    prob_array_type arr(boost::extents[net_size][chan_size][cat_size][stat_size]);
+    ::calc_probs(*this, arr, networks);
+
+    sum_type feat_sum(cat_size, 0.0);
+    sum_type chan_sum(stat_size, 0.0);
+
+    info_array_ref_type info(data, boost::extents[net_size][chan_size]);
+    for (size_t i = 0; i < networks.size(); ++i)
+    {
+        ::calc_info(*this, info[i], arr[i], feat_sum, chan_sum,
+                    chan_size, cat_size, stat_size);
+    }
+}
+
+// void cInfoE::calc_info_network(double *data, const cNetwork &network)
+// void network_info(double *data, const cNetwork &network)
+// {
+//     size_t net_size, chan_size, cat_size, stat_size;
+//     get_extents(chan_size, cat_size, stat_size);
+//
+//     // NOTE: We allocate this ourself this time, not like above
+//     prob_array_net_type arr(boost::extents[chan_size][cat_size][stat_size]);
+//     ::calc_collection(*this, arr, networks);
+//
+//     sum_type feat_sum(cat_size, 0.0);
+//     sum_type chan_sum(stat_size, 0.0);
+//
+//     info_array_ref_type info(data, boost::extents[net_size][chan_size]);
+//     for (size_t i = 0; i < networks.size(); ++i)
+//     {
+//         ::calc_info(*this, info[i], arr[i], feat_sum, chan_sum,
+//                     chan_size, cat_size, stat_size);
+//     }
+// }
 
 //   ACTULLY: looks possible to just use
 //  prob_array_type::reference to get at the sub_array 

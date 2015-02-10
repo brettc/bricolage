@@ -701,7 +701,7 @@ cdef class NetworkAnalysis:
         self._this.make_active_edges(edges)
         return edges
 
-cdef class EnvironmentI:
+cdef class InfoE:
     def __cinit__(self, World w, init_func):
         self.world = w
         a, b = self.world._this.cue_range
@@ -719,14 +719,14 @@ cdef class EnvironmentI:
         if ncats < 2:
             raise ValueError("There must be at least two categories")
 
-        self._this = new cEnvironmentI(w._shared, ncats)
+        self._this = new cInfoE(w._shared, ncats)
         self._this.categories = cats
 
     property categories:
         def __get__(self):
             return self._this.categories
 
-    def calc_network(self, Network net):
+    def network_probs(self, Network net):
         cdef:
             size_t b=0, c=0, d=0
 
@@ -734,11 +734,11 @@ cdef class EnvironmentI:
         np_arr = numpy.zeros((b, c, d))
 
         cdef double [:, :, :] np_arr_view = np_arr
-        self._this.calc_network(&np_arr_view[0][0][0],
+        self._this.network_probs(&np_arr_view[0][0][0],
                                    deref(net._this))
         return np_arr
 
-    def calc_collection(self, CollectionBase coll):
+    def collection_probs(self, CollectionBase coll):
         cdef:
             size_t a, b=0, c=0, d=0
 
@@ -747,17 +747,17 @@ cdef class EnvironmentI:
         np_arr = numpy.zeros((a, b, c, d))
 
         cdef double [:, :, :, :] np_arr_view = np_arr
-        self._this.calc_collection(&np_arr_view[0][0][0][0],
+        self._this.collection_probs(&np_arr_view[0][0][0][0],
                                    deref(coll._collection))
         return np_arr
 
-    def calc_info(self, CollectionBase coll):
+    def collection_info(self, CollectionBase coll):
         cdef size_t a, b=0, c=0, d=0
         a = coll._collection.size()
         self._this.get_extents(b, c, d)
         np_arr = numpy.zeros((a, b))
         cdef double [:, :] np_arr_view = np_arr
-        self._this.calc_info(&np_arr_view[0][0], deref(coll._collection))
+        self._this.collection_info(&np_arr_view[0][0], deref(coll._collection))
         return np_arr
 
     def __dealloc__(self):
