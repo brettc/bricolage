@@ -11,6 +11,7 @@ import sys
 
 # cimports
 cimport numpy as np
+import numpy
 from cython.operator import dereference as deref, preincrement as preinc
 
 import random
@@ -699,3 +700,65 @@ cdef class NetworkAnalysis:
             cEdgeList edges
         self._this.make_active_edges(edges)
         return edges
+
+cdef class InfoE:
+    def __cinit__(self, World w, init_func):
+        self.world = w
+        a, b = self.world._this.cue_range
+        cats = []
+        for i, e in enumerate(self.world.environments):
+            cats.append(init_func(*e.as_array()[a:b]))
+
+        # Make sure the categories are consecutive 0, 1, 2 ...
+        catset = set(cats)
+        ncats = len(catset)
+        if catset != set(range(ncats)):
+            raise ValueError("Categories must be consecutively numbered"
+                             " integers from 0 to N")
+        # and there are at least 2
+        if ncats < 2:
+            raise ValueError("There must be at least two categories")
+
+        self._this = new cInfoE(w._shared, ncats)
+        self._this.categories = cats
+
+    property categories:
+        def __get__(self):
+            return self._this.categories
+
+    def network_probs(self, Network net):
+        cdef:
+            size_t b=0, c=0, d=0
+
+        self._this.get_extents(b, c, d)
+        np_arr = numpy.zeros((b, c, d))
+
+        cdef double [:, :, :] np_arr_view = np_arr
+        self._this.network_probs(&np_arr_view[0][0][0],
+                                   deref(net._this))
+        return np_arr
+
+    def collection_probs(self, CollectionBase coll):
+        cdef:
+            size_t a, b=0, c=0, d=0
+
+        a = coll._collection.size()
+        self._this.get_extents(b, c, d)
+        np_arr = numpy.zeros((a, b, c, d))
+
+        cdef double [:, :, :, :] np_arr_view = np_arr
+        self._this.collection_probs(&np_arr_view[0][0][0][0],
+                                   deref(coll._collection))
+        return np_arr
+
+    def collection_info(self, CollectionBase coll):
+        cdef size_t a, b=0, c=0, d=0
+        a = coll._collection.size()
+        self._this.get_extents(b, c, d)
+        np_arr = numpy.zeros((a, b))
+        cdef double [:, :] np_arr_view = np_arr
+        self._this.collection_info(&np_arr_view[0][0], deref(coll._collection))
+        return np_arr
+
+    def __dealloc__(self):
+        del self._this

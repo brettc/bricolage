@@ -1,6 +1,8 @@
 from enum import IntEnum
 import networkx as nx
 from pygraphviz import AGraph
+from core_ext import NetworkAnalysis
+import pathlib
 
 class NodeType(IntEnum):
     # NOTE: These should be the same as those defined in pubsub2_c.h
@@ -299,4 +301,16 @@ class DotMaker(object):
     def save_dot(self, f):
         a = self.get_layout()
         a.write(f)
+
+def save_network_as_fullgraph(n, path='.', name=None):
+    output_path = pathlib.Path(path)
+    ana = NetworkAnalysis(n)
+    gph = FullGraph(ana)
+    dot = DotMaker(gph)
+    if name is None:
+        name = n.identifier
+    print 'saving', name
+    dot.save_picture(str(output_path / "network-{}.png".format(name)))
+
+
 

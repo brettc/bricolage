@@ -36,7 +36,6 @@ cdef class Target:
         readonly:
             World world
 
-
 cdef class Network:
     cdef:
         readonly:
@@ -103,3 +102,8 @@ cdef class NetworkAnalysis:
         readonly:
             Network network
 
+cdef class InfoE:
+    cdef:
+        cInfoE *_this
+        readonly:
+            World world
