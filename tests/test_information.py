@@ -34,7 +34,7 @@ def lineage_2x2(p_2x2, tmpdir):
     # base = pathlib.Path(str(tmpdir))
     base = pathlib.Path('.')
     path = base / 'env_info.db'
-    if 0: #path.exists():
+    if path.exists():
         a = lineage.FullLineage(path)
     else:
         a = lineage.FullLineage(path, params=p_2x2)
@@ -51,17 +51,15 @@ def complex_network1(lineage_2x2):
     b = lineage_2x2.population.best_indexes()[0]
     return lineage_2x2.population[b]
 
-def test_calc_env_info(complex_network1):
-    n = complex_network1
+def calc_info_for_network(n, func):
     w = n.constructor.world
     cr = range(*w.cue_range)
     features = []
 
     for e in w.environments:
         inputs = [e[i] for i in cr]
-        features.append(feature1(*inputs))
+        features.append(func(*inputs))
     assert len(features) == len(w.environments)
-    print n.attractors
 
     # Features should be consecutive numbers
     all_feat = set(features)
@@ -88,20 +86,12 @@ def test_calc_env_info(complex_network1):
                 val = a[channel] # 0 or 1
                 probs[i, feat, val] += p_event
 
-    for i, j in zip(probs, range(*w.reg_range)):
-        print w.name_for_channel(j)
-        print i
-        print '--'
-
     info = numpy.zeros(channel_dim)
     for i, channel in enumerate(range(*w.reg_range)):
         c_prob = probs[i]
         I = 0.0
-        print '---'
-        print c_prob
         colsum = c_prob.sum(axis=0)
         rowsum = c_prob.sum(axis=1)
-        print 'col', colsum, 'row', rowsum
         for row in range(feat_dim):
             for col in 0, 1:
                 p_xy = c_prob[row, col]
@@ -110,35 +100,41 @@ def test_calc_env_info(complex_network1):
                 if p_xy != 0:
                     I += p_xy * logarithm(p_xy / (p_x * p_y), 2)
         info[i] = I
-    print info
 
-    # Now calc information
-    e = EnvironmentI(w, feature1)
-    print e.calc_network(n)
-    
-def test_cython_info(complex_network1):
-    n = complex_network1
-    w = n.constructor.world
-    e = EnvironmentI(w, feature1)
-    print e.categories
-    e.calculate(n)
-    print e.get_frequencies()
+    return probs, info
+
+def numpy_compare(a, b):
+    assert max(a - b) < 0e-10
 
 def test_cython_pop_info(lineage_2x2):
-    print
     pop = lineage_2x2.population
     w = lineage_2x2.world
+
     e = EnvironmentI(w, feature1)
-    nparr = e.calc_collection(pop)
-    print nparr[999]
-    graph.save_network_as_fullgraph(pop[999], name='last')
-    print e.calc_network(pop[999])
-    # print e.get_frequencies()
-    print '---'
-    anc = lineage_2x2.get_ancestry(pop[999].identifier)
-    print anc.size
-    print e.calc_collection(anc)[0]
-    print e.calc_collection(anc)[-1]
+
+    # Calculate it via cython
+    c_probs = e.calc_collection(pop)
+    c_info = e.calc_info(pop)
+
+    # Calculate it via cython
+    c_probs_net = [] 
+    for n in pop:
+        c_probs_net.append(e.calc_network(n))
+
+    # Calculate it using the test function
+    p_probs = []
+    p_info = []
+    for n in pop:
+        p, i = calc_info_for_network(n, feature1)
+        p_probs.append(p)
+        p_info.append(i)
+
+    for c, cn, pn in zip(c_probs, c_probs_net, p_probs):
+        numpy.testing.assert_allclose(c, cn)
+        numpy.testing.assert_allclose(c, pn)
+
+    for c, pn in zip(c_info, p_info):
+        numpy.testing.assert_allclose(c, pn)
 
 
 def test_env_info(complex_network1):

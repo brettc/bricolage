@@ -751,5 +751,14 @@ cdef class EnvironmentI:
                                    deref(coll._collection))
         return np_arr
 
+    def calc_info(self, CollectionBase coll):
+        cdef size_t a, b=0, c=0, d=0
+        a = coll._collection.size()
+        self._this.get_extents(b, c, d)
+        np_arr = numpy.zeros((a, b))
+        cdef double [:, :] np_arr_view = np_arr
+        self._this.calc_info(&np_arr_view[0][0], deref(coll._collection))
+        return np_arr
+
     def __dealloc__(self):
         del self._this

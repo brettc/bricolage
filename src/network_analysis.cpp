@@ -122,10 +122,7 @@ void cEnvironmentI::get_extents(size_t &channels,
     on_off = 2;
 }
 
-
-
-void cEnvironmentI::calc_network(double *data,
-                                 const cNetwork &net)
+void cEnvironmentI::calc_network(double *data, const cNetwork &net)
 {
     typedef boost::multi_array_ref<double, 3> array_type;
     size_t b, c, d;
@@ -151,66 +148,31 @@ void cEnvironmentI::calc_network(double *data,
     }
 }
 
+typedef boost::multi_array<double, 4> prob_array_type;
+typedef boost::multi_array_ref<double, 4> prob_array_ref_type;
+typedef boost::multi_array_ref<double, 2> info_array_ref_type;
 
-typedef boost::multi_array<double, 4> array_type;
-
-void testing_2(boost::multi_array_ref<double, 4>::reference r)
-{
-    r[0][0][0] = 5.0;
-}
-
-void testing_3(boost::multi_array_ref<double, 4> &arr)
-{
-    arr[0][0][0][0] = 99.0;
-    testing_2(arr[1]);
-}
-
-// void calc_collection(cEnvironmentI &ei, array_type &arr)
+// void testing_2(boost::multi_array_ref<double, 4>::reference r)
 // {
-//     double normal_p_event = 1.0 / double(world->environments.size());
-//     size_t reg_base = world->reg_range.first;
+//     r[0][0][0] = 5.0;
+// }
 //
-//     // TODO: Should call the above rather than doing this. Need to figure out
-//     // how to reference part of the array, and the costs involved
-//     for (size_t i = 0; i < a; ++i)
-//     {
-//         const cNetwork &net = *networks[i];
-//         for (size_t j = 0; j < b; ++j)
-//         {
-//             for (size_t k = 0; k < net.attractors.size(); ++k)
-//             {
-//                 double p_event = normal_p_event;
-//                 auto attrs = net.attractors[k];
-//                 p_event /= double(attrs.size());
-//                 for (auto &a : attrs)
-//                 {
-//                     size_t on_off = a.test(reg_base+j);
-//                     arr[i][j][categories[k]][on_off] += p_event;
-//                 }
-//             }
-//         }
-//     }
+// void testing_3(boost::multi_array_ref<double, 4> &arr)
+// {
+//     arr[0][0][0][0] = 99.0;
+//     testing_2(arr[1]);
 // }
 
-
-void cEnvironmentI::calc_collection(double *data,
-                                    const cNetworkVector &networks)
+void calc_collection(cEnvironmentI &ei, prob_array_ref_type &arr,
+                     const cNetworkVector &networks)
 {
-    typedef boost::multi_array_ref<double, 4> array_type;
-    size_t a, b, c, d;
-    a = networks.size();
-    get_extents(b, c, d);
-    array_type arr(data, boost::extents[a][b][c][d]);
+    double normal_p_event = 1.0 / double(ei.world->environments.size());
+    size_t reg_base = ei.world->reg_range.first;
 
-    double normal_p_event = 1.0 / double(world->environments.size());
-    size_t reg_base = world->reg_range.first;
-
-    // TODO: Should call the above rather than doing this. Need to figure out
-    // how to reference part of the array, and the costs involved
-    for (size_t i = 0; i < a; ++i)
+    for (size_t i = 0; i < networks.size(); ++i)
     {
         const cNetwork &net = *networks[i];
-        for (size_t j = 0; j < b; ++j)
+        for (size_t j = 0; j < ei.world->reg_channels; ++j)
         {
             for (size_t k = 0; k < net.attractors.size(); ++k)
             {
@@ -220,20 +182,77 @@ void cEnvironmentI::calc_collection(double *data,
                 for (auto &a : attrs)
                 {
                     size_t on_off = a.test(reg_base+j);
-                    arr[i][j][categories[k]][on_off] += p_event;
+                    arr[i][j][ei.categories[k]][on_off] += p_event;
                 }
             }
         }
     }
 }
 
-// This should subslice?
-// typedef array_type::index_range range;
-// array_type::array_view<2>::type myview =
-//   myarray[boost::indices[N][range()][range()]];
-//
+void cEnvironmentI::calc_collection(double *data,
+                                    const cNetworkVector &networks)
+{
+    size_t a, b, c, d;
+    a = networks.size();
+    get_extents(b, c, d);
+    prob_array_ref_type arr(data, boost::extents[a][b][c][d]);
+
+    ::calc_collection(*this, arr, networks);
+}
+
+void cEnvironmentI::calc_info(double *data,
+                              const cNetworkVector &networks)
+{
+    size_t a, b, c, d;
+    a = networks.size();
+    get_extents(b, c, d);
+
+    // NOTE: We allocate this ourself this time...
+    prob_array_type arr(boost::extents[a][b][c][d]);
+    ::calc_collection(*this, arr, networks);
+
+    std::vector<double> feat_sum(c, 0.0);
+    std::vector<double> chan_sum(d, 0.0);
+
+    info_array_ref_type info(data, boost::extents[a][b]);
+    for (size_t i = 0; i < networks.size(); ++i)
+    {
+        // iterate over channels
+        for (size_t j = 0; j < b; ++j)
+        {
+            // Reset to 0
+            for (size_t k = 0; k < c; ++k)
+                feat_sum[k] = 0.0;
+            for (size_t l = 0; l < d; ++l)
+                chan_sum[l] = 0.0;
+
+            // Sum the marginals
+            for (size_t k = 0; k < c; ++k)
+                for (size_t l = 0; l < d; ++l)
+                {
+                    double val = arr[i][j][k][l];
+                    feat_sum[k] += val;
+                    chan_sum[l] += val;
+                }
+
+            // Calculate the info
+            double I = 0.0;
+            for (size_t k = 0; k < c; ++k)
+            {
+                for (size_t l = 0; l < d; ++l)
+                {
+                    double val = arr[i][j][k][l];
+                    if (val != 0.0)
+                        I += val * log2(val / (feat_sum[k] * chan_sum[l]));
+                }
+            }
+            info[i][j] = I;
+        }
+    }
+}
+
 //   ACTULLY: looks possible to just use
-//  array_type::reference to get at the sub_array 
+//  prob_array_type::reference to get at the sub_array 
 // void calc_network(boost::multi_array_ref<double, 4>::reference m)
 // {
 //     m[0][0][0] = 10.0;

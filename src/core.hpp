@@ -247,6 +247,7 @@ struct cEnvironmentI
     void get_extents(size_t &channels, size_t &categories, size_t &on_off);
     void calc_network(double *data, const cNetwork &net);
     void calc_collection(double *data, const cNetworkVector &networks);
+    void calc_info(double *data, const cNetworkVector &networks);
 };
 
 struct cSelectionModel

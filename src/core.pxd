@@ -154,6 +154,7 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         void get_extents(size_t &channels, size_t &categories, size_t &on_off)
         void calc_network(double *data, cNetwork &net)
         void calc_collection(double *data, cNetworkVector &networks)
+        void calc_info(double *data, cNetworkVector &networks)
 
 # cdef extern from "<src/logic2.hpp>" namespace "pubsub2":
 #     cdef cppclass cConstructorLogic2(cConstructor):
