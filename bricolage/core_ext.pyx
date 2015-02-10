@@ -710,10 +710,14 @@ cdef class EnvironmentI:
             cats.append(init_func(*e.as_array()[a:b]))
 
         # Make sure the categories are consecutive 0, 1, 2 ...
-        catset = list(set(cats))
-        catset.sort()
-        assert catset == range(len(catset))
+        catset = set(cats)
         ncats = len(catset)
+        if catset != set(range(ncats)):
+            raise ValueError("Categories must be consecutively numbered"
+                             " integers from 0 to N")
+        # and there are at least 2
+        if ncats < 2:
+            raise ValueError("There must be at least two categories")
 
         self._this = new cEnvironmentI(w._shared, ncats)
         self._this.categories = cats
@@ -722,14 +726,17 @@ cdef class EnvironmentI:
         def __get__(self):
             return self._this.categories
 
-    def calculate(self, Network n):
-        self._this.calculate(deref(n._this))
+    def calc_network(self, Network net):
+        cdef:
+            size_t b=0, c=0, d=0
 
-    def get_frequencies(self):
-        narr = numpy.zeros((self.world._this.reg_channels, self._this.category_count, 2))
-        cdef double [:, :, :] narr_view = narr 
-        self._this.copy_frequencies(&narr_view[0][0][0])
-        return narr
+        self._this.get_extents(b, c, d)
+        np_arr = numpy.zeros((b, c, d))
+
+        cdef double [:, :, :] np_arr_view = np_arr
+        self._this.calc_network(&np_arr_view[0][0][0],
+                                   deref(net._this))
+        return np_arr
 
     def calc_collection(self, CollectionBase coll):
         cdef:

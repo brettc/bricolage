@@ -240,15 +240,12 @@ typedef boost::multi_array_ref<double, 4> networks_probs_ref_t;
 struct cEnvironmentI
 {
     cEnvironmentI(const cWorld_ptr &world, size_t nc);
-    ~cEnvironmentI();
     cWorld_ptr world;
     size_t category_count;
-    freqs_t *frequencies;
     cIndexes categories;
-    void copy_frequencies(double *view) const;
-    void calculate(const cNetwork &net);
 
     void get_extents(size_t &channels, size_t &categories, size_t &on_off);
+    void calc_network(double *data, const cNetwork &net);
     void calc_collection(double *data, const cNetworkVector &networks);
 };
 

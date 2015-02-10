@@ -34,10 +34,10 @@ def lineage_2x2(p_2x2, tmpdir):
     # base = pathlib.Path(str(tmpdir))
     base = pathlib.Path('.')
     path = base / 'env_info.db'
-    if path.exists():
-        a = lineage.SnapshotLineage(path)
+    if 0: #path.exists():
+        a = lineage.FullLineage(path)
     else:
-        a = lineage.SnapshotLineage(path, params=p_2x2)
+        a = lineage.FullLineage(path, params=p_2x2)
         a.add_target(target1)
         while 1:
             a.next_generation()
@@ -113,6 +113,8 @@ def test_calc_env_info(complex_network1):
     print info
 
     # Now calc information
+    e = EnvironmentI(w, feature1)
+    print e.calc_network(n)
     
 def test_cython_info(complex_network1):
     n = complex_network1
@@ -130,8 +132,14 @@ def test_cython_pop_info(lineage_2x2):
     nparr = e.calc_collection(pop)
     print nparr[999]
     graph.save_network_as_fullgraph(pop[999], name='last')
-    e.calculate(pop[999])
-    print e.get_frequencies()
+    print e.calc_network(pop[999])
+    # print e.get_frequencies()
+    print '---'
+    anc = lineage_2x2.get_ancestry(pop[999].identifier)
+    print anc.size
+    print e.calc_collection(anc)[0]
+    print e.calc_collection(anc)[-1]
+
 
 def test_env_info(complex_network1):
     n = complex_network1
