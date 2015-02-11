@@ -115,7 +115,7 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
     # ctypedef vector[cNetwork_ptr] cNetworkVector
     #
     cdef cppclass cTarget:
-        cTarget(cWorld_ptr &w, string name)
+        cTarget(cWorld_ptr &w, string name, int_t ident)
         double assess(cNetwork &net)
         cWorld *factory
         int_t identifier
@@ -135,6 +135,7 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         void assess(const cTarget &target)
         bint select(const cSelectionModel &sm, size_t size)
         pair[double, double] worst_and_best()
+        void best_indexes(cIndexes &best)
         cConstructor_ptr constructor
         cWorld_ptr world
 
@@ -145,7 +146,15 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         cIndexes selected, mutated
         cNetworkVector networks
 
-
+    cdef cppclass cInfoE:
+        cInfoE(const cWorld_ptr &world, size_t ncategories)
+        cWorld_ptr world
+        size_t category_count
+        cIndexes categories
+        void get_extents(size_t &channels, size_t &categories, size_t &on_off)
+        void network_probs(double *data, cNetwork &net)
+        void collection_probs(double *data, cNetworkVector &networks)
+        void collection_info(double *data, cNetworkVector &networks)
 
 # cdef extern from "<src/logic2.hpp>" namespace "pubsub2":
 #     cdef cppclass cConstructorLogic2(cConstructor):

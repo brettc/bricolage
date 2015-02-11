@@ -14,6 +14,7 @@ cdef class World:
     cdef:
         cWorld_ptr _shared
         cWorld *_this
+        object _params
         readonly:
             object sub_signals, pub_signals
             object cue_signals, reg_signals, out_signals
@@ -83,6 +84,10 @@ cdef class CollectionBase:
 
     cdef object get_at(self, size_t i)
 
+cdef class Collection(CollectionBase):
+    cdef:
+        cNetworkVector *_this
+
 cdef class Ancestry(CollectionBase):
     cdef:
         cNetworkVector *_this
@@ -97,3 +102,8 @@ cdef class NetworkAnalysis:
         readonly:
             Network network
 
+cdef class InfoE:
+    cdef:
+        cInfoE *_this
+        readonly:
+            World world

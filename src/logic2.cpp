@@ -22,11 +22,10 @@ cConstructor::cConstructor(const pubsub2::cWorld_ptr &w, size_t cc,
 {
 
     // Randomly allocate operands to binding pairs
-    std::pair<size_t, size_t> &r = w->sub_range;
-    
-    for (pubsub2::signal_t a = r.first; a < r.second; ++a)
-        for (pubsub2::signal_t b = r.first; b < r.second; ++b)
-            bindings[std::make_pair(a, b)] = r_operand();
+    // std::pair<size_t, size_t> &r = w->sub_range;
+    // for (pubsub2::signal_t a = r.first; a < r.second; ++a)
+    //     for (pubsub2::signal_t b = r.first; b < r.second; ++b)
+    //         bindings[std::make_pair(a, b)] = r_operand();
 }
 
 pubsub2::cNetwork_ptr cConstructor::construct(bool fill)

@@ -8,8 +8,9 @@
 
 // #include <tr1/memory> Another shared_ptr?
 // #include <boost/shared_ptr.hpp>
-// #include <boost/multi_array.hpp>
+//
 #include <boost/dynamic_bitset.hpp>
+#include <boost/multi_array.hpp>
 #include <tuple>
 #include <random>
 
@@ -220,10 +221,9 @@ private:
     cNetwork(const cNetwork &);
 };
 
-
 struct cTarget
 {
-    cTarget(const cWorld_ptr &world, const std::string &name);
+    cTarget(const cWorld_ptr &world, const std::string &name, int_t id=-1);
     cWorld_ptr world;
     std::string name;
     int_t identifier;
@@ -232,6 +232,22 @@ struct cTarget
     // TODO: per env weighting
     // TODO: per output weighting
     double assess(const cNetwork &net) const;
+};
+
+typedef boost::multi_array<double, 3> freqs_t;
+typedef boost::multi_array<double, 4> networks_probs_t;
+typedef boost::multi_array_ref<double, 4> networks_probs_ref_t;
+struct cInfoE
+{
+    cInfoE(const cWorld_ptr &world, size_t nc);
+    cWorld_ptr world;
+    size_t category_count;
+    cIndexes categories;
+
+    void get_extents(size_t &channels, size_t &categories, size_t &on_off);
+    void network_probs(double *data, const cNetwork &net);
+    void collection_probs(double *data, const cNetworkVector &networks);
+    void collection_info(double *data, const cNetworkVector &networks);
 };
 
 struct cSelectionModel
@@ -253,6 +269,7 @@ public:
     void assess(const cTarget &target) const;
     bool select(const cSelectionModel &sm, size_t size);
     std::pair<double, double> worst_and_best() const;
+    void best_indexes(cIndexes &best) const;
 
     // cConstNetwork_ptr get_network(size_t index) const;
     size_t get_generation() const { return generation; }

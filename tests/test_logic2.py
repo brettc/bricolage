@@ -1,3 +1,4 @@
+import cPickle as pickle
 import pytest
 import numpy
 from bricolage import logic2 as T
@@ -10,7 +11,7 @@ def c_one_unit():
     p = T.Parameters(seed=1, operands=ops, cis_count=1, reg_channels=0,
                         out_channels=1, cue_channels=2)
     w = T.World(p)
-    return T.Constructor(w, p)
+    return T.Constructor(w)
 
 @pytest.fixture
 def p_3x2():
@@ -23,11 +24,11 @@ def p_3x2():
 @pytest.fixture
 def c_3x2(p_3x2):
     world = T.World(p_3x2)
-    return T.Constructor(world, p_3x2)
+    return T.Constructor(world)
 
 def test_constructor(p_3x2):
     world = T.World(p_3x2)
-    const = T.Constructor(world, p_3x2)
+    const = T.Constructor(world)
     assert set(const.operands) == set(p_3x2.operands)
 
 def test_network_ids(c_3x2):
@@ -80,8 +81,20 @@ def test_bad_access(c_3x2):
     nc.add(c_3x2.create_network())
     a = nc[0]
     b = nc[0]
-
     assert a is b
+
+def test_network_pickle():
+    params = T.Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
+                        cue_channels=3,)
+    world = T.World(params)
+    const = T.Constructor(world)
+    n1 = const.create_network()
+    out = pickle.dumps(n1, -1)
+    n2 = pickle.loads(out)
+    for g1, g2 in zip(n1.genes, n2.genes):
+        assert g1.pub == g2.pub
+        for m1, m2 in zip(g1.modules, g2.modules):
+            assert m1.same_as(m2)
 
 def test_population_mutation(c_3x2):
     psize = 1000

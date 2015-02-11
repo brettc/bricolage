@@ -1,3 +1,4 @@
+import cPickle as pickle
 from bricolage.threshold3 import (
     World, Parameters, Target, Constructor, Population, SelectionModel)
 
@@ -11,18 +12,30 @@ def test_network():
     params = Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
                         cue_channels=3,)
     world = World(params)
-    const = Constructor(world, params)
+    const = Constructor(world)
     net = const.create_network()
     print net.attractors
     print world.pub_signals
     # net.genes[0].pub = 3
-    #
+
+def test_network_pickle():
+    params = Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
+                        cue_channels=3,)
+    world = World(params)
+    const = Constructor(world)
+    n1 = const.create_network()
+    out = pickle.dumps(n1, -1)
+    n2 = pickle.loads(out)
+    for g1, g2 in zip(n1.genes, n2.genes):
+        assert g1.pub == g2.pub
+        for m1, m2 in zip(g1.modules, g2.modules):
+            assert m1.same_as(m2)
 
 def test_population():
     params = Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
                         cue_channels=3,)
     world = World(params)
-    const = Constructor(world, params)
+    const = Constructor(world)
     popul = Population(const, 1000)
     print popul[0].attractors[1]
 
@@ -31,7 +44,7 @@ def test_xor():
     params = Parameters(seed=2, cis_count=2, cue_channels=2, reg_channels=0,
                         out_channels=1)
     world = World(params)
-    const = Constructor(world, params)
+    const = Constructor(world)
     target = Target(world, fitness_func1)
     select = SelectionModel(world)
     pop = Population(const, 10000)

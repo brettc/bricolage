@@ -5,10 +5,13 @@
 
 import cython
 import numpy
+import copy
+import sys
 # from operand import Operand
 
 # cimports
 cimport numpy as np
+import numpy
 from cython.operator import dereference as deref, preincrement as preinc
 
 import random
@@ -110,8 +113,16 @@ cdef class ChannelState(ChannelStateFrozen):
     def __repr__(self):
         return "<Channels: {}>".format(self.__str__())
 
+def _construct_world(params, net_id, target_id, r_state):
+    w = World(params)
+    w._this.next_network_identifier = net_id
+    w._this.next_target_identifier = target_id
+    w._this.set_random_state(r_state)
+    return w
+
 cdef class World:
     def __cinit__(self, params):
+        self._params = copy.deepcopy(params)
         self._shared = cWorld_ptr(new cWorld(
             params.seed, 
             params.cue_channels, 
@@ -126,6 +137,15 @@ cdef class World:
         self.out_signals = set(range(*self._this.out_range))
         self.sub_signals = set(range(*self._this.sub_range))
         self.pub_signals = set(range(*self._this.pub_range))
+
+    def __reduce__(self):
+        return _construct_world, (self._params, 
+                                  self._this.next_network_identifier,
+                                  self._this.next_target_identifier,
+                                  self._this.get_random_state())
+    property params:
+        def __get__(self):
+            return copy.deepcopy(self._params)
 
     def create_state(self):
         c = ChannelState()
@@ -156,6 +176,7 @@ cdef class World:
     def get_random_state(self):
         return self._this.get_random_state()
 
+    # TODO: Remove me
     def set_random_state(self, string s):
         self._this.set_random_state(s)
 
@@ -168,8 +189,14 @@ cdef class World:
     property next_network_id:
         def __get__(self):
             return self._this.next_network_identifier
-        def __set__(self, sequence_t i):
-            self._this.next_network_identifier = i
+        # def __set__(self, sequence_t i):
+        #     self._this.next_network_identifier = i
+
+    property next_target_id:
+        def __get__(self):
+            return self._this.next_target_identifier
+        # def __set__(self, sequence_t i):
+        #     self._this.next_network_identifier = i
 
     property cue_channels:
         def __get__(self):
@@ -223,7 +250,7 @@ cdef class World:
             c + 1 - self._this.cue_range.first, sz)
 
 cdef class Constructor:
-    def __cinit__(self, World w, params):
+    def __cinit__(self, World w):
         self.world = w
         self.gene_class = Gene
         self.module_class = CisModule
@@ -235,6 +262,11 @@ cdef class Constructor:
         n.bind_to(self._this.construct(True))
         return n
 
+def _construct_network(Constructor factory, array):
+    c = Collection(factory)
+    factory.from_numpy(array, c)
+    return c[0]
+
 cdef class Network:
     def __cinit__(self, Constructor c, int key=0):
         self.constructor = c
@@ -242,6 +274,12 @@ cdef class Network:
         if key != self.constructor._secret_key:
             raise RuntimeError("You cannot create a Network directly."
                                " Use Constructor.create_network")
+
+    def __reduce__(self):
+        c = Collection(self.constructor)
+        c.add(self)
+        return _construct_network, (self.constructor, 
+                                    self.constructor.to_numpy(c))
 
     cdef bind_to(self, cNetwork_ptr ptr):
         self._shared = ptr
@@ -497,6 +535,14 @@ cdef class CollectionBase:
         for i in range(self._collection.size()):
             yield self.get_at(i)
 
+cdef class Collection(CollectionBase):
+    def __cinit__(self, Constructor c, size_t size=0):
+        self._this = new cNetworkVector()
+        self._collection = self._this
+
+    def __dealloc__(self):
+        del self._this
+
 cdef class Ancestry(CollectionBase):
     def __cinit__(self, Constructor c, size_t size=0):
         self._this = new cNetworkVector()
@@ -525,6 +571,19 @@ cdef class Population(CollectionBase):
 
     def worst_and_best(self):
         return self._this.worst_and_best()
+
+    def best_indexes(self):
+        cdef cIndexes best;
+        self._this.best_indexes(best)
+        return best
+
+    def get_best(self, maxn=sys.maxint):
+        best = []
+        for i, ndx in enumerate(self.best_indexes()):
+            if i == maxn:
+                break
+            best.append(self[ndx])
+        return best
 
     property site_count:
         def __get__(self):
@@ -563,14 +622,24 @@ cdef class Population(CollectionBase):
         def __get__(self):
             return self._this.selected
 
+def _construct_target(World w, name, ident, rates):
+    t = Target(w, None, name, ident)
+    # Manually construct these
+    t._this.optimal_rates = rates
+    return t
+
 cdef class Target:
-    def __cinit__(self, World w, init_func, name=""):
+    def __cinit__(self, World w, init_func=None, name="", ident=-1):
         self.world = w
-        self._this = new cTarget(w._shared, name)
-        a, b = w._this.cue_range
+        self._this = new cTarget(w._shared, name, ident)
+        if init_func:
+            self._construct_from_function(init_func)
+
+    def _construct_from_function(self, init_func):
+        a, b = self.world._this.cue_range
 
         # Slow and cumbersome, but it doesn't matter
-        for i, e in enumerate(w.environments):
+        for i, e in enumerate(self.world.environments):
             # TODO: Clean up the refs here
             outputs = init_func(*e.as_array()[a:b])
             try:
@@ -580,22 +649,37 @@ cdef class Target:
                 outputs = [outputs]
                 s = 1
 
-            if len(outputs) != w.out_channels:
+            if len(outputs) != self.world.out_channels:
                 raise RuntimeError(
-                    "return value of Target function must be length %s" % w.out_channels)
+                    "return value of Target function must be length %s" \
+                    % self.world.out_channels)
 
             for j, val in enumerate(outputs):
                 self._this.optimal_rates[i][j] = float(val)
+
+    def __reduce__(self):
+        return _construct_target, (self.world, 
+                                   self._this.name, 
+                                   self._this.identifier,
+                                   self._this.optimal_rates)
 
     def __dealloc__(self):
         del self._this
 
     def assess(self, Network net):
-        assert net.constructor.world is self.world
+        # assert net.constructor.world is self.world
         return self._this.assess(deref(net._this));
 
     def as_array(self):
         return numpy.array(self._this.optimal_rates)
+
+    property identifier:
+        def __get__(self):
+            return self._this.identifier
+
+    property name:
+        def __get__(self):
+            return self._this.name
 
 cdef class NetworkAnalysis:
     def __cinit__(self, Network net):
@@ -616,3 +700,65 @@ cdef class NetworkAnalysis:
             cEdgeList edges
         self._this.make_active_edges(edges)
         return edges
+
+cdef class InfoE:
+    def __cinit__(self, World w, init_func):
+        self.world = w
+        a, b = self.world._this.cue_range
+        cats = []
+        for i, e in enumerate(self.world.environments):
+            cats.append(init_func(*e.as_array()[a:b]))
+
+        # Make sure the categories are consecutive 0, 1, 2 ...
+        catset = set(cats)
+        ncats = len(catset)
+        if catset != set(range(ncats)):
+            raise ValueError("Categories must be consecutively numbered"
+                             " integers from 0 to N")
+        # and there are at least 2
+        if ncats < 2:
+            raise ValueError("There must be at least two categories")
+
+        self._this = new cInfoE(w._shared, ncats)
+        self._this.categories = cats
+
+    property categories:
+        def __get__(self):
+            return self._this.categories
+
+    def network_probs(self, Network net):
+        cdef:
+            size_t b=0, c=0, d=0
+
+        self._this.get_extents(b, c, d)
+        np_arr = numpy.zeros((b, c, d))
+
+        cdef double [:, :, :] np_arr_view = np_arr
+        self._this.network_probs(&np_arr_view[0][0][0],
+                                   deref(net._this))
+        return np_arr
+
+    def collection_probs(self, CollectionBase coll):
+        cdef:
+            size_t a, b=0, c=0, d=0
+
+        a = coll._collection.size()
+        self._this.get_extents(b, c, d)
+        np_arr = numpy.zeros((a, b, c, d))
+
+        cdef double [:, :, :, :] np_arr_view = np_arr
+        self._this.collection_probs(&np_arr_view[0][0][0][0],
+                                   deref(coll._collection))
+        return np_arr
+
+    def collection_info(self, CollectionBase coll):
+        cdef size_t a, b=0, c=0, d=0
+        a = coll._collection.size()
+        self._this.get_extents(b, c, d)
+        np_arr = numpy.zeros((a, b))
+        cdef double [:, :] np_arr_view = np_arr
+        self._this.collection_info(&np_arr_view[0][0], deref(coll._collection))
+        return np_arr
+
+    def __dealloc__(self):
+        del self._this
