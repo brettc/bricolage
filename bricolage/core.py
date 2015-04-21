@@ -1,10 +1,8 @@
 from .core_ext import SelectionModel, World, Target
-import yaml
 
 __all__ = ["World", "SelectionModel", "Parameters", "Target"]
 
-class Parameters(yaml.YAMLObject):
-    yaml_tag = u'!Parameters'
+class Parameters(object):
 
     def __init__(self, **kwargs):
         # Defaults are provided here
