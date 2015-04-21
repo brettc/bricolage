@@ -1,0 +1,11 @@
+#
+three:
+    seed: 10
+    inputs: 3
+    outputs: 3
+    max_generations: 100
+
+    
+
+
+

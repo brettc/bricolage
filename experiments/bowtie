@@ -1,0 +1,264 @@
+#!env python
+"""
+Generate and analyse bowtie networks
+
+Usage:
+  bowtie run <name> <function> [--overwrite] [--data=<data>] [--output=<output>]
+  bowtie runall <name> [--overwrite] [--data=<data>] [--output=<output>]
+  bowtie list
+  bowtie functions
+  bowtie -h | --help 
+  bowtie --version
+
+Options:
+  --function=<fn>   Only run/analyse function number <n>
+  --data=<data>     Where data is written [default: ~/Desktop]
+  --output=<output> Write output from analysis here 
+                    [default: ~/Dropbox/SimulationOutput]
+  --overwrite       Kill anything that is there and start again
+  -h --help         Show this screen.
+"""
+
+
+__version__ = '0.0.1'
+
+import logging
+logging.basicConfig()
+log = logging.getLogger("")
+log.setLevel(logging.INFO)
+
+from docopt import docopt
+import sys
+import pathlib, os
+import yaml
+
+here_dir = pathlib.Path(__file__).parent.absolute()
+parent_dir = here_dir.parent
+sys.path.append(str(parent_dir))
+
+from bricolage import threshold3, lineage, graph
+from boolean_functions import get_functions
+# from bricolage.core_ext import InfoE
+# import pandas as pd
+#
+class BowtieError(Exception):
+    pass
+
+def make_target_fun(oldf):
+    def new_f(a, b, c):
+        if oldf(a, b, c):
+            return [1, .5, .25]
+        return [0, 0, 0]
+    return new_f
+
+def get_params(name):
+    return threshold3.Parameters(
+        name=name,
+        seed=11, 
+        cue_channels=3, 
+        reg_channels=8,
+        out_channels=3,
+        cis_count=3,
+        population_size=1000,
+        mutation_rate=.005,
+        replicates=20,
+    )
+
+def funcs():
+    for i, f in enumerate(get_functions()):
+        print i, f[0]
+
+
+def do_create(N, overwrite=False):
+    N = int(N)
+    do_create(N, overwrite)
+
+def create_all(overwrite=False):
+    for i in range(len(get_functions())):
+        do_create(i, overwrite)
+
+# @task
+# def report_times():
+#     treat = lineage.Treatment(output_path / 'exp_3_2a')
+#     for r in treat.replicates:
+#         l = r.get_lineage()
+#         print r.sequence, l.generation
+
+
+def _draw(rep, lin, maxn):
+    winners=[]
+    for net in lin.population:
+        if net.fitness == 1.0:
+            winners.append(net)
+
+    for i, net in enumerate(winners):
+        ana = threshold3.NetworkAnalysis(net)
+        g = graph.FullGraph(ana)#, knockouts=False)
+        d = graph.DotMaker(g)
+        p = str(rep.analysis_path / './net-{:02d}.png'.format(i))
+        print '   ', p
+        d.save_picture(p)
+        if i > maxn:
+            break
+
+def _measure_mincut(rep, tfun, maxn=5):
+    lin = rep.get_lineage()
+    winners=[]
+    for net in lin.population:
+        if net.fitness == 1.0:
+            winners.append(net)
+        print net
+
+def mincut_all():
+    for i in range(len(get_functions())):
+        name, tfun = get_functions()[i]
+        name = "thresh-{:02d}".format(i)
+        tfun = make_target_fun(tfun)
+        try:
+            treat = lineage.Treatment(output_path / name, params=get_params(name))
+            treat.run(_measure_mincut, tfun)
+                                    
+        except:
+            print "cannot find lineage {}".format(name)
+
+
+def all_functions():
+    for i, f in enumerate(get_functions()):
+        fname, tfun = f
+        folder = output_path / "thresh-{:02d}".format(i)
+        yield i, fname, folder, tfun
+
+def _calc_times(rep, gens, reps):
+    lin = rep.get_lineage(readonly=True)
+    g = lin._generations
+    for i, row in enumerate(g.iterrows()):
+        if row['best'] == 1.0:
+            break
+    else:
+        i = None
+    print lin.path, i
+    gens.append(i)
+    reps.append(rep.sequence)
+
+def calc_times():
+    gens = []
+    treats = []
+    reps = []
+    treat_nums = []
+    for i, fname, folder, tfun in all_functions():
+        treat = lineage.Treatment(folder)
+        treat.run(_calc_times, reps=reps, gens=gens)
+        while len(treats) < len(reps):
+            treats.append(fname)
+            treat_nums.append(i)
+
+    df = pd.DataFrame(data=dict(
+        treatment=treats,
+        treat_number=treat_nums,
+        replicate=reps,
+        generations=gens,
+    ))
+    df.to_pickle(str(analysis_path / 'thresh_timings.pickle'))
+
+
+def _calc_infoe(rep, tfun):
+    lin = rep.get_lineage(readonly=True)
+    info = InfoE(lin.world, tfun)
+    for gn in range(lin.generation+1):
+        gen = lin.get_generation(gn)
+        c_info = info.collection_info(gen)
+        print gn, max(c_info.ravel())
+    
+
+def calc_infoe():
+    for i, fname, folder, tfun in all_functions():
+        treat = lineage.Treatment(folder)
+        treat.run(_calc_infoe, tfun=tfun)
+        # while len(treats) < len(reps):
+        #     treats.append(fname)
+        #     treat_nums.append(i)
+
+    # df = pd.DataFrame(data=dict(
+    #     treatment=treats,
+    #     treat_number=treat_nums,
+    #     replicate=reps,
+    #     generations=gens,
+    # ))
+    # df.to_pickle(str(analysis_path / 'thresh_timings.pickle'))
+    
+def do_functions():
+    for i, f in enumerate(get_functions()):
+        log.info("{:02d}: {}".format(i, f[0]))
+
+def get_yaml():
+    with open(str(here_dir / 'bowtie.yaml'), 'r') as f:
+        return yaml.load(f)
+
+def callback_run(rep, max_gen, tfun):
+    lin = rep.get_lineage()
+    if rep.fresh:
+        lin.add_target(tfun)
+    else:
+        # Do some checking
+        pass
+
+    log.info('---> begin: %s', rep.path)
+    log.info('** lineage is %s', lin.path)
+
+    while lin.generation < max_gen:
+        lin.next_generation()
+        minf, maxf = lin.population.worst_and_best()
+        if lin.generation % 100 == 0:
+            log.info("\t%s, %s, %s", rep.path, lin.generation, maxf)
+
+    # When we're done, draw
+    # _draw(rep, lin, 5)
+    log.info('---> end: %s', rep.path)
+
+def do_run(arguments):
+    N = int(arguments['<function>'])
+    desc, tfun = get_functions()[N]
+    desc = desc.replace(' ', '-')
+    name = "{:02d}-{}".format(N, desc)
+    tfun = make_target_fun(tfun)
+
+    treat = lineage.Treatment(
+        arguments['data_dir'] / name, 
+        analysis_path = arguments['output_dir'] / name,
+        params=get_params(name), 
+        overwrite=arguments['--overwrite']
+    )
+    treat.run(callback_run, max_gen=50000, tfun=tfun)
+
+def make_path(pathname):
+    return pathlib.Path(os.path.expanduser(pathname)).absolute()
+
+def check_folders(arguments):
+    data_dir = make_path(arguments['--data']) / arguments['<name>']
+    output_dir = make_path(arguments['--output']) / arguments['<name>']
+    for d in (data_dir, output_dir):
+        if not d.exists():
+            log.info("Making folder {}...".format(str(data_dir)))
+            d.mkdir()
+
+    arguments['data_dir'] = data_dir 
+    arguments['output_dir'] = output_dir 
+    
+
+def main(arguments):
+    try:
+        if arguments['functions']:
+            do_functions()
+        elif arguments['run']:
+            check_folders(arguments)
+            do_run(arguments)
+    except BowtieError:
+        log.error("Error: exiting program...")
+        return 1
+    except:
+        raise
+    return 0
+
+if __name__ == "__main__":
+    arguments = docopt(__doc__, version=__version__)
+    sys.exit(main(arguments))
