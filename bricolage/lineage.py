@@ -56,6 +56,7 @@ class BaseLineage(object):
 
         # By default, set the target to the latest
         self.set_target(len(self.targets) - 1)
+        self._save()
 
     # TODO: add by name?
     def set_target(self, index):
@@ -127,6 +128,9 @@ class BaseLineage(object):
         self._generations = g
         self._attrs = attrs
 
+        # Save the current set of attributes
+        self._save()
+
     def _open_database(self):
         test = tables.is_pytables_file(str(self.path))
         if test <= 0:
@@ -186,7 +190,8 @@ class BaseLineage(object):
 
     def _save(self):
         if self.readonly:
-            raise LineageError("Network is readonly")
+            return
+            # raise LineageError("Network is readonly")
 
         # Only things that can be pickled go in here
         data = Attributes(
@@ -197,6 +202,7 @@ class BaseLineage(object):
         )
         # This pickles it all
         self._attrs.data = data
+        self._h5.flush()
 
 
 class SnapshotLineage(BaseLineage):
@@ -344,8 +350,8 @@ class FullLineage(BaseLineage):
             self._save()
         self._h5.close()
 
-    def __del__(self):
-        self.close()
+    # def __del__(self):
+    #     self.close()
 
 
 class Replicate(object):
