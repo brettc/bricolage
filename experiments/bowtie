@@ -51,19 +51,6 @@ def make_target_fun(oldf):
         return [0, 0, 0]
     return new_f
 
-def get_params(name):
-    return threshold3.Parameters(
-        name=name,
-        seed=11, 
-        cue_channels=3, 
-        reg_channels=8,
-        out_channels=3,
-        cis_count=3,
-        population_size=1000,
-        mutation_rate=.005,
-        replicates=20,
-    )
-
 def funcs():
     for i, f in enumerate(get_functions()):
         print i, f[0]
@@ -194,6 +181,16 @@ def get_yaml():
     with open(str(here_dir / 'bowtie.yaml'), 'r') as f:
         return yaml.load(f)
 
+def get_parameters(arguments):
+    name = arguments['<name>']
+    try:
+        param_args = get_yaml()[name]
+    except KeyError:
+        log.error("{} was not found in bowtie.yaml".format(name))
+        raise BowtieError
+
+    return threshold3.Parameters(**param_args)
+
 def callback_run(rep, max_gen, tfun):
     lin = rep.get_lineage()
     if rep.fresh:
@@ -209,7 +206,7 @@ def callback_run(rep, max_gen, tfun):
         lin.next_generation()
         minf, maxf = lin.population.worst_and_best()
         if lin.generation % 100 == 0:
-            log.info("\t%s, %s, %s", rep.path, lin.generation, maxf)
+            log.info("\t%s, %s", lin.generation, maxf)
 
     # When we're done, draw
     # _draw(rep, lin, 5)
@@ -225,7 +222,7 @@ def do_run(arguments):
     treat = lineage.Treatment(
         arguments['data_dir'] / name, 
         analysis_path = arguments['output_dir'] / name,
-        params=get_params(name), 
+        params=get_parameters(arguments), 
         overwrite=arguments['--overwrite']
     )
     treat.run(callback_run, max_gen=50000, tfun=tfun)
@@ -238,12 +235,11 @@ def check_folders(arguments):
     output_dir = make_path(arguments['--output']) / arguments['<name>']
     for d in (data_dir, output_dir):
         if not d.exists():
-            log.info("Making folder {}...".format(str(data_dir)))
+            log.info("Making folder {} ...".format(str(data_dir)))
             d.mkdir()
 
     arguments['data_dir'] = data_dir 
     arguments['output_dir'] = output_dir 
-    
 
 def main(arguments):
     try:
