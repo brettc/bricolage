@@ -1,0 +1,16 @@
+#
+three:
+    seed: 10
+    cis_count: 3
+    cue_channels: 3
+    reg_channels: 8
+    out_channels: 3
+    population_size: 1000
+    mutation_rate: 0.005
+    replicates: 20
+    max_generations: 30000
+
+    
+
+
+

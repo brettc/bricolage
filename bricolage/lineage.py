@@ -8,6 +8,7 @@ import copy
 import cPickle as pickle
 import shutil
 import random
+import yaml
 from . import core_ext
 
 class LineageError(Exception):
@@ -482,9 +483,7 @@ class Treatment(object):
             pickle.dump(self.params, f, protocol=pickle.HIGHEST_PROTOCOL)
 
         with open(self.description_filename, 'wb') as f:
-            if hasattr(self.params, 'description'):
-                f.write(self.params.description + "\n\n")
-            self.params.dump(f)
+            f.write(yaml.dump(self.params.__dict__, default_flow_style=False))
 
     def _load(self):
         with open(self.filename, 'rb') as f:

@@ -3,8 +3,10 @@ from .core_ext import SelectionModel, World, Target
 __all__ = ["World", "SelectionModel", "Parameters", "Target"]
 
 class Parameters(object):
+
     def __init__(self, **kwargs):
         # Defaults are provided here
+        self.description = "No description"
         self.seed = 1
         self.cis_count = 3
         self.gene_count = 3
@@ -20,15 +22,3 @@ class Parameters(object):
         # TODO: Something clever here
         for k, v in kwargs.items():
             setattr(self, k, v)
-            # if hasattr(self, k):
-    #         else:
-    #             # TODO: Issue a warning
-    #             pass
-                # raise RuntimeError("Invalid Setting: {}, in Parameters".format(k))
-                #
-    def dump(self, stream):
-        for k, v in self.__dict__.items():
-            stream.write(k)
-            stream.write(": ")
-            stream.write(str(v))
-            stream.write("\n")
