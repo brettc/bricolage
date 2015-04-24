@@ -5,6 +5,7 @@ Generate and analyse bowtie networks
 Usage:
   bowtie run <name> <function> [--overwrite] [--data=<data>] [--output=<output>]
   bowtie runall <name> [--overwrite] [--data=<data>] [--output=<output>]
+  bowtie draw <name> <function> [--draw_n=<N>] [--overwrite] [--data=<data>] [--output=<output>]
   bowtie list
   bowtie functions
   bowtie -h | --help 
@@ -12,6 +13,7 @@ Usage:
 
 Options:
   --function=<fn>   Only run/analyse function number <n>
+  --draw_n=<N>      Draw this many graphs per lineage [default: 3]
   --data=<data>     Where data is written [default: ~/Desktop]
   --output=<output> Write output from analysis here 
                     [default: ~/Dropbox/SimulationOutput]
@@ -47,11 +49,50 @@ from boolean_functions import get_functions
 class BowtieError(Exception):
     pass
 
-def make_target_function(oldf):
+def make_target_single_output(oldf):
+    def new_f(a, b, c):
+        if oldf(a, b, c):
+            return [0]
+        return [1]
+    return new_f
+
+def make_target_simple(oldf):
+    def new_f(a, b, c):
+        if oldf(a, b, c):
+            return [0, 1, 1]
+        return [1, 0, 0]
+    return new_f
+
+def make_target_function_3(oldf):
     def new_f(a, b, c):
         if oldf(a, b, c):
             return [1, .5, .25]
         return [0, 0, 0]
+    return new_f
+
+def make_target_function_4(oldf):
+    def new_f(a, b, c, d):
+        if oldf(a, b, c):
+            if d:
+                return [1, 1, 1]
+            return [.5, .5, .5]
+        return [0, 0, 0]
+    return new_f
+
+def make_target_function_5(oldf):
+    def new_f(a, b, c, d, e):
+        r1 = 0.0
+        r2 = 0.0
+        if oldf(a, b, c):
+            if d:
+                r1 = .5
+            else:
+                r1 = .25
+            if e:
+                r2 = 1.0
+            else:
+                r2 = .5
+        return [r1, r2]
     return new_f
 
 def draw_top(rep, lin, maxn):
@@ -59,14 +100,21 @@ def draw_top(rep, lin, maxn):
     winners.sort(reverse=True)
 
     for i, (fit, net) in enumerate(winners):
+        if i == maxn:
+            break
         ana = threshold3.NetworkAnalysis(net)
         g = graph.FullGraph(ana)#, knockouts=False)
         d = graph.DotMaker(g)
-        p = str(rep.analysis_path / './net-G{:07d}-N{:02d}-F{}.png'.format(lin.generation, net.identifier, fit))
+        p = str(rep.analysis_path / 'net-G{:07d}-N{:02d}-F{}.png'.format(lin.generation, net.identifier, fit))
         log.info("writing {}".format(p))
         d.save_picture(p)
-        if i + 1 == maxn:
-            break
+
+def callback_draw(replicate, draw_n):
+    the_lineage = replicate.get_lineage()
+    log.info('---> draw: %s', replicate.path)
+    draw_top(replicate, the_lineage, draw_n)
+    the_lineage.close()
+    log.info('---> end: %s', replicate.path)
     
 def get_yaml():
     with open(str(here_dir / 'bowtie.yaml'), 'r') as f:
@@ -83,7 +131,7 @@ def get_parameters(arguments):
 
     return threshold3.Parameters(**param_args)
 
-def callback_run(replicate, target_func):
+def callback_run(replicate, target_func, max_gen):
     the_lineage = replicate.get_lineage()
     if replicate.fresh:
         the_lineage.add_target(target_func)
@@ -93,8 +141,6 @@ def callback_run(replicate, target_func):
         pass
 
     log.info('---> begin: %s', replicate.path)
-
-    max_gen = replicate.treatment.params.max_generations
     while the_lineage.generation < max_gen:
         the_lineage.next_generation()
         minf, maxf = the_lineage.population.worst_and_best()
@@ -102,9 +148,9 @@ def callback_run(replicate, target_func):
             log.info("\t%s, %s", the_lineage.generation, maxf)
         keyboard_check(replicate, the_lineage)
 
+    draw_top(replicate, the_lineage, 3)
     the_lineage.close()
     # When we're done, draw
-    # _draw(replicate, the_lineage, 5)
     log.info('---> end: %s', replicate.path)
 
 def keyboard_check(replicate, the_lineage):
@@ -149,22 +195,49 @@ def do_functions():
     for i, f in enumerate(get_functions()):
         log.info("{:02d} -- {}".format(i, f[0]))
 
-def do_run(arguments):
-    """Do the experiment"""
-
+def get_name_and_target(arguments, params):
     N = int(arguments['<function>'])
     desc, boolean_func = get_functions()[N]
     desc = desc.replace(' ', '-')
     name = "{:02d}-{}".format(N, desc)
-    target_func = make_target_function(boolean_func)
 
+    log.info('getting target %s', params.target)
+    try:
+        make_target = globals()['make_target_%s' % params.target]
+    except:
+        log.error("Invalid target given")
+        raise BowtieError
+
+    target_func = make_target(boolean_func)
+
+    return name, target_func
+
+def do_run(arguments):
+    """Do the experiment"""
+    params=get_parameters(arguments)
+    name, target_func = get_name_and_target(arguments, params)
     treat = lineage.Treatment(
         arguments['data_dir'] / name, 
         analysis_path = arguments['output_dir'] / name,
-        params=get_parameters(arguments), 
+        params=params,
         overwrite=arguments['--overwrite']
     )
-    treat.run(callback_run, target_func=target_func)
+    treat.run(callback_run, target_func=target_func, max_gen=params.max_generations)
+
+
+def do_runall(arguments):
+    for i in range(len(get_functions())):
+        arguments['<function>'] = str(i)
+        do_run(arguments)
+
+
+def do_draw(arguments):
+    name, target_func = get_name_and_target(arguments)
+    treat = lineage.Treatment(
+        arguments['data_dir'] / name, 
+        analysis_path = arguments['output_dir'] / name,
+    )
+    treat.run(callback_draw, draw_n=int(arguments['--draw_n']))
 
 def main(arguments):
     try:
@@ -173,11 +246,20 @@ def main(arguments):
         elif arguments['run']:
             check_folders(arguments)
             do_run(arguments)
+        elif arguments['runall']:
+            check_folders(arguments)
+            do_runall(arguments)
+        elif arguments['draw']:
+            check_folders(arguments)
+            do_draw(arguments)
         elif arguments['list']:
             do_list(arguments)
     except BowtieError:
+        # These are the errors that we generate!
         log.error("Error: exiting program...")
         return 1
+
+    # TODO: Handle UserBreak?
     except:
         raise
     return 0

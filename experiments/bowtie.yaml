@@ -1,16 +1,59 @@
-#
+single_output:
+    seed: 10
+    target: "single_output"
+    cis_count: 3
+    cue_channels: 3
+    reg_channels: 3
+    out_channels: 1
+    population_size: 1000
+    mutation_rate: 0.001
+    replicates: 20
+    max_generations: 4000
+
 three:
     seed: 10
+    target: "function_3"
     cis_count: 3
     cue_channels: 3
     reg_channels: 8
     out_channels: 3
     population_size: 1000
-    mutation_rate: 0.005
+    mutation_rate: 0.002
     replicates: 20
-    max_generations: 30000
+    max_generations: 100000
 
-    
+four:
+    seed: 10
+    cis_count: 3
+    cue_channels: 4
+    reg_channels: 8
+    out_channels: 3
+    population_size: 1000
+    mutation_rate: 0.001
+    replicates: 20
+    max_generations: 50000
 
+five:
+    seed: 10
+    cis_count: 3
+    cue_channels: 5
+    reg_channels: 10
+    out_channels: 2
+    population_size: 1000
+    mutation_rate: 0.002
+    replicates: 20
+    max_generations: 50000
+
+simple:
+    seed: 10
+    target: "simple"
+    cis_count: 3
+    cue_channels: 3
+    reg_channels: 8
+    out_channels: 3
+    population_size: 1000
+    mutation_rate: 0.002
+    replicates: 20
+    max_generations: 10000
 
 
