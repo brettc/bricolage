@@ -41,6 +41,12 @@ class BaseLineage(object):
         self.current_target = None
         self.target_index = -1
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.close()
+
     def add_target(self, func, name="", target_class=None):
         if self.readonly:
             raise LineageError("Network is readonly")
@@ -270,9 +276,6 @@ class SnapshotLineage(BaseLineage):
             self._save()
         self._h5.close()
 
-    def __del__(self):
-        self.close()
-
 
 class FullLineage(BaseLineage):
     def __init__(self, path, params=None, readonly=False):
@@ -351,9 +354,6 @@ class FullLineage(BaseLineage):
             self._save()
         self._h5.close()
 
-    # def __del__(self):
-    #     self.close()
-
 
 class Replicate(object):
     """Wraps a lineage into a sub-folder"""
@@ -370,6 +370,9 @@ class Replicate(object):
     def name(self):
         return "{:03d}".format(self.sequence)
 
+    def __repr__(self):
+        return "<Replicate:{}>".format(self.name)
+
     @property
     def path(self):
         return self.treatment.path / self.name
@@ -381,6 +384,10 @@ class Replicate(object):
     def get_lineage(self, readonly=False):
         p = self.path
         if not p.exists():
+            if readonly:
+                log.error("Replicate doesn't exist, {}".format(self.name))
+                raise LineageError
+
             p.mkdir()
 
         # We don't use this, but users of the class might depend on it
@@ -423,7 +430,8 @@ class Treatment(object):
     TREATMENT_FILENAME = 'treatment.pickle'
     DESCRIPTION_FILENAME = 'description.txt'
 
-    def __init__(self, path, params=None, analysis_path=None, overwrite=False, full=True):
+    def __init__(self, path, params=None, analysis_path=None, overwrite=False, 
+                 full=True, readonly=False):
         # Sort out class to use
         if full:
             self.lineage_class = FullLineage
@@ -446,15 +454,41 @@ class Treatment(object):
 
         # Now establish how we load
         self.params = params
-        if overwrite or not self.path.exists():
+        if not readonly and (overwrite or not self.path.exists()):
             self._new()
         else:
+            if not self.exists():
+                log.error("No such path {}".format(self.filename))
+                raise LineageError
+
             self._load()
+
+            if self.params is None:
+                    log.error("Failed to load {}".format(self.filename))
+                    raise LineageError
+
         self._create()
 
     @property
+    def filepath(self):
+        return self.path / self.TREATMENT_FILENAME
+
+    @property
     def filename(self):
-        return str(self.path / self.TREATMENT_FILENAME)
+        return str(self.filepath)
+
+    def exists(self):
+        return (self.path / self.TREATMENT_FILENAME).exists()
+
+    @property
+    def name(self):
+        try:
+            return self.params.name
+        except AttributeError:
+            return self.path.parts[-1]
+
+    def __repr__(self):
+        return "<Treatment:{}>".format(self.name)
 
     @property
     def description_filename(self):
@@ -486,8 +520,14 @@ class Treatment(object):
             f.write(yaml.dump(self.params.__dict__, default_flow_style=False))
 
     def _load(self):
-        with open(self.filename, 'rb') as f:
+        try:
+            f = open(self.filename, 'rb') 
             self.params = pickle.load(f)
+        except:
+            log.error("Error loading treatment file {}".format(self.filename))
+            raise LineageError
+
+
 
 # class Experiment(object):
 #     """Gather together a number of Treatments"""
