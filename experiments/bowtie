@@ -4,20 +4,21 @@ Generate and analyse bowtie networks
 
 Usage:
   bowtie run <name> <function> [--overwrite] [--data=<data>] [--output=<output>]
-  bowtie runall <name> [--overwrite] [--data=<data>] [--output=<output>]
+  bowtie run_all <name> [--overwrite] [--data=<data>] [--output=<output>]
   bowtie draw <name> <function> [--draw_n=<N>] [--overwrite] [--data=<data>] [--output=<output>]
+  bowtie speed_all <name> [--data=<data>] [--output=<output>]
   bowtie list
   bowtie functions
   bowtie -h | --help 
   bowtie --version
 
 Options:
-  --function=<fn>   Only run/analyse function number <n>
-  --draw_n=<N>      Draw this many graphs per lineage [default: 3]
-  --data=<data>     Where data is written [default: ~/Desktop]
-  --output=<output> Write output from analysis here 
-                    [default: ~/Dropbox/SimulationOutput]
-  --overwrite       Kill anything that is there and start again
+  --function=<fn>   Only run/analyse function number <n>.
+  --draw_n=<N>      Draw this many graphs per lineage [default: 3].
+  --data=<data>     Where data is written to and read from [default: ~/Desktop].
+  --output=<output> Where output from analyses are written. 
+                    [default: ~/Dropbox/SimulationOutput].
+  --overwrite       Kill anything that is there and start again.
   -h --help         Show this screen.
 """
 
@@ -37,6 +38,9 @@ import pathlib, os
 import yaml
 from getch import getch, kbhit
 
+import numpy as np
+import pandas as pd
+
 here_dir = pathlib.Path(__file__).parent.absolute()
 parent_dir = here_dir.parent
 sys.path.append(str(parent_dir))
@@ -44,7 +48,6 @@ sys.path.append(str(parent_dir))
 from bricolage import threshold3, lineage, graph
 from boolean_functions import get_functions
 # from bricolage.core_ext import InfoE
-# import pandas as pd
 #
 class BowtieError(Exception):
     pass
@@ -95,6 +98,17 @@ def make_target_function_5(oldf):
         return [r1, r2]
     return new_f
 
+
+def draw_net(rep, prefix, net, gen):
+        ana = threshold3.NetworkAnalysis(net)
+        g = graph.FullGraph(ana)#, knockouts=False)
+        d = graph.DotMaker(g)
+        p = str(rep.analysis_path / '{}-G{:07d}-N{:02d}-F{}.png'.format(
+            prefix, gen, net.identifier, net.fitness))
+        log.info("writing {}".format(p))
+        d.save_picture(p)
+
+
 def draw_top(rep, lin, maxn):
     winners = [(n.fitness, n) for n in lin.population]
     winners.sort(reverse=True)
@@ -102,12 +116,7 @@ def draw_top(rep, lin, maxn):
     for i, (fit, net) in enumerate(winners):
         if i == maxn:
             break
-        ana = threshold3.NetworkAnalysis(net)
-        g = graph.FullGraph(ana)#, knockouts=False)
-        d = graph.DotMaker(g)
-        p = str(rep.analysis_path / 'net-G{:07d}-N{:02d}-F{}.png'.format(lin.generation, net.identifier, fit))
-        log.info("writing {}".format(p))
-        d.save_picture(p)
+        draw_net(rep, 'winner', net, lin.generation)
 
 def callback_draw(replicate, draw_n):
     the_lineage = replicate.get_lineage()
@@ -129,7 +138,9 @@ def get_parameters(arguments):
         log.error("{} was not found in bowtie.yaml".format(name))
         raise BowtieError
 
-    return threshold3.Parameters(**param_args)
+    p = threshold3.Parameters(**param_args)
+    p.name = name
+    return p
 
 def callback_run(replicate, target_func, max_gen):
     the_lineage = replicate.get_lineage()
@@ -195,11 +206,19 @@ def do_functions():
     for i, f in enumerate(get_functions()):
         log.info("{:02d} -- {}".format(i, f[0]))
 
+def make_name(desc, N):
+    desc = desc.replace(' ', '-')
+    name = "{:02d}-{}".format(N, desc)
+    return name
+
+def get_name(N):
+    desc, boolean_func = get_functions()[N]
+    return make_name(desc, N)
+
 def get_name_and_target(arguments, params):
     N = int(arguments['<function>'])
     desc, boolean_func = get_functions()[N]
-    desc = desc.replace(' ', '-')
-    name = "{:02d}-{}".format(N, desc)
+    name = make_name(desc, N)
 
     log.info('getting target %s', params.target)
     try:
@@ -224,12 +243,10 @@ def do_run(arguments):
     )
     treat.run(callback_run, target_func=target_func, max_gen=params.max_generations)
 
-
-def do_runall(arguments):
+def do_run_all(arguments):
     for i in range(len(get_functions())):
         arguments['<function>'] = str(i)
         do_run(arguments)
-
 
 def do_draw(arguments):
     name, target_func = get_name_and_target(arguments)
@@ -239,21 +256,75 @@ def do_draw(arguments):
     )
     treat.run(callback_draw, draw_n=int(arguments['--draw_n']))
 
+
+def all_existing(arguments):
+    for i in range(len(get_functions())):
+        name = get_name(i)
+        try:
+            treat = lineage.Treatment(
+                arguments['data_dir'] / name, 
+                analysis_path = arguments['output_dir'] / name,
+                readonly = True,
+            )
+        except lineage.LineageError:
+            continue
+
+        for rep in treat.replicates:
+            try:
+                with rep.get_lineage(readonly=True) as lin:
+                    yield treat, rep, lin
+            except lineage.LineageError:
+                # Ignore stuff that hasn't been created
+                pass
+
+
+def do_speed_all(arguments):
+    # This flattens everything out
+    gens = []
+    treats = []
+    reps = []
+
+    for treat, rep, lin in all_existing(arguments):
+        # Where did we find the first 1.0
+        fits = lin._generations[:]['best']
+        best = np.isclose(fits, 1.0) #np.ones(len(fits)))
+        if np.any(best):
+            gen = np.argmax(best)
+            pop_g = lin.get_generation(gen)
+            for net in pop_g:
+                if np.isclose(net.fitness, 1.0):
+                    draw_net(rep, 'first', net,  lin.generation)
+        else:
+            gen = None
+
+        log.info('first found 1.0 at {} generation'.format(gen))
+        treats.append(treat.name)
+        reps.append(rep.sequence)
+        gens.append(gen)
+
+    df = pd.DataFrame(data=dict(
+        treatment=treats,
+        replicate=reps,
+        generations=gens,
+    ))
+    df.to_pickle(str(arguments['output_dir'] / 'speed.pickle'))
+
 def main(arguments):
     try:
+        check_folders(arguments)
         if arguments['functions']:
             do_functions()
         elif arguments['run']:
-            check_folders(arguments)
             do_run(arguments)
-        elif arguments['runall']:
-            check_folders(arguments)
-            do_runall(arguments)
+        elif arguments['run_all']:
+            do_run_all(arguments)
         elif arguments['draw']:
-            check_folders(arguments)
             do_draw(arguments)
         elif arguments['list']:
             do_list(arguments)
+        elif arguments['speed_all']:
+            do_speed_all(arguments)
+
     except BowtieError:
         # These are the errors that we generate!
         log.error("Error: exiting program...")
