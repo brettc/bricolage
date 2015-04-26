@@ -11,3 +11,4 @@ c4che
 *.dylib
 bricolage/*.cpp
 cruft-*
+experiments/.ipynb_checkpoints
