@@ -277,7 +277,6 @@ def all_existing(arguments):
                 # Ignore stuff that hasn't been created
                 pass
 
-
 def do_speed_all(arguments):
     # This flattens everything out
     gens = []
