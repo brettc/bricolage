@@ -1,6 +1,12 @@
+from enum import IntEnum
 from .core_ext import SelectionModel, World, Target
 
 __all__ = ["World", "SelectionModel", "Parameters", "Target"]
+
+class InterventionState(IntEnum):
+    INTERVENE_NONE = 0
+    INTERVENE_ON = 1
+    INTERVENE_OFF = 2
 
 class Parameters(object):
 

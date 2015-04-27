@@ -302,10 +302,10 @@ class DotMaker(object):
         a = self.get_layout()
         a.write(f)
 
-def save_network_as_fullgraph(n, path='.', name=None):
+def save_network_as_fullgraph(n, path='.', name=None, simplify=True):
     output_path = pathlib.Path(path)
     ana = NetworkAnalysis(n)
-    gph = FullGraph(ana)
+    gph = FullGraph(ana, simplify)
     dot = DotMaker(gph)
     if name is None:
         name = n.identifier
