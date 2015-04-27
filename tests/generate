@@ -1,0 +1,126 @@
+#!env python
+"""
+Generate data for the tests. 
+
+Usage:
+  generate all [--overwrite] 
+  generate bowtie [--overwrite] 
+  generate -h | --help 
+
+Options:
+  --overwrite       Overwrite the current data if it exists
+  -h --help         Show this screen.
+"""
+__version__ = '0.0.1'
+
+class GenerateError(Exception):
+    pass
+
+
+from docopt import docopt
+import sys
+from clint.textui import puts, indent, colored
+
+# This initialise folders 
+from folders import data_dir
+from bricolage import threshold3, lineage
+
+_commands = {}
+def command(func):
+    nm = func.__name__
+    def wrapped(arguments):
+        puts(colored.blue("Beginning command {} ...".format(nm)))
+        with indent(4):
+            dbpath = (data_dir / nm).with_suffix('.db')
+            puts(colored.green("Using database {}".format(str(dbpath))))
+            func(dbpath, arguments)
+        puts(colored.blue("End command {} ...".format(nm)))
+    _commands[nm] = wrapped
+    return wrapped
+
+def bowtie_target(a, b, c):
+    if (a and not c) or (b and c):
+        return [1, .5, .25]
+    return [0, 0, 0]
+
+
+def select_till(L, good_for=1, return_every=100):
+    got_1 = 0
+    while 1:
+        L.next_generation()
+        w, b = L.population.worst_and_best()
+
+        if L.generation % 100 == 0:
+            yield L.generation, b
+
+        if b == 1.0:
+            got_1 += 1
+
+        # Run on for 1000 extra generations
+        if got_1 == good_for:
+            break
+
+
+@command
+def bowtie(dbpath, arguments):
+    p = threshold3.Parameters(
+        seed=8, cis_count=2, reg_channels=8, out_channels=3, cue_channels=3,
+        population_size=1000, mutation_rate=.002)
+
+    if dbpath.exists() and not arguments.options.overwrite:
+        p = None
+    
+    with lineage.SnapshotLineage(dbpath, params=p) as L:
+        if not L.targets:
+            L.add_target(bowtie_target)
+
+        for g, b in select_till(L, good_for=1000):
+            puts("At generation {}, best is {}".format(g, b))
+
+def main(arguments):
+    if not data_dir.exists():
+        puts("Making data folder {}".format(str(data_dir)))
+        data_dir.mkdir()
+
+    try:
+        for cmd in arguments.current_commands:
+            func = _commands[cmd]
+            func(arguments)
+    except:
+        raise
+    return 0
+
+class Arguments(object):
+    """Wrapper for docopt arguments -- makes processing much simpler"""
+    class Container(object):
+        """Empty class allows referencing without dictionary fluff"""
+        pass
+
+    def __init__(self, arguments):
+        all_cmds = []
+        current = None
+        self.options = Arguments.Container()
+        self.arguments = Arguments.Container()
+
+        # Turn arguments of different kinds into sensible stuff
+        for arg, value in arguments.items():
+            if arg.startswith('--'):
+                setattr(self.options, arg[2:], value)
+            elif arg.startswith('<'):
+                # TODO: Move out sanitisation
+                new_arg = arg.replace("<", "").replace(">", "")
+                setattr(self.arguments, new_arg, value)
+            else:
+                if arg != 'all':
+                    all_cmds.append(arg)
+                if arguments[arg]:
+                    current = arg
+        self.all_commands = all_cmds
+        if current == 'all':
+            self.current_commands = all_cmds
+        else:
+            self.current_commands = [current]
+
+if __name__ == "__main__":
+    arguments = Arguments(docopt(__doc__, version=__version__))
+    sys.exit(main(arguments))
