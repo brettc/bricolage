@@ -2,6 +2,7 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: cdivision=True
+# distutils: define_macros=NPY_NO_DEPRECATED_API
 
 import cython
 import numpy
@@ -318,6 +319,15 @@ cdef class Network:
     def cycle_with_intervention(self, ChannelState c):
         self._this.cycle_with_intervention(c._this)
 
+    def recalculate(self, with_intervention=False):
+        if with_intervention:
+            self._this.calc_attractors_with_intervention()
+        else:
+            self._this.calc_attractors()
+
+        self._attractors = None
+        self._rates = None
+
     def _evil_mutate(self, size_t nmutations):
         """Mutate the network. 
 
@@ -325,12 +335,7 @@ cdef class Network:
         correctly. Use only if you understand what you are doing.
         """
         self._this.mutate(nmutations)
-        self._invalidate_cached()
-
-    def _invalidate_cached(self):
-        self._this.calc_attractors()
-        self._attractors = None
-        self._rates = None
+        self.recalculate()
 
     property attractors:
         """A tuple containing the attractors for each environment"""
@@ -420,11 +425,9 @@ cdef class Gene:
     property intervene:
         def __get__(self):
             return self._this.intervene
-
-    # def _evil_set_pub(self, size_t p):
-    #     assert p in self.network.world.pub_signals
-    #     # self._this.pub = p
-    #     self.network._invalidate_cached()
+        def __set__(self, InterventionState i):
+            self._this.intervene = i
+            self.network.recalculate(with_intervention=True)
 
     property module_count:
         def __get__(self):
@@ -460,7 +463,7 @@ cdef class CisModule:
     def set_site(self, size_t i, size_t c):
         assert c in self.gene.network.world.sub_signals
         old = self._this.set_site(i, c)
-        self.gene.network._invalidate_cached()
+        self.gene.network.recalculate()
         return old
 
     property intervene:
@@ -480,7 +483,7 @@ cdef class CisModule:
             for i in range(self._this.site_count()):
                 assert t[i] in valid
                 self._this.channels[i] = t[i]
-            self.gene.network._invalidate_cached()
+            self.gene.network.recalculate()
 
     property channel_names:
         def __get__(self):
