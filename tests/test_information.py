@@ -208,13 +208,13 @@ def test_target_info(complex_bowtie, lineage_3x3):
     env_count = len(w.environments)
     env_probs = numpy.ones(env_count) / env_count
 
-    # First, calculate the "natural" probabilites of each regulatory signals
+    # First, calculate the "natural" probabilities of each regulatory signals
     # without intervention
     pdist_regs = numpy.zeros(w.reg_channels)
     reg_base, reg_to = w.reg_range
     for env_i, attr in enumerate(net.attractors):
+        # Reduce probability by number of attractor states
         p_state = env_probs[env_i] / float(len(attr))
-        # For each attractor ...
         for st in attr:
             # For all attractors states, and each regulatory channel
             for i in range(w.reg_channels):
