@@ -4,6 +4,8 @@ from math import log as logarithm
 from bricolage.core_ext import InfoE
 from bricolage import threshold3, lineage, graph
 from bricolage.core import InterventionState
+
+from generate import get_database
 import numpy
 
 def feature1(a, b):
@@ -46,7 +48,7 @@ def p_2x2():
         mutation_rate=.001,
     )
 
-@pytest.fixture
+@pytest.yield_fixture
 def lineage_2x2(p_2x2, tmpdir):
     # base = pathlib.Path(str(tmpdir))
     base = pathlib.Path('.')
@@ -61,44 +63,19 @@ def lineage_2x2(p_2x2, tmpdir):
             w, b = a.population.worst_and_best()
             if b == 1.0:
                 break
-    return a
+    yield a
+    a.close()
 
 @pytest.fixture
 def complex_network1(lineage_2x2):
     b = lineage_2x2.population.best_indexes()[0]
     return lineage_2x2.population[b]
 
-@pytest.fixture
-def p_3x3():
-    return threshold3.Parameters(
-        seed=8, 
-        cis_count=2, 
-        reg_channels=8,
-        out_channels=3, 
-        cue_channels=3, 
-        population_size=1000,
-        mutation_rate=.002,
-    )
-
-@pytest.fixture
-def lineage_3x3(p_3x3, tmpdir):
-    # base = pathlib.Path(str(tmpdir))
-    base = pathlib.Path('.')
-    path = base / '3x3_info8.db'
-    cnt = 0
-    if path.exists():
-        a = lineage.FullLineage(path)
-    else:
-        a = lineage.FullLineage(path, params=p_3x3)
-        a.add_target(bowtie_target)
-        while 1:
-            a.next_generation()
-            w, b = a.population.worst_and_best()
-            if b == 1.0:
-                cnt += 1
-            if cnt == 1000:
-                break
-    return a
+@pytest.yield_fixture
+def lineage_3x3():
+    db = get_database('bowtie')
+    yield db
+    db.close()
 
 @pytest.fixture
 def complex_bowtie(lineage_3x3):
@@ -291,7 +268,9 @@ def test_target_info(complex_bowtie, lineage_3x3):
     
 def test_manip(complex_bowtie):
     net = complex_bowtie
+
     graph.save_network_as_fullgraph(net, name='unbob', simplify=False)
+    graph.save_network_as_fullgraph(net, name='bob')
     print net.rates
     net.genes[7].intervene = InterventionState.INTERVENE_OFF
     print net.rates
