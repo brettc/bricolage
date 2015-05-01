@@ -14,6 +14,24 @@
 #include <tuple>
 #include <random>
 
+// Failed attempt to templatize. Let's deal with this later.
+// template <typename T, std::size_t NumDims>
+// struct multi_array_wrapper
+// {
+//     multi_array_wrapper::multi_array_wrapper(const extent_gen &ranges)
+//     typedef boost::multi_array<T, NumDims> array_type;
+//     array_type _array;
+//
+//     // These provide information for constructing a buffer interface from
+//     // python, allowing us to operate on the array via numpy
+//     size_t stride_n(size_t n) { return _array.strides()[n]; }
+//     size_t shape_n(size_t n) { return _array.shape()[n]; }
+//     size_t dimensions() { return _array.num_dimensions(); }
+//     size_t element_size() { return sizeof(array_type::element); }
+//     size_t total_size() { return element_size() * _array.num_elements(); }
+//     void *data() { return _array.data(); }
+// };
+
 namespace pubsub2
 {
 
@@ -234,21 +252,6 @@ struct cTarget
     double assess(const cNetwork &net) const;
 };
 
-typedef boost::multi_array<double, 3> freqs_t;
-typedef boost::multi_array<double, 4> networks_probs_t;
-typedef boost::multi_array_ref<double, 4> networks_probs_ref_t;
-struct cInfoE
-{
-    cInfoE(const cWorld_ptr &world, size_t nc);
-    cWorld_ptr world;
-    size_t category_count;
-    cIndexes categories;
-
-    void get_extents(size_t &channels, size_t &categories, size_t &on_off);
-    void network_probs(double *data, const cNetwork &net);
-    void collection_probs(double *data, const cNetworkVector &networks);
-    void collection_info(double *data, const cNetworkVector &networks);
-};
 
 struct cSelectionModel
 {
@@ -310,5 +313,68 @@ struct cNetworkAnalysis
     void make_active_edges(cEdgeList &edges);
 };
 
+typedef boost::multi_array<double, 4> networks_probs_t;
+typedef boost::multi_array_ref<double, 4> networks_probs_ref_t;
+struct cInfoE
+{
+    cInfoE(const cWorld_ptr &world, size_t nc);
+    cWorld_ptr world;
+    size_t category_count;
+    cIndexes categories;
+
+    void get_extents(size_t &channels, size_t &categories, size_t &on_off);
+    void network_probs(double *data, const cNetwork &net);
+    void collection_probs(double *data, const cNetworkVector &networks);
+    void collection_info(double *data, const cNetworkVector &networks);
+};
+
+typedef boost::multi_array<double, 3> info_array_type;
+struct cInformation
+{
+    cInformation(const cWorld_ptr &w, size_t networks);
+    cWorld_ptr world;
+    info_array_type _array;
+
+    // These provide information for constructing a buffer interface from
+    // python, allowing us to operate on the array via numpy
+    size_t stride_n(size_t n) { return _array.strides()[n]; }
+    size_t shape_n(size_t n) { return _array.shape()[n]; }
+    size_t dimensions() { return _array.num_dimensions(); }
+    size_t element_size() { return sizeof(info_array_type::element); }
+    size_t total_size() { return element_size() * _array.num_elements(); }
+    void *data() { return _array.data(); }
+};
+
+typedef boost::multi_array<double, 5> joint_array_type;
+struct cJointProbabilities 
+{
+    cJointProbabilities(const cWorld_ptr &w, size_t networks);
+    cWorld_ptr world;
+    joint_array_type _array;
+
+    bool calc_information(cInformation &information);
+
+    // These provide information for constructing a buffer interface from
+    // python, allowing us to operate on the array via numpy
+    size_t stride_n(size_t n) { return _array.strides()[n]; }
+    size_t shape_n(size_t n) { return _array.shape()[n]; }
+    size_t dimensions() { return _array.num_dimensions(); }
+    size_t element_size() { return sizeof(joint_array_type::element); }
+    size_t total_size() { return element_size() * _array.num_elements(); }
+    void *data() { return _array.data(); }
+};
+
+struct cCausalFlowAnalyzer
+{
+    cCausalFlowAnalyzer(cWorld_ptr &world, cRates rates);
+    cWorld_ptr world;
+    cRates rates;
+    cRates natural_probabilities;
+    bool analyse_network(cNetwork &net, cJointProbabilities &joint);
+    bool analyse_collection(const cNetworkVector &networks, 
+                            cJointProbabilities &joint);
+    void _calc_natural(cNetwork &net);
+    void _analyse(cNetwork &net, joint_array_type::reference sub); 
+};
 
 } // end namespace pubsub2

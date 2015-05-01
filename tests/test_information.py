@@ -1,7 +1,7 @@
 import pytest
 import pathlib
 from math import log as logarithm
-from bricolage.core_ext import InfoE
+from bricolage.analysis_ext import InfoE, JointProbabilities, CausalFlowAnalyzer
 from bricolage import threshold3, lineage, graph
 from bricolage.core import InterventionState
 
@@ -26,15 +26,6 @@ def bowtie_target(a, b, c):
         return [1, .5, .25]
     return [0, 0, 0]
 
-def bowtie_categorize(a, b, c):
-    ca = cb = cc = 0
-    if numpy.isclose(a, 1.0):
-        ca = 1
-    if numpy.isclose(b, .5):
-        cb = 1
-    if numpy.isclose(c, .25):
-        cc = 1
-    return [ca, cb, cc]
 
 @pytest.fixture
 def p_2x2():
@@ -172,13 +163,32 @@ def test_env_info(complex_network1):
     for e, r in zip(w.environments, n.rates):
         inputs = [e[i] for i in range(*w.cue_range)]
         print e, xor_target(*inputs), r
-        # for i in range(5)
 
-# def test_target_info(complex_network1, lineage_2x2):
-def test_target_info(complex_bowtie, lineage_3x3):
+def test_persistence(complex_bowtie):
     net = complex_bowtie
-    lin = lineage_3x3
-    graph.save_network_as_fullgraph(net, name='bob')
+    # graph.save_network_as_fullgraph(net, name='unbob', simplify=False)
+    # graph.save_network_as_fullgraph(net, name='bob')
+    
+    # We know from inspection that gene 5 is at the bottleneck
+    net.genes[5].intervene = InterventionState.INTERVENE_OFF
+    print net.rates
+    for r in net.rates:
+        assert numpy.allclose(r, numpy.array([0, 0, 0]))
+    net.genes[5].intervene = InterventionState.INTERVENE_ON
+    for r in net.rates:
+        assert numpy.allclose(r, numpy.array([1, .5, .25]))
+
+def bowtie_categorize(values, matches):
+    ret = []
+    for v, m in zip(values, matches):
+        if numpy.isclose(v, m):
+            ret.append(1)
+        else:
+            ret.append(0)
+    return ret
+        
+def get_causal_flow(net, matches):
+    # graph.save_network_as_fullgraph(net, name='bob')
     w = net.constructor.world
 
     # For now, states are equiprobable
@@ -199,16 +209,10 @@ def test_target_info(complex_bowtie, lineage_3x3):
                 if st.test(reg_base + i):
                     pdist_regs[i] += p_state
 
-    # Get the target
-    target = lin.targets[0].as_array()
-    print target
-
     # All probabilities of co-occurences. A joint prob distn under
     # intervention for each channel, about each output channel.
     # TODO: second to last channel should be categorise MORE THAN 2
     probs = numpy.zeros((w.reg_channels, w.out_channels, 2, 2))
-
-    print 'dist', pdist_regs
 
     # Now, do the interventions for each regulatory gene
     # The genes are organised so that they begin with regulatory genes, so we
@@ -220,27 +224,32 @@ def test_target_info(complex_bowtie, lineage_3x3):
         gene.intervene = InterventionState.INTERVENE_OFF
         # Record everything the state of this genes output against each of the
         # outputs. Go through each environments, comparing output...
-        for r in net.rates:
-            cats = bowtie_categorize(*r)
-            for j, c in enumerate(cats):
+        for j, r in enumerate(net.rates):
+            cats = bowtie_categorize(r, matches)
+            for k, c in enumerate(cats):
                 # What is the probability here? ith Gene is off in jth environment
                 p_state = env_probs[j] * (1.0 - pdist_regs[i])
                 # Gene is OFF. Output is category c
-                probs[i, j, 0, c] += p_state
+                probs[i, k, 0, c] += p_state
 
         # ----- GENE IS MANIPULATED ON
         # Manipulate the gene ON
         gene.intervene = InterventionState.INTERVENE_ON
-        for r in net.rates:
-            cats = bowtie_categorize(*r)
-            for j, c in enumerate(cats):
+        for j, r in enumerate(net.rates):
+            cats = bowtie_categorize(r, matches)
+            for k, c in enumerate(cats):
                 # What is the probability here? ith Gene is ON in jth environment
                 p_state = env_probs[j] * pdist_regs[i]
                 # Gene is ON. Output is category c
-                probs[i, j, 1, c] += p_state
+                probs[i, k, 1, c] += p_state
 
         # Reset this gene
         gene.intervene = InterventionState.INTERVENE_NONE
+    return probs
+
+# Slow python calculation of information 
+def calc_info_from_causal_flow(net, probs):
+    w = net.constructor.world
 
     # Now calculate the information
     info = numpy.zeros((w.reg_channels, w.out_channels))
@@ -261,19 +270,67 @@ def test_target_info(complex_bowtie, lineage_3x3):
                         I += p_xy * logarithm(p_xy / (p_x * p_y), 2)
             info[i, j] = I
 
-    print info
-
-    # target = lineage_2x2.targets[0]
-    # target_outputs = target.as_array()
+    return info
     
-def test_manip(complex_bowtie):
-    net = complex_bowtie
+def test_joint_probability_creation(p_2x2):
+    w = threshold3.World(p_2x2)
+    j = JointProbabilities(w, 1)
+    n = numpy.asarray(j)
+    net, sigs, outs, p1, p2 = n.shape
+    assert net == 1
+    assert sigs == p_2x2.reg_channels
+    assert outs == p_2x2.out_channels
+    assert p1 == p2 == 2
 
-    graph.save_network_as_fullgraph(net, name='unbob', simplify=False)
-    graph.save_network_as_fullgraph(net, name='bob')
-    print net.rates
-    net.genes[7].intervene = InterventionState.INTERVENE_OFF
-    print net.rates
-    net.genes[7].intervene = InterventionState.INTERVENE_ON
-    print net.rates
+def test_causal_flow_cython(complex_bowtie):
+    """Compare the clunky python version with our C++ version"""
+
+    # This what it was evolved to do (see the generate.py file)
+    matches = [1, .5, .25]
+
+    f = CausalFlowAnalyzer(complex_bowtie.constructor.world, matches)
+    j = f.analyse_network(complex_bowtie)
+
+    # We just access the 0th element, as we only sent one network for analysis
+    c_joint = numpy.asarray(j)[0]
+
+    # Test that each of the signals has a complete joint probability. It
+    # should sum to 1.0
+    for per_reg in c_joint:
+        for per_output in per_reg:
+            assert per_output.shape == (2, 2)
+            assert per_output.sum() == 1.0
+
+    # Get the slow version from python.
+    p_joint = get_causal_flow(complex_bowtie, matches)
+
+    # They should be the same.
+    numpy.testing.assert_allclose(p_joint, c_joint)
+
+    info = j.calc_information()
+    c_info = numpy.asarray(info)[0]
+    p_info = calc_info_from_causal_flow(complex_bowtie, p_joint)
+    numpy.testing.assert_allclose(c_info, p_info)
+
+def test_causal_flow_pop(lineage_3x3, complex_bowtie):
+    # This what it was evolved to do (see the generate.py file)
+    matches = [1, .5, .25]
+    pop = lineage_3x3.population
+    f = CausalFlowAnalyzer(lineage_3x3.world, matches)
+    j = f.analyse_collection(pop)
+    info = j.calc_information()
+    c_info = numpy.asarray(info)
+
+    # Let's just try the first few
+    for i, n in enumerate(pop):
+        p_joint = get_causal_flow(n, matches)
+        p_info = calc_info_from_causal_flow(n, p_joint)
+        numpy.testing.assert_allclose(c_info[i], p_info)
+        if i == 5:
+            break
+
+
+
+    
+
 

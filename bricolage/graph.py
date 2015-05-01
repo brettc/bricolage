@@ -1,7 +1,7 @@
 from enum import IntEnum
 import networkx as nx
 from pygraphviz import AGraph
-from core_ext import NetworkAnalysis
+from analysis_ext import NetworkAnalysis
 import pathlib
 
 class NodeType(IntEnum):
