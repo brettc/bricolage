@@ -310,18 +310,21 @@ def do_speed_all(arguments):
 
 def main(arguments):
     try:
-        check_folders(arguments)
         if arguments['functions']:
             do_functions()
-        elif arguments['run']:
-            do_run(arguments)
-        elif arguments['run_all']:
-            do_run_all(arguments)
-        elif arguments['draw']:
-            do_draw(arguments)
         elif arguments['list']:
             do_list(arguments)
+        elif arguments['run']:
+            check_folders(arguments)
+            do_run(arguments)
+        elif arguments['run_all']:
+            check_folders(arguments)
+            do_run_all(arguments)
+        elif arguments['draw']:
+            check_folders(arguments)
+            do_draw(arguments)
         elif arguments['speed_all']:
+            check_folders(arguments)
             do_speed_all(arguments)
 
     except BowtieError:
