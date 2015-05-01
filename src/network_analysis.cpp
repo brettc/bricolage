@@ -5,6 +5,14 @@
 
 using namespace pubsub2;
 
+// Taken from the numpy docs on isclose
+const double RELATIVE_TOL = 1e-05;
+const double ABSOLUTE_TOL = 1e-08;
+inline bool isclose(double a, double b)
+{
+    return fabs(a - b) <= (ABSOLUTE_TOL + RELATIVE_TOL * fabs(b));
+}
+
 cNetworkAnalysis::cNetworkAnalysis(cNetwork_ptr &n)
     : original(n)
     , modified(original->clone())
@@ -106,9 +114,6 @@ void cNetworkAnalysis::make_active_edges(cEdgeList &edges)
         }
     }
 }
-
-// TODO: Fix cut and paste, once I figure out multi_array propertly (using
-// views?) 
 
 cInfoE::cInfoE(const cWorld_ptr &w, size_t ncat)
     : world(w)
@@ -261,32 +266,174 @@ void cInfoE::collection_info(double *data,
     }
 }
 
-// void cInfoE::calc_info_network(double *data, const cNetwork &network)
-// void network_info(double *data, const cNetwork &network)
-// {
-//     size_t net_size, chan_size, cat_size, stat_size;
-//     get_extents(chan_size, cat_size, stat_size);
-//
-//     // NOTE: We allocate this ourself this time, not like above
-//     prob_array_net_type arr(boost::extents[chan_size][cat_size][stat_size]);
-//     ::calc_collection(*this, arr, networks);
-//
-//     sum_type feat_sum(cat_size, 0.0);
-//     sum_type chan_sum(stat_size, 0.0);
-//
-//     info_array_ref_type info(data, boost::extents[net_size][chan_size]);
-//     for (size_t i = 0; i < networks.size(); ++i)
-//     {
-//         ::calc_info(*this, info[i], arr[i], feat_sum, chan_sum,
-//                     chan_size, cat_size, stat_size);
-//     }
-// }
+cInformation::cInformation(const cWorld_ptr &w, size_t size)
+    : world(w)
+    , _array(boost::extents[size][w->reg_channels][w->out_channels])
+{
+}
 
-//   ACTULLY: looks possible to just use
-//  prob_array_type::reference to get at the sub_array 
-// void calc_network(boost::multi_array_ref<double, 4>::reference m)
-// {
-//     m[0][0][0] = 10.0;
-// }
+cJointProbabilities::cJointProbabilities(const cWorld_ptr &w, size_t networks)
+    : world(w)
+    , _array(boost::extents[networks][w->reg_channels][w->out_channels][2][2])
+{
+}
+
+bool cJointProbabilities::calc_information(cInformation &info)
+{
+    if (info.world != world)
+        return false;
+
+    auto networks_size = _array.shape()[0];
+    auto channels_size = _array.shape()[1];
+    auto category_size = _array.shape()[2];
+    auto row_size = _array.shape()[3];
+    auto col_size = _array.shape()[4];
+
+    typedef joint_array_type::index index;
+
+    sum_type rows(row_size);
+    sum_type cols(col_size);
+
+    typedef std::vector<double> sum_type;
+    for (index i = 0; i < networks_size; ++i)
+    {
+        for (index j = 0; j < channels_size; ++j)
+        {
+            for (index k = 0; k < category_size; ++k)
+            {
+                // Reset marginals
+                for (index ri = 0; ri < row_size; ++ri)
+                    rows[ri] = 0.0;
+                for (index ci = 0; ci < col_size; ++ci)
+                    cols[ci] = 0.0;
+
+                // Sum the marginals
+                for (index ri = 0; ri < row_size; ++ri)
+                    for (index ci = 0; ci < col_size; ++ci)
+                    {
+                        double val = _array[i][j][k][ri][ci];
+                        rows[ri] += val;
+                        cols[ci] += val;
+                    }
+
+                // Calculate the info
+                double I = 0.0;
+                for (index ri = 0; ri < row_size; ++ri)
+                    for (index ci = 0; ci < col_size; ++ci)
+                    {
+                        double val = _array[i][j][k][ri][ci];
+                        if (val != 0.0)
+                            I += val * log2(val / (rows[ri] * cols[ci]));
+                    }
+                info._array[i][j][k] = I;
+            }
+        }
+    }
+    return true;
+}
+
+cCausalFlowAnalyzer::cCausalFlowAnalyzer(cWorld_ptr &w, cRates rates)
+    : world(w)
+    , rates(rates)
+{
+    for (int i = 0; i < world->reg_channels; ++i)
+        natural_probabilities.push_back(0.0);
+}
+
+bool cCausalFlowAnalyzer::analyse_network(cNetwork &net, cJointProbabilities &joint)
+{
+    if (joint._array.shape()[0] != 1)
+        return false;
+
+    _analyse(net, joint._array[0]);
+    return true;
+}
+
+bool cCausalFlowAnalyzer::analyse_collection(const cNetworkVector &networks,
+                                             cJointProbabilities &joint)
+{
+    if (joint._array.shape()[0] != networks.size())
+        return false;
+
+    for (size_t i = 0; i < networks.size(); ++i)
+        _analyse(*networks[i], joint._array[i]);
+    return true;
+}
+
+// Calculate the probability of any particular signal being on when the
+// attractor network is not being intervened upon
+void cCausalFlowAnalyzer::_calc_natural(cNetwork &net)
+{
+    for (size_t i = 0; i < world->reg_channels; ++i)
+        natural_probabilities[i] = 0.0;
+
+    size_t reg_base = world->reg_range.first;
+
+    // Go through attractors
+    for (auto &cv : net.attractors)
+    {
+        // Probability of each state depends on environments, and number states
+        // in this attractor. Everything is equiprobable (for now)
+        double p_state = 1.0 / net.attractors.size() / cv.size();
+        // Each state in the attractor
+        for (auto &cs : cv)
+        {
+            // See what is on or off
+            for (size_t i = 0; i < world->reg_channels; ++i)
+            {
+                if (cs.test(reg_base + i))
+                    natural_probabilities[i] += p_state;
+            }
+        }
+    }
+}
+
+void cCausalFlowAnalyzer::_analyse(cNetwork &net, joint_array_type::reference sub)
+{
+    _calc_natural(net);
+
+    double p_env = 1.0 / net.rates.size();
+
+    // For each channel
+    for (size_t i = 0; i < world->reg_channels; ++i)
+    {
+        cGene *gene = net.get_gene(i);
+        gene->intervene = INTERVENE_OFF;
+        net.calc_attractors_with_intervention();
+        double p_gene_off = p_env * (1.0 - natural_probabilities[i]);
+
+        // for each environment (there are rates for each) 
+        for (size_t j = 0; j < net.rates.size(); ++j)
+            // for each output channel
+            for (size_t k = 0; k < world->out_channels; ++k)
+            {
+                size_t close = 0;
+                if (isclose(rates[k], net.rates[j][k]))
+                    close = 1;
+                    
+                sub[i][k][0][close] += p_gene_off;
+            }
+
+        gene->intervene = INTERVENE_ON;
+        net.calc_attractors_with_intervention();
+        double p_gene_on = p_env * natural_probabilities[i];
+        // for each environment (there are rates for each) 
+        for (size_t j = 0; j < net.rates.size(); ++j)
+            // for each output channel
+            for (size_t k = 0; k < world->out_channels; ++k)
+            {
+                size_t close = 0;
+                if (isclose(rates[k], net.rates[j][k]))
+                    close = 1;
+                    
+                sub[i][k][1][close] += p_gene_on;
+            }
+
+        // Reset
+        gene->intervene = INTERVENE_NONE;
+        net.calc_attractors();
+    }
+}
+
 
 

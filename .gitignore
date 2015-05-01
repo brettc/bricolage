@@ -12,3 +12,4 @@ c4che
 bricolage/*.cpp
 cruft-*
 experiments/.ipynb_checkpoints
+.idea

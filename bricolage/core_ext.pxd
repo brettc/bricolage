@@ -96,14 +96,3 @@ cdef class Population(CollectionBase):
     cdef:
         cPopulation *_this
 
-cdef class NetworkAnalysis:
-    cdef:
-        cNetworkAnalysis *_this
-        readonly:
-            Network network
-
-cdef class InfoE:
-    cdef:
-        cInfoE *_this
-        readonly:
-            World world

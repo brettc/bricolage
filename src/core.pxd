@@ -156,16 +156,32 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         void collection_probs(double *data, cNetworkVector &networks)
         void collection_info(double *data, cNetworkVector &networks)
 
-# cdef extern from "<src/logic2.hpp>" namespace "pubsub2":
-#     cdef cppclass cConstructorLogic2(cConstructor):
-#         cConstructorLogic2(cWorld &f, size_t gc, size_t cc, cOperands &ops)
-#
-#     cdef cppclass cCisModuleLogic2(cCisModule):
-#         operand_t op
-#         signal_t *channels
-#
-#     cCisModuleLogic2 * dynamic_cast_cCisModuleLogic2 \
-#         "dynamic_cast<pubsub2::cCisModuleLogic2 *>" (cCisModule *) except NULL
+    cdef cppclass cInformation:
+        cInformation(const cWorld_ptr &w, size_t networks)
+        cWorld_ptr world
+        size_t stride_n(size_t n)
+        size_t shape_n(size_t n)
+        size_t dimensions()
+        size_t element_size()
+        size_t total_size()
+        void *data()
 
-
-
+    cdef cppclass cJointProbabilities:
+        cJointProbabilities(const cWorld_ptr &w, size_t networks)
+        bint calc_information(cInformation &information)
+        cWorld_ptr world
+        size_t stride_n(size_t n)
+        size_t shape_n(size_t n)
+        size_t dimensions()
+        size_t element_size()
+        size_t total_size()
+        void *data()
+    
+    ctypedef vector[double] category_test
+    ctypedef vector[category_test] categorizer_list
+    cdef cppclass cCausalFlowAnalyzer:
+        cCausalFlowAnalyzer(const cWorld_ptr& world, cRates rates);
+        cRates rates
+        cRates natural_probabilities
+        bint analyse_network(cNetwork &net, cJointProbabilities &joint)
+        bint analyse_collection(const cNetworkVector &networks, cJointProbabilities &joint)

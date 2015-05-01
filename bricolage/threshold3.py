@@ -1,6 +1,5 @@
 import core
-from .core_ext import (World, Target, Population,
-                       NetworkAnalysis, SelectionModel)
+from .core_ext import (World, Target, Population, SelectionModel)
 from .threshold3_ext import Constructor
 
 __all__ = ["World", "Constructor", "Parameters",

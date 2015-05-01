@@ -26,17 +26,27 @@ from folders import data_dir
 from bricolage import threshold3, lineage
 
 _commands = {}
+_data = {}
+
+# For external use
+def get_database(name):
+    dbpath = _data[name]
+    assert dbpath.exists()
+    return lineage.SnapshotLineage(dbpath)
+
 def command(func):
     nm = func.__name__
+    dbpath = (data_dir / nm).with_suffix('.db')
     def wrapped(arguments):
         puts(colored.blue("Beginning command {} ...".format(nm)))
         with indent(4):
-            dbpath = (data_dir / nm).with_suffix('.db')
             puts(colored.green("Using database {}".format(str(dbpath))))
             func(dbpath, arguments)
         puts(colored.blue("End command {} ...".format(nm)))
     _commands[nm] = wrapped
+    _data[nm] = dbpath
     return wrapped
+
 
 def bowtie_target(a, b, c):
     if (a and not c) or (b and c):
@@ -63,12 +73,14 @@ def select_till(L, good_for=1, return_every=100):
 
 @command
 def bowtie(dbpath, arguments):
+    if dbpath.exists() and not arguments.options.overwrite:
+        puts(colored.red("Database {} already exists".format(str(dbpath))))
+        return
+
     p = threshold3.Parameters(
         seed=8, cis_count=2, reg_channels=8, out_channels=3, cue_channels=3,
         population_size=1000, mutation_rate=.002)
 
-    if dbpath.exists() and not arguments.options.overwrite:
-        p = None
     
     with lineage.SnapshotLineage(dbpath, params=p) as L:
         if not L.targets:
