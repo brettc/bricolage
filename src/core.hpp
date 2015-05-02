@@ -313,21 +313,6 @@ struct cNetworkAnalysis
     void make_active_edges(cEdgeList &edges);
 };
 
-typedef boost::multi_array<double, 4> networks_probs_t;
-typedef boost::multi_array_ref<double, 4> networks_probs_ref_t;
-struct cInfoE
-{
-    cInfoE(const cWorld_ptr &world, size_t nc);
-    cWorld_ptr world;
-    size_t category_count;
-    cIndexes categories;
-
-    void get_extents(size_t &channels, size_t &categories, size_t &on_off);
-    void network_probs(double *data, const cNetwork &net);
-    void collection_probs(double *data, const cNetworkVector &networks);
-    void collection_info(double *data, const cNetworkVector &networks);
-};
-
 struct cJointProbabilities;
 
 typedef boost::multi_array<double, 3> info_array_type;
@@ -369,7 +354,7 @@ struct cJointProbabilities
 
 struct cCausalFlowAnalyzer
 {
-    cCausalFlowAnalyzer(cWorld_ptr &world, cRates rates);
+    cCausalFlowAnalyzer(cWorld_ptr &world, const cRates &rates);
     cWorld_ptr world;
     cRates rates;
     cRates natural_probabilities;
@@ -382,15 +367,18 @@ struct cCausalFlowAnalyzer
     void _analyse(cNetwork &net, joint_array_type::reference sub); 
 };
 
-// struct cMutualInfoAnalyzer
-// {
-//     cMutualInfoAnalyzer(cWorld_ptr &world, cRates rates);
-//     cWorld_ptr world;
-//     bool analyse_network(cNetwork &net, cJointProbabilities &joint);
-//     bool analyse_collection(const cNetworkVector &networks, 
-//                             cJointProbabilities &joint);
-//     void _calc_natural(cNetwork &net);
-//     void _analyse(cNetwork &net, joint_array_type::reference sub); 
-// };
+struct cMutualInfoAnalyzer
+{
+    cMutualInfoAnalyzer(cWorld_ptr &world, const cIndexes &cats);
+    cWorld_ptr world;
+    cIndexes categories;
+    size_t max_category;
+
+    // Note you need to delete the return values from these!
+    cJointProbabilities *analyse_network(cNetwork &net);
+    cJointProbabilities *analyse_collection(const cNetworkVector &networks);
+
+    void _analyse(cNetwork &net, joint_array_type::reference sub); 
+};
 
 } // end namespace pubsub2
