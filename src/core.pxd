@@ -180,11 +180,15 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         size_t total_size()
         void *data()
 
-    ctypedef vector[double] category_test
-    ctypedef vector[category_test] categorizer_list
     cdef cppclass cCausalFlowAnalyzer:
-        cCausalFlowAnalyzer(const cWorld_ptr& world, cRates rates);
+        cCausalFlowAnalyzer(const cWorld_ptr& world, const cRates &rates);
         cRates rates
         cRates natural_probabilities
+        cJointProbabilities *analyse_network(cNetwork &net)
+        cJointProbabilities *analyse_collection(const cNetworkVector &networks)
+
+    cdef cppclass cMutualInfoAnalyzer:
+        cMutualInfoAnalyzer(const cWorld_ptr& world, const cIndexes categories);
+        cIndexes categories
         cJointProbabilities *analyse_network(cNetwork &net)
         cJointProbabilities *analyse_collection(const cNetworkVector &networks)

@@ -8,12 +8,6 @@ cdef class NetworkAnalysis:
         readonly:
             Network network
 
-cdef class InfoE:
-    cdef:
-        cInfoE *_this
-        readonly:
-            World world
-
 cdef class JointProbabilities:
     cdef:
         readonly:
@@ -36,4 +30,9 @@ cdef class Information:
 cdef class CausalFlowAnalyzer:
     cdef:
         cCausalFlowAnalyzer *_this;
+        World world
+
+cdef class MutualInfoAnalyzer:
+    cdef:
+        cMutualInfoAnalyzer *_this;
         World world
