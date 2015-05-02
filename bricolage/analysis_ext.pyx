@@ -95,22 +95,22 @@ cdef class InfoE:
         del self._this
 
 cdef class JointProbabilities:
-    def __cinit__(self, World w, size_t size):
+    def __cinit__(self, World w):
         self.world = w
-        self.size = size
-        self._this = new cJointProbabilities(w._shared, size)
+        # self.size = size
+        self._this = NULL
 
-    def calc_information(self):
-        info = Information(self.world, self.size);
-        if self._this.calc_information(deref(info._this)):
-            return info
-        return None
+    cdef bind(self, cJointProbabilities *j):
+        self._this = j
 
     def __dealloc__(self):
         if self._this != NULL:
             del self._this
 
     def __getbuffer__(self, Py_buffer *buffer, int flags):
+        if self._this == NULL:
+            raise BufferError
+
         # We're just copying stuff here. This is not expensive and avoids
         # trying to access the const * items inside multi_array. Also, the
         # strides here are in bytes, not elements sizes as they are in
@@ -138,10 +138,8 @@ cdef class JointProbabilities:
         pass
 
 cdef class Information:
-    def __cinit__(self, World w, size_t size):
-        self.world = w
-        self.size = size
-        self._this = new cInformation(w._shared, size)
+    def __cinit__(self, JointProbabilities joint):
+        self._this = new cInformation(deref(joint._this))
 
     def __dealloc__(self):
         if self._this != NULL:
@@ -185,15 +183,16 @@ cdef class CausalFlowAnalyzer:
         if self._this != NULL:
             del self._this
 
-    # TODO: These should throw exceptions rather than return None
     def analyse_network(self, Network n):
-        j = JointProbabilities(self.world, 1)
-        if self._this.analyse_network(deref(n._this), deref(j._this)):
-            return j
-        return None
+        j = JointProbabilities(self.world)
+        cdef cJointProbabilities *c_joint = NULL 
+        c_joint = self._this.analyse_network(deref(n._this))
+        j.bind(c_joint)
+        return j
 
     def analyse_collection(self, CollectionBase coll):
-        j = JointProbabilities(self.world, coll.size)
-        if self._this.analyse_collection(deref(coll._collection), deref(j._this)):
-            return j
-        return None
+        j = JointProbabilities(self.world)
+        cdef cJointProbabilities *c_joint = NULL 
+        c_joint = self._this.analyse_collection(deref(coll._collection))
+        j.bind(c_joint)
+        return j

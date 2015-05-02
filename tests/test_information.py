@@ -1,7 +1,9 @@
 import pytest
 import pathlib
 from math import log as logarithm
-from bricolage.analysis_ext import InfoE, JointProbabilities, CausalFlowAnalyzer
+from bricolage.analysis_ext import (InfoE, JointProbabilities,
+                                    CausalFlowAnalyzer, Information)
+
 from bricolage import threshold3, lineage, graph
 from bricolage.core import InterventionState
 
@@ -272,16 +274,6 @@ def calc_info_from_causal_flow(net, probs):
 
     return info
     
-def test_joint_probability_creation(p_2x2):
-    w = threshold3.World(p_2x2)
-    j = JointProbabilities(w, 1)
-    n = numpy.asarray(j)
-    net, sigs, outs, p1, p2 = n.shape
-    assert net == 1
-    assert sigs == p_2x2.reg_channels
-    assert outs == p_2x2.out_channels
-    assert p1 == p2 == 2
-
 def test_causal_flow_cython(complex_bowtie):
     """Compare the clunky python version with our C++ version"""
 
@@ -307,7 +299,7 @@ def test_causal_flow_cython(complex_bowtie):
     # They should be the same.
     numpy.testing.assert_allclose(p_joint, c_joint)
 
-    info = j.calc_information()
+    info = Information(j)
     c_info = numpy.asarray(info)[0]
     p_info = calc_info_from_causal_flow(complex_bowtie, p_joint)
     numpy.testing.assert_allclose(c_info, p_info)
@@ -318,7 +310,7 @@ def test_causal_flow_pop(lineage_3x3, complex_bowtie):
     pop = lineage_3x3.population
     f = CausalFlowAnalyzer(lineage_3x3.world, matches)
     j = f.analyse_collection(pop)
-    info = j.calc_information()
+    info = Information(j)
     c_info = numpy.asarray(info)
 
     # Let's just try the first few

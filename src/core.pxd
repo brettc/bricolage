@@ -156,8 +156,10 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         void collection_probs(double *data, cNetworkVector &networks)
         void collection_info(double *data, cNetworkVector &networks)
 
+    cdef cppclass cJointProbabilities
+
     cdef cppclass cInformation:
-        cInformation(const cWorld_ptr &w, size_t networks)
+        cInformation(const cJointProbabilities &joint)
         cWorld_ptr world
         size_t stride_n(size_t n)
         size_t shape_n(size_t n)
@@ -167,7 +169,8 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         void *data()
 
     cdef cppclass cJointProbabilities:
-        cJointProbabilities(const cWorld_ptr &w, size_t networks)
+        cJointProbabilities(const cWorld_ptr &w, size_t network_size, 
+                        size_t per_network, size_t per_channel)
         bint calc_information(cInformation &information)
         cWorld_ptr world
         size_t stride_n(size_t n)
@@ -176,12 +179,12 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         size_t element_size()
         size_t total_size()
         void *data()
-    
+
     ctypedef vector[double] category_test
     ctypedef vector[category_test] categorizer_list
     cdef cppclass cCausalFlowAnalyzer:
         cCausalFlowAnalyzer(const cWorld_ptr& world, cRates rates);
         cRates rates
         cRates natural_probabilities
-        bint analyse_network(cNetwork &net, cJointProbabilities &joint)
-        bint analyse_collection(const cNetworkVector &networks, cJointProbabilities &joint)
+        cJointProbabilities *analyse_network(cNetwork &net)
+        cJointProbabilities *analyse_collection(const cNetworkVector &networks)

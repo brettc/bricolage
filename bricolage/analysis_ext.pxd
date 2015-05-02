@@ -22,6 +22,7 @@ cdef class JointProbabilities:
         vector[Py_ssize_t] shape
         vector[Py_ssize_t] strides
         World world
+    cdef bind(self, cJointProbabilities *j)
 
 cdef class Information:
     cdef:

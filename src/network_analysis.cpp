@@ -266,23 +266,30 @@ void cInfoE::collection_info(double *data,
     }
 }
 
-cInformation::cInformation(const cWorld_ptr &w, size_t size)
+cInformation::cInformation(const cJointProbabilities &jp)
+    : world(jp.world)
+    , _array(boost::extents
+             [jp._array.shape()[0]]
+             [jp._array.shape()[1]]
+             [jp._array.shape()[2]]
+             )
+{
+    jp.calc_information(*this);
+}
+
+cJointProbabilities::cJointProbabilities(const cWorld_ptr &w, size_t network_size,
+                                         size_t per_network, size_t per_channel)
     : world(w)
-    , _array(boost::extents[size][w->reg_channels][w->out_channels])
+    , _array(boost::extents
+             [network_size]
+             [w->reg_channels]
+             [per_network]
+             [2][per_channel])
 {
 }
 
-cJointProbabilities::cJointProbabilities(const cWorld_ptr &w, size_t networks)
-    : world(w)
-    , _array(boost::extents[networks][w->reg_channels][w->out_channels][2][2])
+void cJointProbabilities::calc_information(cInformation &info) const
 {
-}
-
-bool cJointProbabilities::calc_information(cInformation &info)
-{
-    if (info.world != world)
-        return false;
-
     auto networks_size = _array.shape()[0];
     auto channels_size = _array.shape()[1];
     auto category_size = _array.shape()[2];
@@ -329,7 +336,6 @@ bool cJointProbabilities::calc_information(cInformation &info)
             }
         }
     }
-    return true;
 }
 
 cCausalFlowAnalyzer::cCausalFlowAnalyzer(cWorld_ptr &w, cRates rates)
@@ -340,24 +346,24 @@ cCausalFlowAnalyzer::cCausalFlowAnalyzer(cWorld_ptr &w, cRates rates)
         natural_probabilities.push_back(0.0);
 }
 
-bool cCausalFlowAnalyzer::analyse_network(cNetwork &net, cJointProbabilities &joint)
+cJointProbabilities *cCausalFlowAnalyzer::analyse_network(cNetwork &net)
 {
-    if (joint._array.shape()[0] != 1)
-        return false;
+    cJointProbabilities *joint = 
+        new cJointProbabilities(world, 1, world->out_channels, 2);
 
-    _analyse(net, joint._array[0]);
-    return true;
+    _analyse(net, joint->_array[0]);
+
+    return joint;
 }
 
-bool cCausalFlowAnalyzer::analyse_collection(const cNetworkVector &networks,
-                                             cJointProbabilities &joint)
+cJointProbabilities *cCausalFlowAnalyzer::analyse_collection(const cNetworkVector &networks)
 {
-    if (joint._array.shape()[0] != networks.size())
-        return false;
+    cJointProbabilities *joint = 
+        new cJointProbabilities(world, networks.size(), world->out_channels, 2);
 
     for (size_t i = 0; i < networks.size(); ++i)
-        _analyse(*networks[i], joint._array[i]);
-    return true;
+        _analyse(*networks[i], joint->_array[i]);
+    return joint;
 }
 
 // Calculate the probability of any particular signal being on when the
@@ -393,6 +399,7 @@ void cCausalFlowAnalyzer::_analyse(cNetwork &net, joint_array_type::reference su
     _calc_natural(net);
 
     double p_env = 1.0 / net.rates.size();
+    size_t close = 0;
 
     // For each channel
     for (size_t i = 0; i < world->reg_channels; ++i)
@@ -407,9 +414,10 @@ void cCausalFlowAnalyzer::_analyse(cNetwork &net, joint_array_type::reference su
             // for each output channel
             for (size_t k = 0; k < world->out_channels; ++k)
             {
-                size_t close = 0;
                 if (isclose(rates[k], net.rates[j][k]))
                     close = 1;
+                else
+                    close = 0;
                     
                 sub[i][k][0][close] += p_gene_off;
             }
@@ -422,9 +430,10 @@ void cCausalFlowAnalyzer::_analyse(cNetwork &net, joint_array_type::reference su
             // for each output channel
             for (size_t k = 0; k < world->out_channels; ++k)
             {
-                size_t close = 0;
                 if (isclose(rates[k], net.rates[j][k]))
                     close = 1;
+                else
+                    close = 0;
                     
                 sub[i][k][1][close] += p_gene_on;
             }

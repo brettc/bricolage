@@ -328,10 +328,12 @@ struct cInfoE
     void collection_info(double *data, const cNetworkVector &networks);
 };
 
+struct cJointProbabilities;
+
 typedef boost::multi_array<double, 3> info_array_type;
 struct cInformation
 {
-    cInformation(const cWorld_ptr &w, size_t networks);
+    cInformation(const cJointProbabilities &jp);
     cWorld_ptr world;
     info_array_type _array;
 
@@ -348,11 +350,12 @@ struct cInformation
 typedef boost::multi_array<double, 5> joint_array_type;
 struct cJointProbabilities 
 {
-    cJointProbabilities(const cWorld_ptr &w, size_t networks);
+    cJointProbabilities(const cWorld_ptr &w, size_t network_size, 
+                        size_t per_network, size_t per_channel);
     cWorld_ptr world;
     joint_array_type _array;
 
-    bool calc_information(cInformation &information);
+    void calc_information(cInformation &information) const;
 
     // These provide information for constructing a buffer interface from
     // python, allowing us to operate on the array via numpy
@@ -370,11 +373,24 @@ struct cCausalFlowAnalyzer
     cWorld_ptr world;
     cRates rates;
     cRates natural_probabilities;
-    bool analyse_network(cNetwork &net, cJointProbabilities &joint);
-    bool analyse_collection(const cNetworkVector &networks, 
-                            cJointProbabilities &joint);
+
+    // Note you need to delete the return values from these!
+    cJointProbabilities *analyse_network(cNetwork &net);
+    cJointProbabilities *analyse_collection(const cNetworkVector &networks);
+
     void _calc_natural(cNetwork &net);
     void _analyse(cNetwork &net, joint_array_type::reference sub); 
 };
+
+// struct cMutualInfoAnalyzer
+// {
+//     cMutualInfoAnalyzer(cWorld_ptr &world, cRates rates);
+//     cWorld_ptr world;
+//     bool analyse_network(cNetwork &net, cJointProbabilities &joint);
+//     bool analyse_collection(const cNetworkVector &networks, 
+//                             cJointProbabilities &joint);
+//     void _calc_natural(cNetwork &net);
+//     void _analyse(cNetwork &net, joint_array_type::reference sub); 
+// };
 
 } // end namespace pubsub2
