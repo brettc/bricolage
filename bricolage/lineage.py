@@ -469,6 +469,16 @@ class Treatment(object):
 
         self._create()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.close()
+
+    def close(self):
+        # TODO: Check that everything has closed?
+        pass
+
     @property
     def filepath(self):
         return self.path / self.TREATMENT_FILENAME
@@ -501,6 +511,10 @@ class Treatment(object):
             except StopReplicates:
                 break
 
+    def iter_replicates(self):
+        for r in self.replicates:
+            yield r
+
     def _create(self):
         self.rand = random.Random(self.params.seed)
         self.replicates = [Replicate(self, i) for i in range(self.params.replicates)]
@@ -526,18 +540,3 @@ class Treatment(object):
         except:
             log.error("Error loading treatment file {}".format(self.filename))
             raise LineageError
-
-
-
-# class Experiment(object):
-#     """Gather together a number of Treatments"""
-#     
-#     def __init__(self, path, analysis_path=None, overwrite=False, full=True):
-#         if not isinstance(path, pathlib.Path):
-#             path = pathlib.Path(path)
-#         assert path.parent.exists()
-#         if path.exists():
-#             if overwrite
-#
-
-

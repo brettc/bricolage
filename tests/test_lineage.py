@@ -277,26 +277,26 @@ def test_treatment(tmpdir, p_3x2):
     path = tmpdir / name
     apath = tmpdir / (name + '_analysis')
     treat = L.Treatment(path, p_3x2, analysis_path=apath)
+    max_gen = 100
 
-    def callback(rep, max_gen):
-        with rep.get_lineage() as L:
-            L.add_target(target1)
-            while L.generation < max_gen:
-                L.next_generation()
+    for rep in treat.iter_replicates():
+        with rep.get_lineage() as lin:
+            lin.add_target(target1)
+            while lin.generation < max_gen:
+                lin.next_generation()
 
         assert rep.analysis_path is not rep.path
         assert rep.analysis_path.exists()
 
-    treat.run(callback, max_gen=100)
-
     with treat.replicates[5].get_lineage() as l5:
         assert l5.population
+    
+    # Kill this
     del treat
 
-    def re_callback(rep, max_gen):
-        with rep.get_lineage() as L:
-            assert L.generation == max_gen
-
     treat = L.Treatment(path, p_3x2)
-    treat.run(re_callback, max_gen=100)
+    for rep in treat.iter_replicates():
+        with rep.get_lineage() as lin:
+            assert lin.generation == max_gen
+
 
