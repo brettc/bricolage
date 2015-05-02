@@ -20,7 +20,7 @@ three:
     population_size: 1000
     mutation_rate: 0.002
     replicates: 20
-    max_generations: 100000
+    max_generations: 50000
 
 four:
     seed: 10
