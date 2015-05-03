@@ -1,4 +1,5 @@
 import logging
+
 log = logging.getLogger('lineage')
 
 import numpy
@@ -11,8 +12,10 @@ import random
 import yaml
 from . import core_ext
 
+
 class LineageError(Exception):
     pass
+
 
 # Utility class for storing attributes for pickling
 class Attributes(object):
@@ -88,8 +91,8 @@ class BaseLineage(object):
         self.population.mutate(self.params.mutation_rate, self.generation)
 
         # Now we re-assess the population to ensure that each of them has
-        # fitnesses, ready for the next round of selection. Plus, we always want the
-        # population to be in a state that everything has a fitness
+        # fitnesses, ready for the next round of selection. Plus, we always
+        # want the population to be in a state that everything has a fitness
         self.population.assess(self.current_target)
 
     def _generation_dtype(self):
@@ -123,8 +126,10 @@ class BaseLineage(object):
 
             # Save the networks
             z = numpy.zeros
-            n = h5.create_table('/', 'networks', z(0, dtype=self.factory.dtype()))
-            g = h5.create_table('/', 'generations', z(0, dtype=self._generation_dtype()))
+            n = h5.create_table('/', 'networks',
+                                z(0, dtype=self.factory.dtype()))
+            g = h5.create_table('/', 'generations',
+                                z(0, dtype=self._generation_dtype()))
         except:
             # If things fail, then close the h5 file
             h5.close()
@@ -144,9 +149,9 @@ class BaseLineage(object):
             raise LineageError("File is not a pytables")
 
         if self.readonly:
-            mode='r'
+            mode = 'r'
         else:
-            mode='r+'
+            mode = 'r+'
 
         h5 = tables.open_file(str(self.path), mode=mode)
         attrs = h5.root._v_attrs
@@ -155,7 +160,7 @@ class BaseLineage(object):
 
         # Assign the arrays
         self._h5 = h5
-        self._attrs = attrs 
+        self._attrs = attrs
         self._networks = h5.root.networks
         self._generations = h5.root.generations
 
@@ -202,14 +207,17 @@ class BaseLineage(object):
 
         # Only things that can be pickled go in here
         data = Attributes(
-            params = self.params,
-            world = self.world,
-            factory = self.factory,
-            targets = self.targets,
+            params=self.params,
+            world=self.world,
+            factory=self.factory,
+            targets=self.targets,
         )
         # This pickles it all
         self._attrs.data = data
         self._h5.flush()
+
+    def close(self):
+        raise NotImplementedError
 
 
 class SnapshotLineage(BaseLineage):
@@ -235,7 +243,7 @@ class SnapshotLineage(BaseLineage):
 
         # Check how big networks is now...
         start = len(self._networks)
-        
+
         # Add all networks in the population
         arr = self.factory.pop_to_numpy(self.population)
         self._networks.append(arr)
@@ -247,7 +255,8 @@ class SnapshotLineage(BaseLineage):
         self._h5.flush()
 
     def get_generation(self, wanted_g):
-        results = self._generations.read_where('generation == {}'.format(wanted_g))
+        results = self._generations.read_where(
+            'generation == {}'.format(wanted_g))
         if not results:
             return None
         rec = results[0]
@@ -266,7 +275,7 @@ class SnapshotLineage(BaseLineage):
     def close(self):
         # If the latest generation isn't saved, the save it automatically.
         if not self.readonly:
-            g = -1 
+            g = -1
             if len(self._generations) != 0:
                 rec = self._generations[-1]
                 g = rec['generation']
@@ -410,7 +419,6 @@ class Replicate(object):
                 log.error("Error opening existing lineage."
                           "I'm going to create a new one.")
 
-            
         if self.fresh:
             # Make a copy of the parameters, but update the seed. This is the
             # only thing that changes in a replicate! Take a deepcopy so that
@@ -421,8 +429,10 @@ class Replicate(object):
 
         return lin
 
+
 class StopReplicates(Exception):
     pass
+
 
 class Treatment(object):
     """Replicate a set of experiments into different folders"""
@@ -430,7 +440,7 @@ class Treatment(object):
     TREATMENT_FILENAME = 'treatment.pickle'
     DESCRIPTION_FILENAME = 'description.txt'
 
-    def __init__(self, path, params=None, analysis_path=None, overwrite=False, 
+    def __init__(self, path, params=None, analysis_path=None, overwrite=False,
                  full=True, readonly=False):
         # Sort out class to use
         if full:
@@ -464,8 +474,8 @@ class Treatment(object):
             self._load()
 
             if self.params is None:
-                    log.error("Failed to load {}".format(self.filename))
-                    raise LineageError
+                log.error("Failed to load {}".format(self.filename))
+                raise LineageError
 
         self._create()
 
@@ -517,7 +527,8 @@ class Treatment(object):
 
     def _create(self):
         self.rand = random.Random(self.params.seed)
-        self.replicates = [Replicate(self, i) for i in range(self.params.replicates)]
+        self.replicates = [Replicate(self, i) for i in
+                           range(self.params.replicates)]
 
     def _new(self):
         if self.path.exists():
@@ -535,7 +546,7 @@ class Treatment(object):
 
     def _load(self):
         try:
-            f = open(self.filename, 'rb') 
+            f = open(self.filename, 'rb')
             self.params = pickle.load(f)
         except:
             log.error("Error loading treatment file {}".format(self.filename))
