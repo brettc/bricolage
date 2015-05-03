@@ -16,26 +16,37 @@ def bowtie_database():
     db.close()
 
 @pytest.fixture
+def bowtie_env_categories(bowtie_database):
+    """Categorise the targets"""
+    targ = bowtie_database.targets[0]
+    cat_dict = {}
+    cats = []
+    cat_n = 0
+    for et in targ.as_array():
+        et = tuple(et)
+        if et in cat_dict:
+            cats.append(cat_dict[et])
+        else:
+            cat_dict[et] = cat_n
+            cats.append(cat_n)
+            cat_n += 1
+    return cats
+
+@pytest.fixture
 def bowtie_network(bowtie_database):
     return bowtie_database.population.get_best()[0]
 
-def calc_mutual_info(n, func):
+def calc_mutual_info(n, categories):
     w = n.constructor.world
-    cr = range(*w.cue_range)
-    features = []
-
-    for e in w.environments:
-        inputs = [e[i] for i in cr]
-        features.append(func(*inputs))
-    assert len(features) == len(w.environments)
+    assert len(categories) == len(w.environments)
 
     # Features should be consecutive numbers
-    all_feat = set(features)
+    all_feat = set(categories)
     assert all_feat == set(range(len(all_feat)))
 
     reg_base, reg_to = w.reg_range
     channel_dim = reg_to - reg_base
-    feat_dim = len(set(features))
+    feat_dim = len(set(categories))
     state_dim = 2 # on or off
     env_dim = len(w.environments)
 
@@ -43,7 +54,7 @@ def calc_mutual_info(n, func):
     probs = numpy.zeros((channel_dim, feat_dim, state_dim))
 
     for i, channel in enumerate(range(*w.reg_range)):
-        for attrs, feat in zip(n.attractors, features):
+        for attrs, feat in zip(n.attractors, categories):
             p_event = 1.0 / float(env_dim)
 
             # If there is more than one state in the attractor, distribute
@@ -84,11 +95,6 @@ def test_persistence(bowtie_network):
     for r in net.rates:
         assert numpy.allclose(r, numpy.array([1, .5, .25]))
 
-def bowtie_categorize_environment(a, b, c):
-    if (a and not c) or (b and c):
-        return 0
-    return 1
-
 def bowtie_categorize_output(values, matches):
     ret = []
     for v, m in zip(values, matches):
@@ -98,12 +104,12 @@ def bowtie_categorize_output(values, matches):
             ret.append(0)
     return ret
 
-def test_mutual_info_cython(bowtie_network):
+def test_mutual_info_cython(bowtie_network, bowtie_env_categories):
     f = MutualInfoAnalyzer(bowtie_network.constructor.world, 
-                           bowtie_categorize_environment)
+                           bowtie_env_categories)
     j = f.analyse_network(bowtie_network)
     p_joint, p_info = calc_mutual_info(bowtie_network, 
-                                       bowtie_categorize_environment)
+                                       bowtie_env_categories)
     info = Information(j)
     c_info = numpy.asarray(info)[0]
 
@@ -224,7 +230,7 @@ def test_causal_flow_cython(bowtie_network):
     p_info = calc_info_from_causal_flow(bowtie_network, p_joint)
     numpy.testing.assert_allclose(c_info, p_info)
 
-def test_causal_flow_pop(bowtie_database):
+def test_causal_flow_pop(bowtie_database, bowtie_env_categories):
     # This what it was evolved to do (see the generate.py file)
     matches = [1, .5, .25]
     pop = bowtie_database.population
@@ -233,7 +239,7 @@ def test_causal_flow_pop(bowtie_database):
     flow = Information(j_flow)
     c_flow = numpy.asarray(flow)
 
-    f_mut = MutualInfoAnalyzer(bowtie_database.world, bowtie_categorize_environment)
+    f_mut = MutualInfoAnalyzer(bowtie_database.world, bowtie_env_categories)
     j_mut = f_mut.analyse_collection(pop)
     mut = Information(j_mut)
     c_mut = numpy.asarray(mut)
@@ -244,7 +250,7 @@ def test_causal_flow_pop(bowtie_database):
         p_flow = calc_info_from_causal_flow(n, p_joint)
         numpy.testing.assert_allclose(c_flow[i], p_flow)
 
-        _, p_mut = calc_mutual_info(n, bowtie_categorize_environment)
+        _, p_mut = calc_mutual_info(n, bowtie_env_categories)
         numpy.testing.assert_allclose(c_mut[i, :, 0], p_mut)
 
         # It takes too long....

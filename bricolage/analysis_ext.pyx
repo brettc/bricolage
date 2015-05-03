@@ -32,7 +32,6 @@ cdef class NetworkAnalysis:
         self._this.make_active_edges(edges)
         return edges
 
-
 cdef class JointProbabilities:
     def __cinit__(self, World w):
         self.world = w
@@ -111,7 +110,6 @@ cdef class Information:
     def __releasebuffer__(self, Py_buffer *buffer):
         pass
 
-
 cdef class CausalFlowAnalyzer:
     def __cinit__(self, World w, cRates rates):
         assert len(rates) == w.out_channels
@@ -137,15 +135,12 @@ cdef class CausalFlowAnalyzer:
         return j
 
 cdef class MutualInfoAnalyzer:
-    def __cinit__(self, World w, init_func):
+    def __cinit__(self, World w, cIndexes categories):
         self.world = w
-        a, b = self.world._this.cue_range
-        cats = []
-        for i, e in enumerate(self.world.environments):
-            cats.append(init_func(*e.as_array()[a:b]))
+        assert categories.size() == self.world._this.environments.size()
 
         # Make sure the categories are consecutive 0, 1, 2 ...
-        catset = set(cats)
+        catset = set(categories)
         ncats = len(catset)
         if catset != set(range(ncats)):
             raise ValueError("Categories must be consecutively numbered"
@@ -154,7 +149,7 @@ cdef class MutualInfoAnalyzer:
         if ncats < 2:
             raise ValueError("There must be at least two categories")
 
-        self._this = new cMutualInfoAnalyzer(w._shared, cats)
+        self._this = new cMutualInfoAnalyzer(w._shared, categories)
 
     def __dealloc__(self):
         if self._this != NULL:
