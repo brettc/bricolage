@@ -139,13 +139,8 @@ cdef class MutualInfoAnalyzer:
         self.world = w
         assert categories.size() == self.world._this.environments.size()
 
-        # Make sure the categories are consecutive 0, 1, 2 ...
-        catset = set(categories)
+        catset = set(list(categories))
         ncats = len(catset)
-        if catset != set(range(ncats)):
-            raise ValueError("Categories must be consecutively numbered"
-                             " integers from 0 to N")
-        # and there are at least 2
         if ncats < 2:
             raise ValueError("There must be at least two categories")
 
