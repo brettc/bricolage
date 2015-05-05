@@ -684,6 +684,20 @@ cdef class Target:
         def __get__(self):
             return self._this.name
 
-
+    def calc_categies(self):
+        """Categorise the targets"""
+        cat_dict = {}
+        cats = []
+        cat_n = 0
+        for et in self.as_array():
+            et = tuple(et)
+            if et in cat_dict:
+                cats.append(cat_dict[et])
+            else:
+                cat_dict[et] = cat_n
+                cats.append(cat_n)
+                cat_n += 1
+        return cats
+            
 
 
