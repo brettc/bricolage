@@ -311,6 +311,7 @@ def save_network_as_fullgraph(n, path='.', name=None, simplify=True):
         name = n.identifier
     print 'saving', name
     dot.save_picture(str(output_path / "network-{}.png".format(name)))
+    dot.save_dot(str(output_path / "network-{}.dot".format(name)))
 
 
 
