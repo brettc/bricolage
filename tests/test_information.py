@@ -19,18 +19,7 @@ def bowtie_database():
 def bowtie_env_categories(bowtie_database):
     """Categorise the targets"""
     targ = bowtie_database.targets[0]
-    cat_dict = {}
-    cats = []
-    cat_n = 0
-    for et in targ.as_array():
-        et = tuple(et)
-        if et in cat_dict:
-            cats.append(cat_dict[et])
-        else:
-            cat_dict[et] = cat_n
-            cats.append(cat_n)
-            cat_n += 1
-    return cats
+    return targ.calc_categories()
 
 @pytest.fixture
 def bowtie_network(bowtie_database):

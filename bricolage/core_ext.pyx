@@ -684,7 +684,7 @@ cdef class Target:
         def __get__(self):
             return self._this.name
 
-    def calc_categies(self):
+    def calc_categories(self):
         """Categorise the targets"""
         cat_dict = {}
         cats = []
