@@ -9,8 +9,10 @@ Usage:
   bowtie run_all <name> [--overwrite] [--data=<data>] [--output=<output>]
   bowtie draw <name> <function> [--draw_n=<N>] [--overwrite] [--data=<data>] [--output=<output>]
   bowtie speed_all <name> [--data=<data>] [--output=<output>]
-  bowtie list
-  bowtie functions
+  bowtie finalinfo_all <name> [--data=<data>] [--output=<output>]
+  bowtie meaninfo <name> <function> [--replicate=<N>] [--data=<data>] [--output=<output>]
+  bowtie list_experiments
+  bowtie list_functions
   bowtie -h | --help 
   bowtie --version
 
@@ -27,17 +29,10 @@ Options:
 
 __version__ = '0.0.1'
 
-import logging
-logging.basicConfig(
-    format="%(levelname)-8s | %(message)s",
-    level=logging.INFO,
-    # datefmt="%H:%M:%S"
-)
-log = logging.getLogger("")
 
 from docopt import docopt
 import sys
-import pathlib, os
+import pathlib
 import yaml
 from getch import getch, kbhit
 
@@ -50,8 +45,11 @@ sys.path.append(str(PARENT_DIR))
 
 from bricolage import threshold3, lineage, graph
 from boolean_functions import get_functions
-# from bricolage.core_ext import InfoE
-#
+from bricolage.analysis_ext import (MutualInfoAnalyzer,
+                                    CausalFlowAnalyzer, Information)
+
+from utils import Arguments, command, log, ProgramError, make_path
+
 class BowtieError(Exception):
     pass
 
@@ -105,10 +103,11 @@ def draw_net(rep, prefix, net, gen):
         ana = threshold3.NetworkAnalysis(net)
         g = graph.FullGraph(ana)#, knockouts=False)
         d = graph.DotMaker(g)
-        p = str(rep.analysis_path / '{}-G{:07d}-N{:02d}-F{}.png'.format(
-            prefix, gen, net.identifier, net.fitness))
-        log.info("writing {}".format(p))
-        d.save_picture(p)
+        p = rep.analysis_path / '{}-G{:07d}-N{:02d}-F{}.png'.format(
+            prefix, gen, net.identifier, net.fitness)
+        log.info("writing {}".format(str(p)))
+        d.save_picture(str(p))
+        d.save_dot(str(p.with_suffix('.dot')))
 
 def draw_top(rep, maxn):
     with rep.get_lineage() as lin:
@@ -123,7 +122,7 @@ def draw_top(rep, maxn):
 def callback_draw(replicate, draw_n):
     the_lineage = replicate.get_lineage()
     log.info('---> draw: %s', replicate.path)
-    draw_top(replicate, the_lineage, draw_n)
+    draw_top(replicate, draw_n)
     the_lineage.close()
     log.info('---> end: %s', replicate.path)
     
@@ -131,14 +130,14 @@ def get_yaml():
     with open(str(HERE_DIR / 'bowtie.yaml'), 'r') as f:
         return yaml.load(f)
 
-def get_parameters(arguments):
+def get_parameters(args):
     """Load parameters from the yaml file"""
-    name = arguments['<name>']
+    name = args.arguments.name
     try:
         param_args = get_yaml()[name]
     except KeyError:
         log.error("{} was not found in bowtie.yaml".format(name))
-        raise BowtieError
+        raise ProgramError
 
     p = threshold3.Parameters(**param_args)
     p.name = name
@@ -153,35 +152,16 @@ def keyboard_check(replicate, the_lineage):
         # elif c == 's':
         #     the_lineage.save_snapshot()
 
-def make_path(pathname):
-    # The backported version of pathlib doesn't have expanduser!!
-    return pathlib.Path(os.path.expanduser(pathname)).absolute()
 
-def check_folders(arguments):
-    data_base = make_path(arguments['--data'])
-    output_base = make_path(arguments['--output'])
-    for d in (data_base, output_base):
-        if not d.exists():
-            log.error("The folder '{}' doesn't exist".format(str(data_base)))
-            raise BowtieError
-    
-    data_dir = data_base  / arguments['<name>']
-    output_dir = output_base / arguments['<name>']
-    for d in (data_dir, output_dir):
-        if not d.exists():
-            log.info("Making folder {} ...".format(str(data_dir)))
-            d.mkdir()
-
-    arguments['data_dir'] = data_dir 
-    arguments['output_dir'] = output_dir 
-
-def do_list(arguments):
+@command
+def list_experiments(arguments):
     y = get_yaml()
     log.info("Here are available experiments ...")
     for k in y.keys():
         log.info("\t - {}".format(k))
 
-def do_functions():
+@command
+def list_functions(arguments):
     log.info("The boolean functions are ....")
     for i, f in enumerate(get_functions()):
         log.info("{:02d} -- {}".format(i, f[0]))
@@ -195,8 +175,8 @@ def get_name(N):
     desc, boolean_func = get_functions()[N]
     return make_name(desc, N)
 
-def get_name_and_target(arguments, params):
-    N = int(arguments['<function>'])
+def get_name_and_target(args, params):
+    N = args.arguments.function
     desc, boolean_func = get_functions()[N]
     name = make_name(desc, N)
 
@@ -205,7 +185,7 @@ def get_name_and_target(arguments, params):
         make_target = globals()['make_target_%s' % params.target]
     except:
         log.error("Invalid target given")
-        raise BowtieError
+        raise ProgramError
 
     target_func = make_target(boolean_func)
 
@@ -232,7 +212,8 @@ def run_replicate(replicate, target_func, max_gen):
     # When we're done, draw
     log.info('---> end: %s', replicate.path)
 
-def run_command(arguments):
+@command
+def run(arguments):
     """Do the experiment"""
     params=get_parameters(arguments)
     name, target_func = get_name_and_target(arguments, params)
@@ -247,7 +228,7 @@ def run_command(arguments):
         rep_num = int(arguments['--replicate'])
         if not 0 < rep_num < len(treat.replicates):
             log.error("Replicate number not good")
-            raise BowtieError
+            raise ProgramError
         log.info("Running one replicate {}".format(rep_num))
         run_replicate(treat.replicates[rep_num], target_func, params.max_generations)
     else:
@@ -256,13 +237,16 @@ def run_command(arguments):
             run_replicate(rep, target_func, params.max_generations)
             draw_top(rep, 3)
 
-def do_run_all(arguments):
+@command
+def run_all(arguments):
     for i in range(len(get_functions())):
         arguments['<function>'] = str(i)
-        run_command(arguments)
+        run(arguments)
 
-def do_draw(arguments):
-    name, target_func = get_name_and_target(arguments)
+@command
+def draw(arguments):
+    params=get_parameters(arguments)
+    name, target_func = get_name_and_target(arguments, params)
     treat = lineage.Treatment(
         arguments['data_dir'] / name, 
         analysis_path = arguments['output_dir'] / name,
@@ -274,8 +258,8 @@ def all_existing(arguments):
         name = get_name(i)
         try:
             treat = lineage.Treatment(
-                arguments['data_dir'] / name, 
-                analysis_path = arguments['output_dir'] / name,
+                arguments.options.data_dir / name, 
+                analysis_path = arguments.options.output_dir / name,
                 readonly = True,
             )
         except lineage.LineageError:
@@ -284,21 +268,63 @@ def all_existing(arguments):
         for rep in treat.replicates:
             try:
                 with rep.get_lineage(readonly=True) as lin:
-                    yield treat, rep, lin
+                    yield i, name, treat, rep, lin
             except lineage.LineageError:
                 # Ignore stuff that hasn't been created
                 pass
 
-def do_speed_all(arguments):
+@command
+def finalinfo_all(arguments):
+    # This flattens everything out
+    treats = []
+    reps = []
+    func_number = []
+    signals = []
+    fits = []
+
+    for fno, name, treat, rep, lin in all_existing(arguments):
+        # Construct the analyzers
+        a_flow = CausalFlowAnalyzer(lin.world, [0, .5, .25])
+        p_flow = a_flow.analyse_collection(lin.population)
+        flow = Information(p_flow)
+        mean_info = np.asarray(flow).max(axis=0).ravel()
+        max_info = mean_info.max()
+        w, b = lin.population.worst_and_best()
+
+        log.info("Doing T{}, R{}, info {}, fit {}".format(name, rep, max_info, b))
+
+        signals.append(max_info)
+        fits.append(b)
+        treats.append(name)
+        func_number.append(fno)
+        reps.append(rep.sequence)
+
+    data=dict(
+        treatment=treats,
+        function=func_number,
+        replicate=reps,
+        max_info=signals,
+        max_fitness=fits,
+    )
+    # signals = np.array(signals).T
+    # for i in range(lin.world.reg_channels):
+        # data['S{}'.format(i+1)] = signals[i]
+
+    df = pd.DataFrame(data)
+    df.to_pickle(str(arguments['output_dir'] / 'signals.pickle'))
+
+@command
+def speed_all(arguments):
     # This flattens everything out
     gens = []
     treats = []
     reps = []
+    func_number = []
 
-    for treat, rep, lin in all_existing(arguments):
+    for fno, name, treat, rep, lin in all_existing(arguments):
         # Where did we find the first 1.0
         fits = lin._generations[:]['best']
-        best = np.isclose(fits, 1.0) #np.ones(len(fits)))
+        best = np.isclose(fits, 1.0)
         if np.any(best):
             gen = np.argmax(best)
             pop_g = lin.get_generation(gen)
@@ -308,47 +334,74 @@ def do_speed_all(arguments):
         else:
             gen = None
 
-        log.info('first found 1.0 at {} generation'.format(gen))
-        treats.append(treat.name)
+        log.info('{}, rep {}, first found 1.0 at {} generation'.format(
+            name, rep.sequence, gen))
+        treats.append(name)
+        func_number.append(fno)
         reps.append(rep.sequence)
         gens.append(gen)
 
     df = pd.DataFrame(data=dict(
         treatment=treats,
+        function=func_number,
         replicate=reps,
         generations=gens,
     ))
     df.to_pickle(str(arguments['output_dir'] / 'speed.pickle'))
 
-def main(arguments):
-    try:
-        if arguments['functions']:
-            do_functions()
-        elif arguments['list']:
-            do_list(arguments)
-        elif arguments['run']:
-            check_folders(arguments)
-            run_command(arguments)
-        elif arguments['run_all']:
-            check_folders(arguments)
-            do_run_all(arguments)
-        elif arguments['draw']:
-            check_folders(arguments)
-            do_draw(arguments)
-        elif arguments['speed_all']:
-            check_folders(arguments)
-            do_speed_all(arguments)
+@command
+def meaninfo(args):
+    params = get_parameters(arguments)
+    name, target_func = get_name_and_target(arguments, params)
+    treat = lineage.Treatment(
+        args.options.data_dir / name, 
+        analysis_path=args.options.output_dir / name,
+        params=params,
+    )
+    print treat
+    print args.options.replicate
+    with treat.replicates[0].get_lineage() as lin:
+        flow_a = CausalFlowAnalyzer(lin.world, [0, .5, .25])
+        for i, g in lin.all_generations():
+            p_flow = flow_a.analyse_collection(g)
+            i_flow = Information(p_flow)
+            mean_info = np.asarray(i_flow).mean()
+            print i, mean_info
+        #
+        #
 
-    except BowtieError:
-        # These are the errors that we generate!
-        log.error("Error: exiting program...")
-        return 1
 
-    # TODO: Handle UserBreak?
-    except:
-        raise
-    return 0
+class MyArguments(Arguments):
+    def pre_run(self):
+        """Translate the folder names into paths"""
+        if self.arguments.function is not None:
+            self.arguments.function = int(self.arguments.function)
+
+        if self.options.data is None \
+                or self.options.output is None \
+                or self.arguments.name is None:
+            return 
+
+        data_base =  make_path(self.options.data)
+        output_base =  make_path(self.options.output)
+
+        for d in (data_base, output_base):
+            if not d.exists():
+                log.error("The folder '{}' doesn't exist".format(str(data_base)))
+                raise ProgramError
+
+        data_dir = data_base  / self.arguments.name
+        output_dir = output_base / self.arguments.name
+
+        for d in (data_dir, output_dir):
+            if not d.exists():
+                log.info("Making folder {} ...".format(str(d)))
+                d.mkdir()
+
+        self.options.data_dir = data_dir 
+        self.options.output_dir = output_dir 
+        
 
 if __name__ == "__main__":
-    arguments = docopt(__doc__, version=__version__)
-    sys.exit(main(arguments))
+    arguments = MyArguments(docopt(__doc__, version=__version__))
+    sys.exit(arguments.run())

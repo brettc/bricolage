@@ -7,8 +7,20 @@ single_output:
     out_channels: 1
     population_size: 1000
     mutation_rate: 0.001
+    replicates: 2
+    max_generations: 500
+
+simple:
+    seed: 10
+    target: "simple"
+    cis_count: 3
+    cue_channels: 3
+    reg_channels: 8
+    out_channels: 3
+    population_size: 1000
+    mutation_rate: 0.002
     replicates: 20
-    max_generations: 6000
+    max_generations: 10000
 
 three:
     seed: 10
@@ -43,17 +55,4 @@ five:
     mutation_rate: 0.002
     replicates: 20
     max_generations: 50000
-
-simple:
-    seed: 10
-    target: "simple"
-    cis_count: 3
-    cue_channels: 3
-    reg_channels: 8
-    out_channels: 3
-    population_size: 1000
-    mutation_rate: 0.002
-    replicates: 20
-    max_generations: 10000
-
 
