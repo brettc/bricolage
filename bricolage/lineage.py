@@ -338,6 +338,12 @@ class FullLineage(BaseLineage):
         gen_pop.assess(self.targets[t_index])
         return gen_pop
 
+    def all_generations(self):
+        g = 0
+        while g <= self.get_generation:
+            yield g, self.get_generation(g)
+            g += 1
+
     def get_ancestry(self, ident):
         nets = []
         findident = ident
