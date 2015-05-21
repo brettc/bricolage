@@ -21,6 +21,7 @@ simple:
     mutation_rate: 0.002
     replicates: 20
     max_generations: 10000
+    flow_test: "simple3"
 
 three:
     seed: 10
@@ -33,6 +34,7 @@ three:
     mutation_rate: 0.002
     replicates: 20
     max_generations: 100000
+    flow_test: "complex3"
 
 four:
     seed: 10

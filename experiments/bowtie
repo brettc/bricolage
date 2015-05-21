@@ -47,11 +47,17 @@ from bricolage import threshold3, lineage, graph
 from boolean_functions import get_functions
 from bricolage.analysis_ext import (MutualInfoAnalyzer,
                                     CausalFlowAnalyzer, Information)
+from bricolage.analysis import LineageSummarizer
 
 from utils import Arguments, command, log, ProgramError, make_path
 
 class BowtieError(Exception):
     pass
+
+outputs = {
+    'complex3': [1, .5, .25],
+    'simple3': [0, 1, 1],
+}
 
 def make_target_single_output(oldf):
     def new_f(a, b, c):
@@ -152,20 +158,6 @@ def keyboard_check(replicate, the_lineage):
         # elif c == 's':
         #     the_lineage.save_snapshot()
 
-
-@command
-def list_experiments(arguments):
-    y = get_yaml()
-    log.info("Here are available experiments ...")
-    for k in y.keys():
-        log.info("\t - {}".format(k))
-
-@command
-def list_functions(arguments):
-    log.info("The boolean functions are ....")
-    for i, f in enumerate(get_functions()):
-        log.info("{:02d} -- {}".format(i, f[0]))
-
 def make_name(desc, N):
     desc = desc.replace(' ', '-')
     name = "{:02d}-{}".format(N, desc)
@@ -195,9 +187,7 @@ def run_replicate(replicate, target_func, max_gen):
     the_lineage = replicate.get_lineage()
     if replicate.fresh:
         the_lineage.add_target(target_func)
-        assert len(the_lineage.targets) == 1
-    else:
-        assert len(the_lineage.targets) == 1
+    assert len(the_lineage.targets) == 1
 
     log.info('---> begin: %s', replicate.path)
     while the_lineage.generation < max_gen:
@@ -211,6 +201,19 @@ def run_replicate(replicate, target_func, max_gen):
     the_lineage.close()
     # When we're done, draw
     log.info('---> end: %s', replicate.path)
+
+@command
+def list_experiments(arguments):
+    y = get_yaml()
+    log.info("Here are available experiments ...")
+    for k in y.keys():
+        log.info("\t - {}".format(k))
+
+@command
+def list_functions(arguments):
+    log.info("The boolean functions are ....")
+    for i, f in enumerate(get_functions()):
+        log.info("{:02d} -- {}".format(i, f[0]))
 
 @command
 def run(arguments):
@@ -274,7 +277,7 @@ def all_existing(arguments):
                 pass
 
 @command
-def finalinfo_all(arguments):
+def finalinfo_all(args):
     # This flattens everything out
     treats = []
     reps = []
@@ -349,26 +352,32 @@ def speed_all(arguments):
     ))
     df.to_pickle(str(arguments['output_dir'] / 'speed.pickle'))
 
+
+def calc_info(params, rep, lin):
+    targ = lin.targets[0]
+    flow = outputs[params.flow_test]
+    lineage_sum = LineageSummarizer(lin, targ, flow)
+
+    for i, g in lineage_sum.calc_generations():
+        print rep, i, g
+
+    df = lineage_sum.get_frame()
+    p = rep.analysis_path / 'lineage.pickle'
+    log.info('saving %s', str(p))
+    df.to_pickle(str(p))
+
 @command
 def meaninfo(args):
-    params = get_parameters(arguments)
-    name, target_func = get_name_and_target(arguments, params)
+    params = get_parameters(args)
+    name, target_func = get_name_and_target(args, params)
     treat = lineage.Treatment(
         args.options.data_dir / name, 
         analysis_path=args.options.output_dir / name,
         params=params,
     )
-    print treat
-    print args.options.replicate
-    with treat.replicates[0].get_lineage() as lin:
-        flow_a = CausalFlowAnalyzer(lin.world, [0, .5, .25])
-        for i, g in lin.all_generations():
-            p_flow = flow_a.analyse_collection(g)
-            i_flow = Information(p_flow)
-            mean_info = np.asarray(i_flow).mean()
-            print i, mean_info
-        #
-        #
+    for rep in treat.replicates:
+        with rep.get_lineage() as lin:
+            calc_info(params, rep, lin)
 
 
 class MyArguments(Arguments):
