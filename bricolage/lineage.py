@@ -340,7 +340,7 @@ class FullLineage(BaseLineage):
 
     def all_generations(self):
         g = 0
-        while g <= self.get_generation:
+        while g <= self.generation:
             yield g, self.get_generation(g)
             g += 1
 
