@@ -64,6 +64,12 @@ double cTarget::assess(const cNetwork &net) const
     return score;
 }
 
+void cTarget::assess_networks(cNetworkVector &networks) const
+{
+    for (auto net: networks)
+        net->fitness = assess(*net);
+}
+
 cSelectionModel::cSelectionModel(cWorld_ptr &w)
     : world(w)
 {

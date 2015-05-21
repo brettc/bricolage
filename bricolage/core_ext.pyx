@@ -538,6 +538,15 @@ cdef class CollectionBase:
         for i in range(self._collection.size()):
             yield self.get_at(i)
 
+    def assess(self, Target target):
+        target._this.assess_networks(deref(self._collection))
+
+    def get_fitnesses(self, np.double_t[:] fits):
+        assert fits.shape[0] == self.size
+        cdef size_t i
+        for i in range(self._collection.size()):
+            fits[i] = deref(self._collection)[i].get().fitness
+
 cdef class Collection(CollectionBase):
     def __cinit__(self, Constructor c, size_t size=0):
         self._this = new cNetworkVector()
@@ -560,7 +569,19 @@ cdef class Ancestry(CollectionBase):
             self._this.front().get().generation,
             self._this.back().get().generation,
         )
+
+    def network_at_generation(self, size_t gen):
+        # Should really use binary search ...
+        cdef size_t i
+        for i in range(self._this.size() - 1):
+            if deref(self._this)[i].get().generation > gen:
+                break
+        else:
+            # If we hit the end actually return the last one
+            i += 1
+        return self.get_at(i - 1)
         
+
     def __dealloc__(self):
         del self._this
 
@@ -588,6 +609,7 @@ cdef class Population(CollectionBase):
             best.append(self[ndx])
         return best
 
+
     property site_count:
         def __get__(self):
             return self._this.constructor.get().site_count(self._this.networks)
@@ -606,8 +628,6 @@ cdef class Population(CollectionBase):
     def mutate(self, double site_rate, int generation=0):
         return self._this.mutate(site_rate, generation)
 
-    def assess(self, Target target):
-        self._this.assess(deref(target._this))
 
     def select(self, SelectionModel sm, size=None):
         cdef size_t s
@@ -672,6 +692,9 @@ cdef class Target:
     def assess(self, Network net):
         # assert net.constructor.world is self.world
         return self._this.assess(deref(net._this));
+
+    def assess_collection(self, CollectionBase coll):
+        self._this.assess_networks(deref(coll._collection));
 
     def as_array(self):
         return numpy.array(self._this.optimal_rates)

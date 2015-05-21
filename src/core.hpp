@@ -250,6 +250,7 @@ struct cTarget
     // TODO: per env weighting
     // TODO: per output weighting
     double assess(const cNetwork &net) const;
+    void assess_networks(cNetworkVector &networks) const;
 };
 
 

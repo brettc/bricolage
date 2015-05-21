@@ -117,6 +117,7 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
     cdef cppclass cTarget:
         cTarget(cWorld_ptr &w, string name, int_t ident)
         double assess(cNetwork &net)
+        void assess_networks(cNetworkVector &networks)
         cWorld *factory
         int_t identifier
         string name
