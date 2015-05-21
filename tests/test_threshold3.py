@@ -1,6 +1,8 @@
 import cPickle as pickle
+import numpy
 from bricolage.threshold3 import (
     World, Parameters, Target, Constructor, Population, SelectionModel)
+
 
 def xor_func(a, b):
     return (a or b) and not (a and b)
@@ -37,6 +39,8 @@ def test_population():
     world = World(params)
     const = Constructor(world)
     popul = Population(const, 1000)
+    f = numpy.zeros(1000)
+    popul.get_fitnesses(f)
     print popul[0].attractors[1]
 
 def test_xor():
