@@ -25,10 +25,17 @@ class LineageSummarizer(object):
         regs = self.params.reg_channels
 
         desc = [
+            # Fitnesses
             ('F_25', np.double),
             ('F_50', np.double),
             ('F_75', np.double),
 
+            # Flow Totals
+            ('CT_25', np.double),
+            ('CT_50', np.double),
+            ('CT_75', np.double),
+
+            # Flow Totals per gene
             ('C_25', (np.double, regs)),
             ('C_50', (np.double, regs)),
             ('C_75', (np.double, regs)),
@@ -37,6 +44,7 @@ class LineageSummarizer(object):
         return np.dtype(desc)
 
     def calc_generations(self):
+        # Yielding allows control from caller
         for i, g in self._lineage.all_generations():
             self._calc(i, g)
             yield i, g
@@ -47,21 +55,33 @@ class LineageSummarizer(object):
         self.data['F_25'][i] = np.percentile(fits, 25)
         self.data['F_50'][i] = np.percentile(fits, 50)
         self.data['F_75'][i] = np.percentile(fits, 75)
-
+        
         cj = self._cf.analyse_collection(g)
         ci = np.asarray(Information(cj))
+
+        # Sum the information across the multiple outputs
         csummed = ci.sum(axis=2)
-        self.data['C_25'][i] = np.percentile(csummed, 25)
-        self.data['C_50'][i] = np.percentile(csummed, 50)
-        self.data['C_75'][i] = np.percentile(csummed, 75)
+        self.data['C_25'][i] = np.percentile(csummed, 25, axis=0)
+        self.data['C_50'][i] = np.percentile(csummed, 50, axis=0)
+        self.data['C_75'][i] = np.percentile(csummed, 75, axis=0)
+
+        # Now get the whole sum
+        ctot = csummed.sum(axis=1)
+        self.data['CT_25'][i] = np.percentile(ctot, 25)
+        self.data['CT_50'][i] = np.percentile(ctot, 50)
+        self.data['CT_75'][i] = np.percentile(ctot, 75)
+        
 
     def get_frame(self):
         # Spread the frames out...
         d = {}
         for i in 25, 50, 75:
-            s = 'F_' + str(i)
-            d[s] = self.data[s]
+            f = 'F_' + str(i)
+            ct = 'CT_' + str(i)
+            d[f] = self.data[f]
+            d[ct] = self.data[ct]
 
+        # We have to flatten this out for pandas
         regs = self.params.reg_channels
         for c in range(regs):
             for i in 25, 50, 75:
@@ -90,6 +110,7 @@ def make_population_frames(pop, target, flow):
     msummed = mi.sum(axis=2)
     mframe = pd.DataFrame(msummed)
     mframe.columns = ["M{}".format(i) for i in range(1, len(mframe.columns) + 1)]
+
 
     return fits_frame, mframe, cframe
 
