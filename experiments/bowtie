@@ -45,8 +45,8 @@ sys.path.append(str(PARENT_DIR))
 
 from bricolage import threshold3, lineage, graph
 from boolean_functions import get_functions
-from bricolage.analysis_ext import (MutualInfoAnalyzer,
-                                    CausalFlowAnalyzer, Information)
+from bricolage.analysis_ext import (MutualInfoAnalyzer, CausalFlowAnalyzer,
+                                    Information, NetworkAnalysis)
 from bricolage.analysis import LineageSummarizer
 
 from utils import Arguments, command, log, ProgramError, make_path
@@ -276,6 +276,18 @@ def all_existing(arguments):
                 # Ignore stuff that hasn't been created
                 pass
 
+def best_cut(collection):
+    cuts = []
+    for n in collection:
+        ana = NetworkAnalysis(n)
+        fg = graph.SignalFlowGraph(ana)
+        mc = fg.minimum_cut()
+        if mc is None:
+            cuts.append(99)
+        else:
+            cuts.append(len(mc))
+    return min(cuts)
+
 @command
 def finalinfo_all(args):
     # This flattens everything out
@@ -284,18 +296,23 @@ def finalinfo_all(args):
     func_number = []
     signals = []
     fits = []
+    cuts = []
+    params = get_parameters(args)
+    reqd_outputs = outputs[params.flow_test]
 
     for fno, name, treat, rep, lin in all_existing(arguments):
         # Construct the analyzers
-        a_flow = CausalFlowAnalyzer(lin.world, [0, .5, .25])
+        a_flow = CausalFlowAnalyzer(lin.world, reqd_outputs)
         p_flow = a_flow.analyse_collection(lin.population)
         flow = Information(p_flow)
         mean_info = np.asarray(flow).max(axis=0).ravel()
         max_info = mean_info.max()
         w, b = lin.population.worst_and_best()
+        bc = best_cut(lin.population)
 
-        log.info("Doing T{}, R{}, info {}, fit {}".format(name, rep, max_info, b))
+        log.info("Doing T{}, R{}, info {}, fit {}, cut {}".format(name, rep, max_info, b, bc))
 
+        cuts.append(bc)
         signals.append(max_info)
         fits.append(b)
         treats.append(name)
@@ -306,15 +323,13 @@ def finalinfo_all(args):
         treatment=treats,
         function=func_number,
         replicate=reps,
+        best_cut=cuts,
         max_info=signals,
         max_fitness=fits,
     )
-    # signals = np.array(signals).T
-    # for i in range(lin.world.reg_channels):
-        # data['S{}'.format(i+1)] = signals[i]
 
     df = pd.DataFrame(data)
-    df.to_pickle(str(arguments['output_dir'] / 'signals.pickle'))
+    df.to_pickle(str(args.options.output_dir / 'signals.pickle'))
 
 @command
 def speed_all(arguments):
