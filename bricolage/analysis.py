@@ -4,8 +4,9 @@
 import numpy as np
 import pandas as pd
 
-from analysis_ext import MutualInfoAnalyzer, CausalFlowAnalyzer, Information
+from analysis_ext import MutualInfoAnalyzer, CausalFlowAnalyzer, Information, NetworkAnalysis
 from lineage import FullLineage
+from graph import SignalFlowGraph
 
 class LineageSummarizer(object):
     def __init__(self, lin, target, flow):
@@ -96,6 +97,14 @@ def make_population_frames(pop, target, flow):
     # Create the fitnesses
     fits_frame = pd.DataFrame({'fitness': [n.fitness for n in pop]})
 
+    cuts = []
+    for n in pop:
+        ana = NetworkAnalysis(n)
+        fg = SignalFlowGraph(ana)
+        cuts.append(len(fg.minimum_cut()))
+
+    cuts_frame = pd.DataFrame({'cuts': cuts})
+
     # The causal flow analysis
     cf = CausalFlowAnalyzer(pop.constructor.world, flow)
     cj = cf.analyse_collection(pop)
@@ -111,15 +120,15 @@ def make_population_frames(pop, target, flow):
     mframe = pd.DataFrame(msummed)
     mframe.columns = ["M{}".format(i) for i in range(1, len(mframe.columns) + 1)]
 
-
-    return fits_frame, mframe, cframe
+    return fits_frame, cuts_frame, mframe, cframe
 
 
 def make_ancestry_frames(anc, target, flow):
     target.assess_collection(anc)
 
     # Create a generations dataframe for indexing
-    gens = pd.DataFrame({'generation': [n.generation for n in anc]})
+    # gens = pd.DataFrame({'generation': [n.generation for n in anc]})
+    gens = np.asarray([n.generation for n in anc], dtype=np.int64)
 
     # Create the fitnesses
     fits_frame = pd.DataFrame({'fitness': [n.fitness for n in anc]})
@@ -144,3 +153,25 @@ def make_ancestry_frames(anc, target, flow):
     mframe.columns = ["M{}".format(i) for i in range(1, len(mframe.columns) + 1)]
 
     return fits_frame, mframe, cframe
+
+
+def make_cut_frame(anc):
+    gens = []
+    cuts = []
+
+    for n in anc:
+        gens.append(n.generation)
+        ana = NetworkAnalysis(n)
+        fg = SignalFlowGraph(ana)
+        cuts.append(len(fg.minimum_cut()))
+
+    df = pd.DataFrame({'cuts': cuts})
+    df.index = gens
+    return df
+
+
+
+
+
+
+
