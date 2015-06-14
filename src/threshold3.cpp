@@ -5,18 +5,35 @@
 
 using namespace thresh3;
 
-cConstructor::cConstructor(const pubsub2::cWorld_ptr &w, size_t cc, MutateType mt)
+cConstructor::cConstructor(const pubsub2::cWorld_ptr &w, size_t cc, 
+                           const MutateType mtype)
     : pubsub2::cConstructor(w)
     , gene_count(w->reg_channels + w->out_channels)
     , module_count(cc)
-    , mutate_type(mt)
+    , mutate_type(mtype)
     , r_gene(random_int_range(0, gene_count, w))
     , r_module(random_int_range(0, module_count, w))
     , r_site(random_int_range(0, 3, w))
     , r_binding(random_int_range(-3, 4, w))
     , r_direction(random_int_range(0, 2, w))
-    , r_input(random_int_range(w->sub_range.first, w->sub_range.second, w))
 {
+    for (size_t i = w->sub_range.first; i < w->sub_range.second; ++i)
+        draw_from_subs.push_back(i);
+
+    r_sub = random_int_range(0, draw_from_subs.size(), w);
+
+}
+
+void cConstructor::set_draw_from_subs(const pubsub2::cIndexes &dsubs)
+{
+    if (dsubs.size() == 0)
+        throw std::runtime_error("VARIABLE mutation requires subs");
+    for (auto s: dsubs)
+        if (s < world->sub_range.first || s >= world->sub_range.second)
+            throw std::runtime_error("VARIABLE mutation has invalid subs");
+
+    draw_from_subs = dsubs;
+    r_sub = random_int_range(0, draw_from_subs.size(), world);
 }
 
 // Construct a brand new Network with random stuff.
@@ -41,7 +58,7 @@ pubsub2::cNetwork_ptr cConstructor::construct(bool fill)
                 auto &m = g.modules.back();
                 for (size_t i = 0; i < 3; ++i)
                 {
-                    m.channels[i] = r_input();
+                    m.channels[i] = draw_from_subs[r_sub()];
                     m.binding[i] = r_binding();
                 }
             }
@@ -86,18 +103,17 @@ cCisModule::cCisModule(const cConstructor &c)
 // This is where the action really is.
 void cCisModule::mutate(const cConstructor &c)
 {
+    size_t site = c.r_site();
     switch (c.mutate_type) 
     {
     case JUMP:
         {
-            size_t i = c.r_site();
-            channels[i] = c.r_input();
-            binding[i] = c.r_binding();
+            channels[site] = c.draw_from_subs[c.r_sub()];
+            binding[site] = c.r_binding();
         }
         break;
     case PROGRESSIVE:
         {
-            size_t site = c.r_site();
             pubsub2::int_t current = binding[site];
 
             pubsub2::int_t mutate;
@@ -110,10 +126,9 @@ void cCisModule::mutate(const cConstructor &c)
                 mutate = c.r_direction() * 2 - 1;
 
             // If we're at zero, possibly change into a different binding 
-            // TODO: Have a set of probabilities for the different channels?
-            // Esp the zero channel?
             if (current == 0)
-                channels[site] = c.r_input();
+                // Randomly draw from the provided list
+                channels[site] = c.draw_from_subs[c.r_sub()];
 
             binding[site] += mutate;
         }

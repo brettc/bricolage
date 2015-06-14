@@ -26,6 +26,7 @@ class Parameters(object):
         self.selection_class = SelectionModel
         self.population_size = 100
         self.mutate_type = MutateType.JUMP
+        self.add_zeros = 0
 
         self._override(kwargs)
 

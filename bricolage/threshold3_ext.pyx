@@ -19,10 +19,7 @@ def _construct_factory(core_ext.World w):
 cdef class Constructor(core_ext.Constructor):
     def __cinit__(self, core_ext.World w):
         # Hack for old stored classes
-        if not hasattr(w._params, 'mutate_type'):
-            mt = 0
-        else:
-            mt = w._params.mutate_type
+        mt = w._params.__dict__.get('mutate_type', 0)
 
         self._shared = core.cConstructor_ptr(new cConstructor(
             w._shared,
@@ -33,6 +30,19 @@ cdef class Constructor(core_ext.Constructor):
 
         # Specialise the python classes
         self.module_class = CisModule
+
+    def __init__(self, core_ext.World w):
+        addz = w._params.__dict__.get('add_zeros', 0)
+        if addz > 0:
+            self.draw_from_subs += [0] * addz
+
+    property draw_from_subs:
+        def __get__(self):
+            cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 
+            return c.draw_from_subs
+        def __set__(self, core.cIndexes dsubs):
+            cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 
+            c.set_draw_from_subs(dsubs)
 
     def __reduce__(self):
         return _construct_factory, (self.world, )

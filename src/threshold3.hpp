@@ -19,8 +19,12 @@ public:
                  const MutateType mtype);
     size_t gene_count, module_count;
     MutateType mutate_type;
+    pubsub2::cIndexes draw_from_subs; // A vector of sub values that is used to draw from
     random_int_t r_gene, r_module, r_site;
-    random_int_t r_binding, r_direction, r_input;
+    random_int_t r_binding, r_direction;
+    random_int_t r_sub;
+
+    void set_draw_from_subs(const pubsub2::cIndexes &d);
 
     // Overrides
     pubsub2::cNetwork_ptr construct(bool fill);
