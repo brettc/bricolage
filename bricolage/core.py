@@ -8,6 +8,10 @@ class InterventionState(IntEnum):
     INTERVENE_ON = 1
     INTERVENE_OFF = 2
 
+class MutateType(IntEnum):
+    JUMP = 0
+    PROGRESSIVE = 1
+
 class Parameters(object):
 
     def __init__(self, **kwargs):
@@ -21,6 +25,7 @@ class Parameters(object):
         self.out_channels = 1
         self.selection_class = SelectionModel
         self.population_size = 100
+        self.mutate_type = MutateType.JUMP
 
         self._override(kwargs)
 

@@ -328,7 +328,7 @@ cdef class Network:
         self._attractors = None
         self._rates = None
 
-    def _evil_mutate(self, size_t nmutations):
+    def mutate(self, size_t nmutations):
         """Mutate the network. 
 
         This invalidates lots of assumptions required for selection to work
@@ -547,6 +547,7 @@ cdef class CollectionBase:
         for i in range(self._collection.size()):
             fits[i] = deref(self._collection)[i].get().fitness
 
+
 cdef class Collection(CollectionBase):
     def __cinit__(self, Constructor c, size_t size=0):
         self._this = new cNetworkVector()
@@ -554,6 +555,21 @@ cdef class Collection(CollectionBase):
 
     def __dealloc__(self):
         del self._this
+
+    def fill(self, Network n, size_t size):
+        cdef size_t i
+        for i in range(size):
+            self._this.push_back(n._this.clone())
+
+    def fill_with_mutations(self, Network n, np.int_t[:] mutations):
+        cdef:
+            size_t i
+            size_t sz = mutations.shape[0]
+            cConstructor *con = n._this.constructor.get()
+
+        for i in range(sz):
+            self._this.push_back(
+                con.clone_and_mutate_network(n._shared, mutations[i], 1))
 
 cdef class Ancestry(CollectionBase):
     def __cinit__(self, Constructor c, size_t size=0):
@@ -609,7 +625,6 @@ cdef class Population(CollectionBase):
             best.append(self[ndx])
         return best
 
-
     property site_count:
         def __get__(self):
             return self._this.constructor.get().site_count(self._this.networks)
@@ -627,7 +642,6 @@ cdef class Population(CollectionBase):
 
     def mutate(self, double site_rate, int generation=0):
         return self._this.mutate(site_rate, generation)
-
 
     def select(self, SelectionModel sm, size=None):
         cdef size_t s

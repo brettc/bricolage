@@ -18,9 +18,16 @@ def _construct_factory(core_ext.World w):
 
 cdef class Constructor(core_ext.Constructor):
     def __cinit__(self, core_ext.World w):
+        # Hack for old stored classes
+        if not hasattr(w._params, 'mutate_type'):
+            mt = 0
+        else:
+            mt = w._params.mutate_type
+
         self._shared = core.cConstructor_ptr(new cConstructor(
             w._shared,
             w._params.cis_count,
+            mt,
         ))
         self._this = self._shared.get()
 

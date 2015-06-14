@@ -134,6 +134,15 @@ cdef class CausalFlowAnalyzer:
         j.bind(c_joint)
         return j
 
+    def numpy_info_from_collection(self, CollectionBase coll):
+        i = Information(self.analyse_collection(coll))
+        return np.asarray(i)
+
+    def numpy_info_from_network(self, Network n):
+        i = Information(self.analyse_network(n))
+        return np.asarray(i)
+
+
 cdef class MutualInfoAnalyzer:
     def __cinit__(self, World w, cIndexes categories):
         self.world = w
@@ -163,3 +172,11 @@ cdef class MutualInfoAnalyzer:
         c_joint = self._this.analyse_collection(deref(coll._collection))
         j.bind(c_joint)
         return j
+
+    def numpy_info_from_network(self, Network n):
+        i = Information(self.analyse_network(n))
+        return np.asarray(i)
+
+    def numpy_info_from_collection(self, CollectionBase coll):
+        i = Information(self.analyse_collection(coll))
+        return np.asarray(i)
