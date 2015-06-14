@@ -44,6 +44,7 @@ PARENT_DIR = HERE_DIR.parent
 sys.path.append(str(PARENT_DIR))
 
 from bricolage import threshold3, lineage, graph
+from bricolage.core import MutateType
 from boolean_functions import get_functions
 from bricolage.analysis_ext import (MutualInfoAnalyzer, CausalFlowAnalyzer,
                                     Information, NetworkAnalysis)
@@ -145,6 +146,12 @@ def get_parameters(args):
         log.error("{} was not found in bowtie.yaml".format(name))
         raise ProgramError
 
+    try:
+        # Translate the string into type
+        mt = param_args['mutate_type']
+        param_args['mutate_type'] = MutateType[mt]
+    except KeyError:
+        pass
     p = threshold3.Parameters(**param_args)
     p.name = name
     return p
@@ -221,14 +228,14 @@ def run(arguments):
     params=get_parameters(arguments)
     name, target_func = get_name_and_target(arguments, params)
     treat = lineage.Treatment(
-        arguments['data_dir'] / name, 
-        analysis_path = arguments['output_dir'] / name,
+        arguments.options.data_dir / name, 
+        analysis_path = arguments.options.output_dir / name,
         params=params,
-        overwrite=arguments['--overwrite']
+        overwrite=arguments.options.overwrite
     )
 
-    if arguments['--replicate']:
-        rep_num = int(arguments['--replicate'])
+    if arguments.options.replicate:
+        rep_num = int(arguments.options.replicate)
         if not 0 < rep_num < len(treat.replicates):
             log.error("Replicate number not good")
             raise ProgramError
@@ -243,7 +250,7 @@ def run(arguments):
 @command
 def run_all(arguments):
     for i in range(len(get_functions())):
-        arguments['<function>'] = str(i)
+        arguments.arguments.function = i
         run(arguments)
 
 @command

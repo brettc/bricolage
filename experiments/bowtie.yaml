@@ -23,6 +23,20 @@ simple:
     max_generations: 10000
     flow_test: "simple3"
 
+bowtie_simple:
+    seed: 10
+    target: "simple"
+    cis_count: 3
+    cue_channels: 3
+    reg_channels: 8
+    out_channels: 3
+    population_size: 1000
+    mutation_rate: 0.002
+    replicates: 20
+    max_generations: 50000
+    flow_test: "simple3"
+    mutate_type: "PROGRESSIVE"
+
 three:
     seed: 10
     target: "function_3"
@@ -35,6 +49,20 @@ three:
     replicates: 20
     max_generations: 100000
     flow_test: "complex3"
+
+bowtie_cycles:
+    seed: 10
+    target: "function_3"
+    cis_count: 3
+    cue_channels: 3
+    reg_channels: 8
+    out_channels: 3
+    population_size: 1000
+    mutation_rate: 0.005
+    replicates: 20
+    max_generations: 100000
+    flow_test: "complex3"
+    mutate_type: "PROGRESSIVE"
 
 four:
     seed: 10
