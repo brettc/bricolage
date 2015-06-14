@@ -72,7 +72,6 @@ class LineageSummarizer(object):
         self.data['CT_50'][i] = np.percentile(ctot, 50)
         self.data['CT_75'][i] = np.percentile(ctot, 75)
         
-
     def get_frame(self):
         # Spread the frames out...
         d = {}
@@ -91,37 +90,46 @@ class LineageSummarizer(object):
                 d[to] = self.data[fr][:, c]
         return pd.DataFrame(d)
 
-
-def make_population_frames(pop, target, flow):
+def make_population_frames(pop, target, flow, do_cuts=True):
     # Assumption -- fitness is calculated!
     # Create the fitnesses
-    fits_frame = pd.DataFrame({'fitness': [n.fitness for n in pop]})
+    fits = np.zeros(pop.size)
+    pop.get_fitnesses(fits)
+    fits_frame = pd.DataFrame({'fitness': fits})
+
+    # The causal flow analysis
+    cf = CausalFlowAnalyzer(pop.constructor.world, flow)
+    ci = cf.numpy_info_from_collection(pop)
+    csummed = ci.sum(axis=2)
+    cframe = pd.DataFrame(csummed)
+    cframe.columns = ["C{}".format(i) for i in range(1, len(cframe.columns) + 1)]
+
+    mf = MutualInfoAnalyzer(pop.constructor.world, target.calc_categories())
+    mi = mf.numpy_info_from_collection(pop)
+    msummed = mi.sum(axis=2)
+    mframe = pd.DataFrame(msummed)
+    mframe.columns = ["M{}".format(i) for i in range(1, len(mframe.columns) + 1)]
+
+    # Cuts are time-consuming...
+    if not do_cuts:
+        return fits_frame, mframe, cframe
 
     cuts = []
     for n in pop:
         ana = NetworkAnalysis(n)
         fg = SignalFlowGraph(ana)
         cuts.append(len(fg.minimum_cut()))
-
     cuts_frame = pd.DataFrame({'cuts': cuts})
-
-    # The causal flow analysis
-    cf = CausalFlowAnalyzer(pop.constructor.world, flow)
-    cj = cf.analyse_collection(pop)
-    ci = np.asarray(Information(cj))
-    csummed = ci.sum(axis=2)
-    cframe = pd.DataFrame(csummed)
-    cframe.columns = ["C{}".format(i) for i in range(1, len(cframe.columns) + 1)]
-
-    mf = MutualInfoAnalyzer(pop.constructor.world, target.calc_categories())
-    mj = mf.analyse_collection(pop)
-    mi = np.asarray(Information(mj))
-    msummed = mi.sum(axis=2)
-    mframe = pd.DataFrame(msummed)
-    mframe.columns = ["M{}".format(i) for i in range(1, len(mframe.columns) + 1)]
 
     return fits_frame, cuts_frame, mframe, cframe
 
+
+def make_population_frame(pop, target, flow, do_cuts=True):
+    return pd.concat(make_population_frames(pop, target, flow, do_cuts), axis=1)
+
+
+# def make_summary_record(pop, target, flow)
+#
 
 def make_ancestry_frames(anc, target, flow):
     target.assess_collection(anc)
@@ -168,10 +176,4 @@ def make_cut_frame(anc):
     df = pd.DataFrame({'cuts': cuts})
     df.index = gens
     return df
-
-
-
-
-
-
 

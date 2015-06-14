@@ -1,12 +1,15 @@
 #include "threshold3.hpp"
 #include "algorithm.hpp"
 
+#include <iostream>
+
 using namespace thresh3;
 
-cConstructor::cConstructor(const pubsub2::cWorld_ptr &w, size_t cc)
+cConstructor::cConstructor(const pubsub2::cWorld_ptr &w, size_t cc, MutateType mt)
     : pubsub2::cConstructor(w)
     , gene_count(w->reg_channels + w->out_channels)
     , module_count(cc)
+    , mutate_type(mt)
     , r_gene(random_int_range(0, gene_count, w))
     , r_module(random_int_range(0, module_count, w))
     , r_site(random_int_range(0, 3, w))
@@ -81,35 +84,49 @@ cCisModule::cCisModule(const cConstructor &c)
 }
 
 // This is where the action really is.
-// void cCisModule::mutate(const cConstructor &c)
-// {
-//     size_t site = c.r_site(c.world->rand);
-//     pubsub2::int_t current = binding[site];
-//
-//     pubsub2::int_t mutate;
-//     if (current == 3)
-//         mutate = -1;
-//     else if (current == -3)
-//         mutate = 1;
-//     else
-//         mutate = c.r_direction(c.world->rand) * 2 - 1;
-//
-//     // If we're at zero, possibly change into a different binding 
-//     if (current == 0)
-//         channels[site] = c.r_input(c.world->rand);
-//
-//     binding[site] += mutate;
-// }
-
-// This is where the action really is.
 void cCisModule::mutate(const cConstructor &c)
 {
-    // TODO: mutation size is ....
-    // 1 + poisson something?
-    size_t i = c.r_site();
-    channels[i] = c.r_input();
-    binding[i] = c.r_binding();
+    switch (c.mutate_type) 
+    {
+    case JUMP:
+        {
+            size_t i = c.r_site();
+            channels[i] = c.r_input();
+            binding[i] = c.r_binding();
+        }
+        break;
+    case PROGRESSIVE:
+        {
+            size_t site = c.r_site();
+            pubsub2::int_t current = binding[site];
+
+            pubsub2::int_t mutate;
+            if (current == 3)
+                mutate = -1;
+            else if (current == -3)
+                mutate = 1;
+            else
+                // Make it either -1 or +1
+                mutate = c.r_direction() * 2 - 1;
+
+            // If we're at zero, possibly change into a different binding 
+            // TODO: Have a set of probabilities for the different channels?
+            // Esp the zero channel?
+            if (current == 0)
+                channels[site] = c.r_input();
+
+            binding[site] += mutate;
+        }
+        break;
+    }
 }
+
+// This is where the action really is.
+// void cCisModule::mutate(const cConstructor &c)
+// {
+//     // TODO: mutation size is ....
+//     // 1 + poisson something?
+// }
 
 bool cCisModule::is_active(pubsub2::cChannelState const &state) const 
 {

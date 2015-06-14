@@ -1,8 +1,12 @@
 cimport core
 
 cdef extern from "<src/threshold3.hpp>" namespace "thresh3":
+    cdef enum MutateType:
+        JUMP=0
+        PROGRESSIVE
+
     cdef cppclass cConstructor(core.cConstructor):
-        cConstructor(core.cWorld_ptr &w, size_t cc)
+        cConstructor(core.cWorld_ptr &w, size_t cc, MutateType)
         size_t gene_count, module_count
 
     cdef cppclass cCisModule(core.cCisModule):

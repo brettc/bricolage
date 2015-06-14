@@ -57,8 +57,8 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         cConstructor()
         cNetwork_ptr construct(bint fill)
         size_t site_count(cNetworkVector &networks)
-        void mutate_collection(cNetworkVector &networks, 
-                               cIndexes &mutated, double site_rate)
+        cNetwork_ptr clone_and_mutate_network(
+            cNetwork_ptr &n, size_t mutations, int_t generation)
         cWorld_ptr world
     
     cdef cppclass cCisModule:
@@ -82,6 +82,7 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         void cycle_with_intervention(cChannelState c)
         size_t gene_count()
         void mutate(size_t)
+        cNetwork_ptr clone()
         cGene *get_gene(size_t)
         void calc_attractors()
         void calc_attractors_with_intervention()
