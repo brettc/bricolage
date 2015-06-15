@@ -41,7 +41,7 @@ def test_variable():
     subs = get_cis_values(const, net)
     print subs
 
-def test_network():
+def test_neighbourhood():
     # Note we use the PROGRESSIVE mutation as this guarantees a change!
     params = Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
                         cue_channels=3, mutate_type=MutateType.PROGRESSIVE)
