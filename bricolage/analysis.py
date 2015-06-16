@@ -7,6 +7,7 @@ import pandas as pd
 from analysis_ext import MutualInfoAnalyzer, CausalFlowAnalyzer, Information, NetworkAnalysis
 from lineage import FullLineage
 from graph import SignalFlowGraph
+from neighbourhood import NeighbourhoodSample
 
 class LineageSummarizer(object):
     def __init__(self, lin, target, flow):
@@ -89,6 +90,10 @@ class LineageSummarizer(object):
                 to = 'C{}_{}'.format(c + 1, i)
                 d[to] = self.data[fr][:, c]
         return pd.DataFrame(d)
+
+# def make_neighbourhood_frame(network):
+
+
 
 def make_population_frames(pop, target, flow, do_cuts=True):
     # Assumption -- fitness is calculated!
