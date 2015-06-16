@@ -258,10 +258,10 @@ def draw(arguments):
     params=get_parameters(arguments)
     name, target_func = get_name_and_target(arguments, params)
     treat = lineage.Treatment(
-        arguments['data_dir'] / name, 
-        analysis_path = arguments['output_dir'] / name,
+        arguments.options.data_dir / name, 
+        analysis_path = arguments.options.output_dir / name,
     )
-    treat.run(callback_draw, draw_n=int(arguments['--draw_n']))
+    treat.run(callback_draw, draw_n=int(arguments.options.draw_n))
 
 def all_existing(arguments):
     for i in range(len(get_functions())):
@@ -372,7 +372,7 @@ def speed_all(arguments):
         replicate=reps,
         generations=gens,
     ))
-    df.to_pickle(str(arguments['output_dir'] / 'speed.pickle'))
+    df.to_pickle(str(arguments.options.output_dir / 'speed.pickle'))
 
 
 def calc_info(params, rep, lin):
