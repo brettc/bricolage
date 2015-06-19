@@ -3,7 +3,7 @@
 #include <cmath>
 #include <stdexcept>
 
-using namespace pubsub2;
+using namespace bricolage;
 
 cGene::cGene(sequence_t seq, signal_t p)
     : sequence(seq)
@@ -12,7 +12,7 @@ cGene::cGene(sequence_t seq, signal_t p)
 {
 }
 
-cNetwork_ptr cConstructor::clone_and_mutate_network(
+cNetwork_ptr cFactory::clone_and_mutate_network(
     cNetwork_ptr &n, size_t nmutations, int_t generation)
 {
     cNetwork_ptr copy(n->clone());
@@ -24,8 +24,8 @@ cNetwork_ptr cConstructor::clone_and_mutate_network(
     return copy;
 }
 
-cNetwork::cNetwork(const cConstructor_ptr &c)
-    : constructor(c) 
+cNetwork::cNetwork(const cFactory_ptr &c)
+    : factory(c) 
     , world(c->world)
     , identifier(-1)
     , parent_identifier(-1)

@@ -4,7 +4,7 @@
 #include <algorithm>
 
 
-using namespace pubsub2;
+using namespace bricolage;
 
 // Taken from the numpy docs on isclose
 const double RELATIVE_TOL = 1e-05;

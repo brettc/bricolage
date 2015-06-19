@@ -11,7 +11,7 @@ def c_one_unit():
     p = T.Parameters(seed=1, operands=ops, cis_count=1, reg_channels=0,
                         out_channels=1, cue_channels=2)
     w = T.World(p)
-    return T.Constructor(w)
+    return T.Factory(w)
 
 @pytest.fixture
 def p_3x2():
@@ -24,11 +24,11 @@ def p_3x2():
 @pytest.fixture
 def c_3x2(p_3x2):
     world = T.World(p_3x2)
-    return T.Constructor(world)
+    return T.Factory(world)
 
-def test_constructor(p_3x2):
+def test_factory(p_3x2):
     world = T.World(p_3x2)
-    const = T.Constructor(world)
+    const = T.Factory(world)
     assert set(const.operands) == set(p_3x2.operands)
 
 def test_network_ids(c_3x2):
@@ -87,7 +87,7 @@ def test_network_pickle():
     params = T.Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
                         cue_channels=3,)
     world = T.World(params)
-    const = T.Constructor(world)
+    const = T.Factory(world)
     n1 = const.create_network()
     out = pickle.dumps(n1, -1)
     n2 = pickle.loads(out)
@@ -112,7 +112,7 @@ def test_population_mutation(c_3x2):
 
 def network_cycle(network, curstate):
     """A Python version of what the C++ cycle does."""
-    nextstate = network.constructor.world.create_state()
+    nextstate = network.factory.world.create_state()
     for g in network.genes:
         for m in g.modules:
             a, b = m.channels

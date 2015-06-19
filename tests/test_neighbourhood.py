@@ -1,6 +1,6 @@
 import pytest
 from bricolage.neighbourhood import NeighbourhoodSample, Collection
-from bricolage.threshold3 import World, Parameters, Constructor, MutateType
+from bricolage.threshold3 import World, Parameters, Factory, MutateType
 import numpy as np
 from bricolage.analysis import get_population_neighbourhood_fitness
 from generate import get_database
@@ -25,7 +25,7 @@ def test_neighbourhood():
     params = Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
                         cue_channels=3, mutate_type=MutateType.PROGRESSIVE)
     world = World(params)
-    const = Constructor(world)
+    const = Factory(world)
     net = const.create_network()
 
     base_bnd = get_binding_values(const, net)

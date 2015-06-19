@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <iostream>
 
-using namespace pubsub2;
+using namespace bricolage;
 
 cTarget::cTarget(const cWorld_ptr &w, const std::string &n, int_t id)
     : world(w) 

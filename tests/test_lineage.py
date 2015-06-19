@@ -46,7 +46,7 @@ def target2(a, b, c):
 
 def test_numpy_export(p_3x2, module):
     world = module.World(p_3x2)
-    factory = module.Constructor(world)
+    factory = module.Factory(world)
     
     p1 = module.Population(factory, 1000)
     as_array = factory.to_numpy(p1)
