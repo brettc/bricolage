@@ -26,7 +26,7 @@ class BaseGraph(object):
     def __init__(self, analysis):
         self.analysis = analysis
         self.network = analysis.network
-        self.world = self.network.constructor.world
+        self.world = self.network.factory.world
         self.nx_graph = nx.DiGraph()
 
     def is_inert(self, node):

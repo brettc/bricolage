@@ -86,7 +86,7 @@ void cWorld::set_random_state(const std::string &s)
     istr >> rand;
 }
 
-cConstructor::cConstructor(const cWorld_ptr &w)
+cFactory::cFactory(const cWorld_ptr &w)
     : world(w)
 {
 }

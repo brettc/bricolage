@@ -6,12 +6,12 @@
 
 using namespace pubsub2;
 
-cPopulation::cPopulation(const cConstructor_ptr &c, size_t size)
-    : constructor(c)
+cPopulation::cPopulation(const cFactory_ptr &c, size_t size)
+    : factory(c)
     , world(c->world)
 {
     for (size_t i = 0; i < size; ++i)
-        networks.push_back(constructor->construct(true));
+        networks.push_back(factory->construct(true));
 }
 
 std::pair<double, double> cPopulation::worst_and_best() const
@@ -72,7 +72,7 @@ size_t cPopulation::mutate(double site_rate, int_t generation)
     // gene_count. We multiply this by the number of networks in the collection
     // to get the expected number of mutations. Then we generate a number using
     // a poisson distribution.
-    double expected = site_rate * constructor->site_count(networks);
+    double expected = site_rate * factory->site_count(networks);
     std::poisson_distribution<> r_pop(expected);
     size_t m_count = r_pop(world->rand);
 
@@ -109,7 +109,7 @@ size_t cPopulation::mutate(double site_rate, int_t generation)
         // apply the mutations ...
         if (it == mutes.end() || *it != network_num)
         {
-            networks[network_num] = constructor->clone_and_mutate_network(
+            networks[network_num] = factory->clone_and_mutate_network(
                 networks[network_num], count, generation);
 
             // Add to the indexes that changed

@@ -1,7 +1,7 @@
 import cPickle as pickle
 import numpy
 from bricolage.threshold3 import (
-    World, Parameters, Target, Constructor, Population, SelectionModel)
+    World, Parameters, Target, Factory, Population, SelectionModel)
 
 
 def xor_func(a, b):
@@ -14,7 +14,7 @@ def test_network():
     params = Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
                         cue_channels=3,)
     world = World(params)
-    const = Constructor(world)
+    const = Factory(world)
     net = const.create_network()
     print net.attractors
     print world.pub_signals
@@ -24,7 +24,7 @@ def test_network_pickle():
     params = Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
                         cue_channels=3,)
     world = World(params)
-    const = Constructor(world)
+    const = Factory(world)
     n1 = const.create_network()
     out = pickle.dumps(n1, -1)
     n2 = pickle.loads(out)
@@ -37,7 +37,7 @@ def test_population():
     params = Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
                         cue_channels=3,)
     world = World(params)
-    const = Constructor(world)
+    const = Factory(world)
     popul = Population(const, 1000)
     f = numpy.zeros(1000)
     popul.get_fitnesses(f)
@@ -48,7 +48,7 @@ def test_xor():
     params = Parameters(seed=2, cis_count=2, cue_channels=2, reg_channels=0,
                         out_channels=1)
     world = World(params)
-    const = Constructor(world)
+    const = Factory(world)
     target = Target(world, fitness_func1)
     select = SelectionModel(world)
     pop = Population(const, 10000)

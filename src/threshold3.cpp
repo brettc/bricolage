@@ -5,9 +5,9 @@
 
 using namespace thresh3;
 
-cConstructor::cConstructor(const pubsub2::cWorld_ptr &w, size_t cc, 
+cFactory::cFactory(const pubsub2::cWorld_ptr &w, size_t cc, 
                            const MutateType mtype)
-    : pubsub2::cConstructor(w)
+    : pubsub2::cFactory(w)
     , gene_count(w->reg_channels + w->out_channels)
     , module_count(cc)
     , mutate_type(mtype)
@@ -24,7 +24,7 @@ cConstructor::cConstructor(const pubsub2::cWorld_ptr &w, size_t cc,
 
 }
 
-void cConstructor::set_draw_from_subs(const pubsub2::cIndexes &dsubs)
+void cFactory::set_draw_from_subs(const pubsub2::cIndexes &dsubs)
 {
     if (dsubs.size() == 0)
         throw std::runtime_error("VARIABLE mutation requires subs");
@@ -37,9 +37,9 @@ void cConstructor::set_draw_from_subs(const pubsub2::cIndexes &dsubs)
 }
 
 // Construct a brand new Network with random stuff.
-pubsub2::cNetwork_ptr cConstructor::construct(bool fill)
+pubsub2::cNetwork_ptr cFactory::construct(bool fill)
 {
-    pubsub2::cConstructor_ptr p = shared_from_this();
+    pubsub2::cFactory_ptr p = shared_from_this();
     cNetwork *net = new cNetwork(p);
     if (fill)
         net->identifier = world->get_next_network_ident();
@@ -71,7 +71,7 @@ pubsub2::cNetwork_ptr cConstructor::construct(bool fill)
     return pubsub2::cNetwork_ptr(net);
 }
 
-size_t cConstructor::site_count(pubsub2::cNetworkVector &networks)
+size_t cFactory::site_count(pubsub2::cNetworkVector &networks)
 {
     // TODO: should multiple by 3!!!
     // Just keeping it this way for comparison
@@ -80,7 +80,7 @@ size_t cConstructor::site_count(pubsub2::cNetworkVector &networks)
 
 void cNetwork::mutate(size_t nmutations)
 {
-    auto &ctor = static_cast<const cConstructor &>(*constructor);
+    auto &ctor = static_cast<const cFactory &>(*factory);
 
     // Select the genes that should be mutated
     while (nmutations > 0)
@@ -96,12 +96,12 @@ void cNetwork::mutate(size_t nmutations)
     }
 }
 
-cCisModule::cCisModule(const cConstructor &c)
+cCisModule::cCisModule(const cFactory &c)
 {
 }
 
 // This is where the action really is.
-void cCisModule::mutate(const cConstructor &c)
+void cCisModule::mutate(const cFactory &c)
 {
     size_t site = c.r_site();
     switch (c.mutate_type) 
@@ -137,7 +137,7 @@ void cCisModule::mutate(const cConstructor &c)
 }
 
 // This is where the action really is.
-// void cCisModule::mutate(const cConstructor &c)
+// void cCisModule::mutate(const cFactory &c)
 // {
 //     // TODO: mutation size is ....
 //     // 1 + poisson something?
@@ -157,7 +157,7 @@ bool cCisModule::is_active(pubsub2::cChannelState const &state) const
     return sum >= 3;
 }
 
-cNetwork::cNetwork(const pubsub2::cConstructor_ptr &c)
+cNetwork::cNetwork(const pubsub2::cFactory_ptr &c)
     : pubsub2::cNetwork(c)
 {
 }
@@ -165,7 +165,7 @@ cNetwork::cNetwork(const pubsub2::cConstructor_ptr &c)
 pubsub2::cNetwork_ptr cNetwork::clone() const
 {
     // We don't use the construct here -- as we're copying
-    cNetwork *copy = new cNetwork(constructor);
+    cNetwork *copy = new cNetwork(factory);
 
     // This is the only extra things that needs copying.
     // Everything magically works here.
@@ -195,7 +195,7 @@ cGene::cGene(pubsub2::sequence_t sequence, pubsub2::signal_t p)
 {
 }
 
-// void cConstructor::mutate_gene(cGene *g)
+// void cFactory::mutate_gene(cGene *g)
 // {
 //     if (g->modules.size() == 0)
 //         throw std::runtime_error("no cis modules");

@@ -14,14 +14,14 @@ ctypedef np.int_t int_type
 ctypedef np.int8_t tiny_type
 
 def _construct_factory(core_ext.World w):
-    return Constructor(w)
+    return Factory(w)
 
-cdef class Constructor(core_ext.Constructor):
+cdef class Factory(core_ext.Factory):
     def __cinit__(self, core_ext.World w):
         # Hack for old stored classes
         mt = w._params.__dict__.get('mutate_type', 0)
 
-        self._shared = core.cConstructor_ptr(new cConstructor(
+        self._shared = core.cFactory_ptr(new cFactory(
             w._shared,
             w._params.cis_count,
             mt,
@@ -38,17 +38,17 @@ cdef class Constructor(core_ext.Constructor):
 
     property draw_from_subs:
         def __get__(self):
-            cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 
+            cdef cFactory *c = dynamic_cast_cFactory(self._this) 
             return c.draw_from_subs
         def __set__(self, core.cIndexes dsubs):
-            cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 
+            cdef cFactory *c = dynamic_cast_cFactory(self._this) 
             c.set_draw_from_subs(dsubs)
 
     def __reduce__(self):
         return _construct_factory, (self.world, )
 
     def dtype(self):
-        cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 
+        cdef cFactory *c = dynamic_cast_cFactory(self._this) 
         return numpy.dtype([
             ('id', int),
             ('parent', int),
@@ -61,7 +61,7 @@ cdef class Constructor(core_ext.Constructor):
         cdef:
             size_t i, j, k, l, count, net_i
             cNetwork *net
-            cConstructor *c = dynamic_cast_cConstructor(self._this) 
+            cFactory *c = dynamic_cast_cFactory(self._this) 
 
         if indexes == NULL:
             count = networks.size()
@@ -122,7 +122,7 @@ cdef class Constructor(core_ext.Constructor):
             size_t i, j, k, l
             cNetwork *net
             core.cNetwork_ptr ptr
-            cConstructor *c = dynamic_cast_cConstructor(self._this) 
+            cFactory *c = dynamic_cast_cFactory(self._this) 
 
         networks.clear()
 
@@ -157,7 +157,7 @@ cdef class CisModule(core_ext.CisModule):
 
     property operation:
         def __get__(self):
-            w = self.gene.network.constructor.world
+            w = self.gene.network.factory.world
             return boolean_func_from_coop_binding(w, self.channels, self.bindings)
 
     def is_active(self, core_ext.ChannelState c):

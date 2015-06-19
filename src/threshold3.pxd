@@ -5,15 +5,15 @@ cdef extern from "<src/threshold3.hpp>" namespace "thresh3":
         JUMP=0
         PROGRESSIVE=1
 
-    cdef cppclass cConstructor(core.cConstructor):
-        cConstructor(core.cWorld_ptr &w, size_t cc, MutateType)
+    cdef cppclass cFactory(core.cFactory):
+        cFactory(core.cWorld_ptr &w, size_t cc, MutateType)
         void set_draw_from_subs(core.cIndexes &d);
         size_t gene_count, module_count
         core.cIndexes draw_from_subs
 
     cdef cppclass cCisModule(core.cCisModule):
-        cCisModule(cConstructor &c); 
-        void mutate(cConstructor &c)
+        cCisModule(cFactory &c); 
+        void mutate(cFactory &c)
         bint is_active(core.cChannelState &state)
         core.int_t binding[3];
         core.signal_t channels[3];
@@ -23,11 +23,11 @@ cdef extern from "<src/threshold3.hpp>" namespace "thresh3":
         core.vector[cCisModule] modules;
 
     cdef cppclass cNetwork(core.cNetwork):
-        cNetwork(cConstructor &c)
+        cNetwork(cFactory &c)
         core.vector[cGene] genes
 
-    cConstructor* dynamic_cast_cConstructor \
-        "dynamic_cast<thresh3::cConstructor*>" (core.cConstructor *) except NULL
+    cFactory* dynamic_cast_cFactory \
+        "dynamic_cast<thresh3::cFactory*>" (core.cFactory *) except NULL
 
     cNetwork * dynamic_cast_cNetwork \
         "dynamic_cast<thresh3::cNetwork *>" (core.cNetwork *) except NULL

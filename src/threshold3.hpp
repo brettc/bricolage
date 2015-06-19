@@ -12,10 +12,10 @@ inline random_int_t random_int_range(int a, int b, const pubsub2::cWorld_ptr &w)
     return std::bind(std::uniform_int_distribution<>(a, b-1), std::ref(w->rand));
 }
 
-class cConstructor : public pubsub2::cConstructor
+class cFactory : public pubsub2::cFactory
 {
 public:
-    cConstructor(const pubsub2::cWorld_ptr &w, size_t module_count, 
+    cFactory(const pubsub2::cWorld_ptr &w, size_t module_count, 
                  const MutateType mtype);
     size_t gene_count, module_count;
     MutateType mutate_type;
@@ -34,11 +34,11 @@ public:
 class cCisModule : public pubsub2::cCisModule
 {
 public:
-    cCisModule(const cConstructor &c); 
+    cCisModule(const cFactory &c); 
 
     // Overrides
     size_t site_count() const { return 3; }
-    void mutate(const cConstructor &c);
+    void mutate(const cFactory &c);
     bool is_active(pubsub2::cChannelState const &state) const;
 
     pubsub2::int_t binding[3];
@@ -60,7 +60,7 @@ public:
 class cNetwork : public pubsub2::cNetwork
 {
 public:
-    cNetwork(const pubsub2::cConstructor_ptr &c);
+    cNetwork(const pubsub2::cFactory_ptr &c);
     std::vector<cGene> genes;
 
     // Overrides

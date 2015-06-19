@@ -17,9 +17,9 @@ inline random_int_t random_int_range(int a, int b, const pubsub2::cWorld_ptr &w)
     return std::bind(std::uniform_int_distribution<>(a, b-1), std::ref(w->rand));
 }
 
-struct cConstructor : public pubsub2::cConstructor
+struct cFactory : public pubsub2::cFactory
 {
-    cConstructor(const pubsub2::cWorld_ptr &w, size_t module_count, 
+    cFactory(const pubsub2::cWorld_ptr &w, size_t module_count, 
                  const cOperands &ops);
     size_t gene_count, module_count;
     cOperands operands;
@@ -35,11 +35,11 @@ struct cConstructor : public pubsub2::cConstructor
 class cCisModule : public pubsub2::cCisModule
 {
 public:
-    cCisModule(const cConstructor &c);
+    cCisModule(const cFactory &c);
 
     // Overrides
     size_t site_count() const { return 2; }
-    void mutate(const cConstructor &c);
+    void mutate(const cFactory &c);
 
     // Inline this stuff. It won't change.
     inline bool test(unsigned int a, unsigned int b) const 
@@ -72,7 +72,7 @@ public:
 class cNetwork : public pubsub2::cNetwork
 {
 public:
-    cNetwork(const pubsub2::cConstructor_ptr &c);
+    cNetwork(const pubsub2::cFactory_ptr &c);
     std::vector<cGene> genes;
 
     // Overrides

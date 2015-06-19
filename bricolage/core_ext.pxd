@@ -21,10 +21,10 @@ cdef class World:
             object reserved_signals
         object _environments
 
-cdef class Constructor:
+cdef class Factory:
     cdef:
-        cConstructor_ptr _shared
-        cConstructor *_this
+        cFactory_ptr _shared
+        cFactory *_this
         int _secret_key
         readonly:
             World world
@@ -39,7 +39,7 @@ cdef class Target:
 cdef class Network:
     cdef:
         readonly:
-            Constructor constructor
+            Factory factory
 
         # Because we hold a reference to the shared_ptr, we know we can always
         # safely access the ACTUAL pointer. We keep the pointer around too, as
@@ -80,7 +80,7 @@ cdef class CollectionBase:
     cdef:
         cNetworkVector *_collection
         readonly:
-            Constructor constructor
+            Factory factory
 
     cdef object get_at(self, size_t i)
 

@@ -26,7 +26,7 @@ def bowtie_network(bowtie_database):
     return bowtie_database.population.get_best()[0]
 
 def calc_mutual_info(n, categories):
-    w = n.constructor.world
+    w = n.factory.world
     assert len(categories) == len(w.environments)
 
     # Features should be consecutive numbers
@@ -94,7 +94,7 @@ def bowtie_categorize_output(values, matches):
     return ret
 
 def test_mutual_info_cython(bowtie_network, bowtie_env_categories):
-    f = MutualInfoAnalyzer(bowtie_network.constructor.world, 
+    f = MutualInfoAnalyzer(bowtie_network.factory.world, 
                            bowtie_env_categories)
     j = f.analyse_network(bowtie_network)
     p_joint, p_info = calc_mutual_info(bowtie_network, 
@@ -107,7 +107,7 @@ def test_mutual_info_cython(bowtie_network, bowtie_env_categories):
         
 def get_causal_flow(net, matches):
     # graph.save_network_as_fullgraph(net, name='bob')
-    w = net.constructor.world
+    w = net.factory.world
 
     # For now, states are equiprobable
     env_count = len(w.environments)
@@ -166,7 +166,7 @@ def get_causal_flow(net, matches):
 
 # Slow python calculation of information 
 def calc_info_from_causal_flow(net, probs):
-    w = net.constructor.world
+    w = net.factory.world
 
     # Now calculate the information
     info = numpy.zeros((w.reg_channels, w.out_channels))
@@ -195,7 +195,7 @@ def test_causal_flow_cython(bowtie_network):
     # This what it was evolved to do (see the generate.py file)
     matches = [1, .5, .25]
 
-    f = CausalFlowAnalyzer(bowtie_network.constructor.world, matches)
+    f = CausalFlowAnalyzer(bowtie_network.factory.world, matches)
     j = f.analyse_network(bowtie_network)
 
     # We just access the 0th element, as we only sent one network for analysis

@@ -7,10 +7,10 @@
 using namespace logic2;
 
 // --------------------------------------------------------------------
-// cConstructor
-cConstructor::cConstructor(const pubsub2::cWorld_ptr &w, size_t cc, 
+// cFactory
+cFactory::cFactory(const pubsub2::cWorld_ptr &w, size_t cc, 
                            const cOperands &ops)
-    : pubsub2::cConstructor(w)
+    : pubsub2::cFactory(w)
     , gene_count(w->reg_channels + w->out_channels)
     , module_count(cc)
     , operands(ops)
@@ -28,9 +28,9 @@ cConstructor::cConstructor(const pubsub2::cWorld_ptr &w, size_t cc,
     //         bindings[std::make_pair(a, b)] = r_operand();
 }
 
-pubsub2::cNetwork_ptr cConstructor::construct(bool fill)
+pubsub2::cNetwork_ptr cFactory::construct(bool fill)
 {
-    pubsub2::cConstructor_ptr p = shared_from_this();
+    pubsub2::cFactory_ptr p = shared_from_this();
     cNetwork *net = new cNetwork(p);
     if (fill)
         net->identifier = world->get_next_network_ident();
@@ -60,7 +60,7 @@ pubsub2::cNetwork_ptr cConstructor::construct(bool fill)
     return pubsub2::cNetwork_ptr(net);
 }
 
-size_t cConstructor::site_count(pubsub2::cNetworkVector &networks)
+size_t cFactory::site_count(pubsub2::cNetworkVector &networks)
 {
     return gene_count * module_count * 2 * networks.size();
 }
@@ -68,7 +68,7 @@ size_t cConstructor::site_count(pubsub2::cNetworkVector &networks)
 // --------------------------------------------------------------------
 // cNetwork
 // TODO: Make this a template
-cNetwork::cNetwork(const pubsub2::cConstructor_ptr &c)
+cNetwork::cNetwork(const pubsub2::cFactory_ptr &c)
     : pubsub2::cNetwork(c)
 {
     // nothing special here...
@@ -76,7 +76,7 @@ cNetwork::cNetwork(const pubsub2::cConstructor_ptr &c)
 
 void cNetwork::mutate(size_t nmutations)
 {
-    auto &ctor = static_cast<const cConstructor &>(*constructor);
+    auto &ctor = static_cast<const cFactory &>(*factory);
 
     // Select the genes that should be mutated
     while (nmutations > 0)
@@ -95,7 +95,7 @@ void cNetwork::mutate(size_t nmutations)
 pubsub2::cNetwork_ptr cNetwork::clone() const
 {
     // We don't use the construct here -- as we're copying
-    cNetwork *copy = new cNetwork(constructor);
+    cNetwork *copy = new cNetwork(factory);
 
     // This is the only extra things that needs copying.
     // Everything magically works here.
@@ -130,12 +130,12 @@ cGene::cGene(pubsub2::sequence_t sequence, pubsub2::signal_t p)
 
 // --------------------------------------------------------------------
 // CisModule
-cCisModule::cCisModule(const cConstructor &c)
+cCisModule::cCisModule(const cFactory &c)
 {
 }
 
 // This is where the action really is.
-void cCisModule::mutate(const cConstructor &c)
+void cCisModule::mutate(const cFactory &c)
 {
     // Pick a channel
     size_t i = c.r_site();

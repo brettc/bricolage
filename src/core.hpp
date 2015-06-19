@@ -127,7 +127,7 @@ typedef std::mt19937 random_engine_t;
 typedef std::uniform_int_distribution<size_t> randint_t;
 typedef std::uniform_real_distribution<> randreal_t;
 
-class cConstructor;
+class cFactory;
 
 class cWorld //: std::enable_shared_from_this<cWorld>
 {
@@ -178,13 +178,13 @@ public:
 typedef std::shared_ptr<cWorld> cWorld_ptr;
 
 // Base class for overriding world operations
-class cConstructor : public std::enable_shared_from_this<cConstructor>
+class cFactory : public std::enable_shared_from_this<cFactory>
 {
 public:
-    cConstructor(const cWorld_ptr &w);
-    virtual ~cConstructor() {};
+    cFactory(const cWorld_ptr &w);
+    virtual ~cFactory() {};
 
-    // This is where the constructors and mutators for networks live
+    // This is where the factorys and mutators for networks live
     virtual cNetwork_ptr construct(bool fill)=0;
     virtual size_t site_count(cNetworkVector &networks)=0;
 
@@ -194,12 +194,12 @@ public:
     cWorld_ptr world;
 };
 
-typedef std::shared_ptr<cConstructor> cConstructor_ptr;
+typedef std::shared_ptr<cFactory> cFactory_ptr;
 
 class cNetwork
 {
 public:
-    cNetwork(const cConstructor_ptr &c);
+    cNetwork(const cFactory_ptr &c);
     virtual ~cNetwork() {}
 
     virtual cNetwork_ptr clone() const=0;
@@ -214,7 +214,7 @@ public:
     void calc_attractors() { _calc_attractors(false); }
     void calc_attractors_with_intervention() { _calc_attractors(true); }
     
-    cConstructor_ptr constructor;
+    cFactory_ptr factory;
     cWorld_ptr world;
     int_t identifier, parent_identifier;
 
@@ -267,7 +267,7 @@ struct cSelectionModel
 class cPopulation
 {
 public:
-    cPopulation(const cConstructor_ptr &c, size_t n);
+    cPopulation(const cFactory_ptr &c, size_t n);
 
     size_t mutate(double site_rate, int_t generation);
     void assess(const cTarget &target) const;
@@ -279,7 +279,7 @@ public:
     size_t get_generation() const { return generation; }
 
 // protected:
-    cConstructor_ptr constructor;
+    cFactory_ptr factory;
     cWorld_ptr world;
 
     sequence_t next_id;

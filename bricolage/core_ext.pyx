@@ -250,7 +250,7 @@ cdef class World:
         return "E{0:0{1:}d}".format(
             c + 1 - self._this.cue_range.first, sz)
 
-cdef class Constructor:
+cdef class Factory:
     def __cinit__(self, World w):
         self.world = w
         self.gene_class = Gene
@@ -263,24 +263,24 @@ cdef class Constructor:
         n.bind_to(self._this.construct(True))
         return n
 
-def _construct_network(Constructor factory, array):
+def _construct_network(Factory factory, array):
     c = Collection(factory)
     factory.from_numpy(array, c)
     return c[0]
 
 cdef class Network:
-    def __cinit__(self, Constructor c, int key=0):
-        self.constructor = c
+    def __cinit__(self, Factory c, int key=0):
+        self.factory = c
         self._this = NULL
-        if key != self.constructor._secret_key:
+        if key != self.factory._secret_key:
             raise RuntimeError("You cannot create a Network directly."
-                               " Use Constructor.create_network")
+                               " Use Factory.create_network")
 
     def __reduce__(self):
-        c = Collection(self.constructor)
+        c = Collection(self.factory)
         c.add(self)
-        return _construct_network, (self.constructor, 
-                                    self.constructor.to_numpy(c))
+        return _construct_network, (self.factory, 
+                                    self.factory.to_numpy(c))
 
     cdef bind_to(self, cNetwork_ptr ptr):
         self._shared = ptr
@@ -310,7 +310,7 @@ cdef class Network:
     property genes:
         def __get__(self):
             if self._genes is None:
-                self._genes = tuple(self.constructor.gene_class(self, i) for i in range(self.gene_count))
+                self._genes = tuple(self.factory.gene_class(self, i) for i in range(self.gene_count))
             return self._genes
 
     def cycle(self, ChannelState c):
@@ -355,7 +355,7 @@ cdef class Network:
                 cstate_iter = deref(cattr_iter).begin()
                 while cstate_iter != deref(cattr_iter).end():
                     c = ChannelStateFrozen()
-                    c.init(self.constructor._this.world, deref(cstate_iter))
+                    c.init(self.factory._this.world, deref(cstate_iter))
                     attr.append(c)
                     preinc(cstate_iter)
 
@@ -375,7 +375,7 @@ cdef class Network:
             if self._rates is not None:
                 return self._rates
 
-            cdef cWorld *world = self.constructor._this.world.get()
+            cdef cWorld *world = self.factory._this.world.get()
 
             # Construct the numpy array via python
             r = numpy.zeros((world.environments.size(), world.out_channels))
@@ -437,12 +437,12 @@ cdef class Gene:
         def __get__(self):
             # Lazy construction
             if self._modules is None:
-                self._modules = tuple(self.network.constructor.module_class(self, i) 
+                self._modules = tuple(self.network.factory.module_class(self, i) 
                     for i in range(self.module_count))
             return self._modules
 
     def __repr__(self):
-        w = self.network.constructor.world
+        w = self.network.factory.world
         return "<Gene[{}]: {}>".format(self.sequence, w.name_for_channel(self.pub))
 
 cdef class CisModule:
@@ -478,7 +478,7 @@ cdef class CisModule:
                          for i in range(self._this.site_count()))
         def __set__(self, t):
             assert len(t) == self._this.site_count()
-            valid = self.gene.network.constructor.world.sub_signals
+            valid = self.gene.network.factory.world.sub_signals
             cdef size_t i, c
             for i in range(self._this.site_count()):
                 assert t[i] in valid
@@ -487,7 +487,7 @@ cdef class CisModule:
 
     property channel_names:
         def __get__(self):
-            w = self.gene.network.constructor.world
+            w = self.gene.network.factory.world
             return [w.name_for_channel(c) for c in self.channels]
 
 cdef class SelectionModel:
@@ -499,8 +499,8 @@ cdef class SelectionModel:
         del self._this
 
 cdef class CollectionBase:
-    def __cinit__(self, Constructor c, size_t size=0):
-        self.constructor = c
+    def __cinit__(self, Factory c, size_t size=0):
+        self.factory = c
 
     cdef object get_at(self, size_t i):
         if i >= self._collection.size():
@@ -518,13 +518,13 @@ cdef class CollectionBase:
             return <object>(net.pyobject)
 
         # Nope. We need to create a new python wrapper object
-        cdef Network n = self.constructor.network_class(self.constructor, 
-                                                        self.constructor._secret_key)
+        cdef Network n = self.factory.network_class(self.factory, 
+                                                        self.factory._secret_key)
         n.bind_to(ptr)
         return n
 
     def add(self, Network n):
-        assert n.constructor is self.constructor
+        assert n.factory is self.factory
         self._collection.push_back(n._shared)
 
     property size:
@@ -549,7 +549,7 @@ cdef class CollectionBase:
 
 
 cdef class Collection(CollectionBase):
-    def __cinit__(self, Constructor c, size_t size=0):
+    def __cinit__(self, Factory c, size_t size=0):
         self._this = new cNetworkVector()
         self._collection = self._this
 
@@ -565,14 +565,14 @@ cdef class Collection(CollectionBase):
         cdef:
             size_t i
             size_t sz = mutations.shape[0]
-            cConstructor *con = n._this.constructor.get()
+            cFactory *con = n._this.factory.get()
 
         for i in range(sz):
             self._this.push_back(
                 con.clone_and_mutate_network(n._shared, mutations[i], 1))
 
 cdef class Ancestry(CollectionBase):
-    def __cinit__(self, Constructor c, size_t size=0):
+    def __cinit__(self, Factory c, size_t size=0):
         self._this = new cNetworkVector()
         self._collection = self._this
 
@@ -602,7 +602,7 @@ cdef class Ancestry(CollectionBase):
         del self._this
 
 cdef class Population(CollectionBase):
-    def __cinit__(self, Constructor c, size_t size=0):
+    def __cinit__(self, Factory c, size_t size=0):
         self._this = new cPopulation(c._shared, size)
         self._collection = &(self._this.networks)
 
@@ -627,7 +627,7 @@ cdef class Population(CollectionBase):
 
     property site_count:
         def __get__(self):
-            return self._this.constructor.get().site_count(self._this.networks)
+            return self._this.factory.get().site_count(self._this.networks)
 
     def _get_identifiers(self, np.int_t[:] output):
         """A list of identifiers for the current population"""
@@ -704,7 +704,7 @@ cdef class Target:
         del self._this
 
     def assess(self, Network net):
-        # assert net.constructor.world is self.world
+        # assert net.factory.world is self.world
         return self._this.assess(deref(net._this));
 
     def assess_collection(self, CollectionBase coll):

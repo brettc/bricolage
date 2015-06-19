@@ -15,11 +15,11 @@ ctypedef np.int_t int_type
 ctypedef np.int8_t tiny_type
 
 def _construct_factory(core_ext.World w):
-    return Constructor(w)
+    return Factory(w)
 
-cdef class Constructor(core_ext.Constructor):
+cdef class Factory(core_ext.Factory):
     def __cinit__(self, core_ext.World w):
-        self._shared = core.cConstructor_ptr(new cConstructor(
+        self._shared = core.cFactory_ptr(new cFactory(
             w._shared,
             w._params.cis_count,
             w._params.operands,
@@ -34,27 +34,27 @@ cdef class Constructor(core_ext.Constructor):
 
     property gene_count:
         def __get__(self):
-            cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 
+            cdef cFactory *c = dynamic_cast_cFactory(self._this) 
             return c.gene_count
     
     property module_count:
         def __get__(self):
-            cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 
+            cdef cFactory *c = dynamic_cast_cFactory(self._this) 
             return c.module_count
 
     property operands:
         def __get__(self):
-            cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 
+            cdef cFactory *c = dynamic_cast_cFactory(self._this) 
             return [Operand(_) for _ in c.operands]
 
     # Only used for some mutation models
     # property bindings:
     #     def __get__(self):
-    #         cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 
+    #         cdef cFactory *c = dynamic_cast_cFactory(self._this) 
     #         return c.bindings
 
     def dtype(self):
-        cdef cConstructor *c = dynamic_cast_cConstructor(self._this) 
+        cdef cFactory *c = dynamic_cast_cFactory(self._this) 
         return numpy.dtype([
             ('id', int),
             ('parent', int),
@@ -67,7 +67,7 @@ cdef class Constructor(core_ext.Constructor):
         cdef:
             size_t i, j, k, count, net_i
             cNetwork *net
-            cConstructor *c = dynamic_cast_cConstructor(self._this) 
+            cFactory *c = dynamic_cast_cFactory(self._this) 
 
         if indexes == NULL:
             count = networks.size()
@@ -127,7 +127,7 @@ cdef class Constructor(core_ext.Constructor):
             size_t i, j, k
             cNetwork *net
             core.cNetwork_ptr ptr
-            cConstructor *c = dynamic_cast_cConstructor(self._this) 
+            cFactory *c = dynamic_cast_cFactory(self._this) 
 
         networks.clear()
 
@@ -171,10 +171,10 @@ cdef class CisModule(core_ext.CisModule):
 
     def mutate(self):
         cdef cCisModule *cm = dynamic_cast_cCisModule(self._this) 
-        cm.mutate(deref(self.gene.network._this.constructor.get()))
+        cm.mutate(deref(self.gene.network._this.factory.get()))
 
     def __str__(self):
-        w = self.gene.network.constructor.world
+        w = self.gene.network.factory.world
         return "{}({}, {})".format(
             self.op.name,
             w.name_for_channel(self._this.channels[0]),
