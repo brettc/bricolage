@@ -91,7 +91,6 @@ class LineageSummarizer(object):
                 d[to] = self.data[fr][:, c]
         return pd.DataFrame(d)
 
-# def make_neighbourhood_frame(network):
 
 
 
@@ -166,6 +165,44 @@ def make_ancestry_frames(anc, target, flow):
     mframe.columns = ["M{}".format(i) for i in range(1, len(mframe.columns) + 1)]
 
     return fits_frame, mframe, cframe
+
+def get_population_neighbourhood_fitness(pop, target, sample_per_network=1000):
+    fits = np.zeros(sample_per_network)
+
+    means = []
+
+    for n in pop:
+        nayb = NeighbourhoodSample(n, sample_per_network)
+        target.assess_collection(nayb.neighbours)
+        nayb.neighbours.get_fitnesses(fits)
+        means.append(fits.mean())
+
+    npmeans = np.array(means)
+    return npmeans.mean()
+
+def make_ancestry_robustness_frame(anc, target, sample_size=1000):
+    # Get the fits of the ancestry
+    target.assess_collection(anc)
+    fits = np.zeros(anc.size)
+    anc.get_fitnesses(fits)
+
+    # Now sample the region around each individual and get the mean fitness
+    sample_fits = np.zeros(sample_size)
+    means = np.zeros(anc.size)
+    top_count = np.zeros(anc.size)
+    for i, n in enumerate(anc):
+        nayb = NeighbourhoodSample(n, sample_size)
+        target.assess_collection(nayb.neighbours)
+        nayb.neighbours.get_fitnesses(sample_fits)
+        how_many_are_1 = (sample_fits == 1.0).sum()
+        means[i] = sample_fits.mean()
+        top_count[i] = float(how_many_are_1) / sample_size
+    
+    df = pd.DataFrame({ 'fitness': fits, 'n_mean': means, 'max_count': top_count})
+    gens = np.asarray([n.generation for n in anc], dtype=np.int64)
+    df.index = gens
+
+    return df
 
 
 def make_cut_frame(anc):

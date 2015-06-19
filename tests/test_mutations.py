@@ -41,25 +41,3 @@ def test_variable():
     subs = get_cis_values(const, net)
     print subs
 
-def test_neighbourhood():
-    # Note we use the PROGRESSIVE mutation as this guarantees a change!
-    params = Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
-                        cue_channels=3, mutate_type=MutateType.PROGRESSIVE)
-    world = World(params)
-    const = Constructor(world)
-    net = const.create_network()
-
-    base_bnd = get_binding_values(const, net)
-
-    # This should just take 1 step neighbours
-    nayb = NeighbourhoodSample(net, 1000)
-    npformat = const.to_numpy(nayb.neighbours)
-    # Get all of the bindings out
-    bnd = npformat['binding']
-    for b in bnd:
-        # There should be just one difference!
-        assert (base_bnd != b.ravel()).sum() == 1
-        
-        
-
-
