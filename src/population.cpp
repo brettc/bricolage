@@ -4,7 +4,7 @@
 // #include <stdexcept>
 // #include <iostream>
 
-using namespace pubsub2;
+using namespace bricolage;
 
 cPopulation::cPopulation(const cFactory_ptr &c, size_t size)
     : factory(c)

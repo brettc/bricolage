@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <sstream>
 
-using namespace pubsub2;
+using namespace bricolage;
 
 cWorld::cWorld(size_t seed, size_t cue, size_t reg, size_t out)
     // Key stuff

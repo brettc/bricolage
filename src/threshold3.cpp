@@ -5,9 +5,9 @@
 
 using namespace thresh3;
 
-cFactory::cFactory(const pubsub2::cWorld_ptr &w, size_t cc, 
+cFactory::cFactory(const bricolage::cWorld_ptr &w, size_t cc, 
                            const MutateType mtype)
-    : pubsub2::cFactory(w)
+    : bricolage::cFactory(w)
     , gene_count(w->reg_channels + w->out_channels)
     , module_count(cc)
     , mutate_type(mtype)
@@ -24,7 +24,7 @@ cFactory::cFactory(const pubsub2::cWorld_ptr &w, size_t cc,
 
 }
 
-void cFactory::set_draw_from_subs(const pubsub2::cIndexes &dsubs)
+void cFactory::set_draw_from_subs(const bricolage::cIndexes &dsubs)
 {
     if (dsubs.size() == 0)
         throw std::runtime_error("VARIABLE mutation requires subs");
@@ -37,9 +37,9 @@ void cFactory::set_draw_from_subs(const pubsub2::cIndexes &dsubs)
 }
 
 // Construct a brand new Network with random stuff.
-pubsub2::cNetwork_ptr cFactory::construct(bool fill)
+bricolage::cNetwork_ptr cFactory::construct(bool fill)
 {
-    pubsub2::cFactory_ptr p = shared_from_this();
+    bricolage::cFactory_ptr p = shared_from_this();
     cNetwork *net = new cNetwork(p);
     if (fill)
         net->identifier = world->get_next_network_ident();
@@ -68,10 +68,10 @@ pubsub2::cNetwork_ptr cFactory::construct(bool fill)
     // Calculate the attractors
     if (fill)
         net->calc_attractors();
-    return pubsub2::cNetwork_ptr(net);
+    return bricolage::cNetwork_ptr(net);
 }
 
-size_t cFactory::site_count(pubsub2::cNetworkVector &networks)
+size_t cFactory::site_count(bricolage::cNetworkVector &networks)
 {
     // TODO: should multiple by 3!!!
     // Just keeping it this way for comparison
@@ -114,9 +114,9 @@ void cCisModule::mutate(const cFactory &c)
         break;
     case PROGRESSIVE:
         {
-            pubsub2::int_t current = binding[site];
+            bricolage::int_t current = binding[site];
 
-            pubsub2::int_t mutate;
+            bricolage::int_t mutate;
             if (current == 3)
                 mutate = -1;
             else if (current == -3)
@@ -143,10 +143,10 @@ void cCisModule::mutate(const cFactory &c)
 //     // 1 + poisson something?
 // }
 
-bool cCisModule::is_active(pubsub2::cChannelState const &state) const 
+bool cCisModule::is_active(bricolage::cChannelState const &state) const 
 {
     // Calculate the weighted sum. Unrolled.
-    pubsub2::int_t sum = 0;
+    bricolage::int_t sum = 0;
     if (state[channels[0]])
         sum += binding[0];
     if (state[channels[1]])
@@ -157,12 +157,12 @@ bool cCisModule::is_active(pubsub2::cChannelState const &state) const
     return sum >= 3;
 }
 
-cNetwork::cNetwork(const pubsub2::cFactory_ptr &c)
-    : pubsub2::cNetwork(c)
+cNetwork::cNetwork(const bricolage::cFactory_ptr &c)
+    : bricolage::cNetwork(c)
 {
 }
 
-pubsub2::cNetwork_ptr cNetwork::clone() const
+bricolage::cNetwork_ptr cNetwork::clone() const
 {
     // We don't use the construct here -- as we're copying
     cNetwork *copy = new cNetwork(factory);
@@ -173,25 +173,25 @@ pubsub2::cNetwork_ptr cNetwork::clone() const
 
     // We also don't calculate attractors or anything, as we might be doing
     // some mutating first.
-    return pubsub2::cNetwork_ptr(copy);
+    return bricolage::cNetwork_ptr(copy);
 }
 
 // This is the outer-inner loop!
-void cNetwork::cycle(pubsub2::cChannelState &c) const
+void cNetwork::cycle(bricolage::cChannelState &c) const
 {
     static algo::Cycle<cNetwork> cycler;
     cycler.cycle(*this, c);
 }
 
 // A slower version with the ability intervene
-void cNetwork::cycle_with_intervention(pubsub2::cChannelState &c) const
+void cNetwork::cycle_with_intervention(bricolage::cChannelState &c) const
 {
     static algo::Cycle<cNetwork> cycler;
     cycler.cycle_with_intervention(*this, c);
 }
    
-cGene::cGene(pubsub2::sequence_t sequence, pubsub2::signal_t p)
-    : pubsub2::cGene(sequence, p)
+cGene::cGene(bricolage::sequence_t sequence, bricolage::signal_t p)
+    : bricolage::cGene(sequence, p)
 {
 }
 

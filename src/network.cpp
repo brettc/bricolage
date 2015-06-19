@@ -3,7 +3,7 @@
 #include <cmath>
 #include <stdexcept>
 
-using namespace pubsub2;
+using namespace bricolage;
 
 cGene::cGene(sequence_t seq, signal_t p)
     : sequence(seq)

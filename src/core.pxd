@@ -1,7 +1,7 @@
 # Define everything in the external library
 from utility cimport *
 
-cdef extern from "<src/core.hpp>" namespace "pubsub2":
+cdef extern from "<src/core.hpp>" namespace "bricolage":
     cdef enum:
         MAX_CIS_CHANNELS = 4
 

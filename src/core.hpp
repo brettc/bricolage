@@ -32,7 +32,7 @@
 //     void *data() { return _array.data(); }
 // };
 
-namespace pubsub2
+namespace bricolage
 {
 
 // http://stackoverflow.com/questions/1903954/
@@ -89,10 +89,10 @@ class cCisModule
 public:
     cCisModule() : intervene(INTERVENE_NONE) {}
     virtual ~cCisModule() {}
-    pubsub2::signal_t get_site(size_t i) const { return channels[i]; }
-    pubsub2::signal_t set_site(size_t i, pubsub2::signal_t c) 
+    bricolage::signal_t get_site(size_t i) const { return channels[i]; }
+    bricolage::signal_t set_site(size_t i, bricolage::signal_t c) 
     { 
-        pubsub2::signal_t old = channels[i];
+        bricolage::signal_t old = channels[i];
         channels[i] = c; 
         return old;
     }
@@ -382,4 +382,4 @@ struct cMutualInfoAnalyzer
     void _analyse(cNetwork &net, joint_array_type::reference sub); 
 };
 
-} // end namespace pubsub2
+} // end namespace bricolage

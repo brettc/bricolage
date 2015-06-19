@@ -8,9 +8,9 @@ using namespace logic2;
 
 // --------------------------------------------------------------------
 // cFactory
-cFactory::cFactory(const pubsub2::cWorld_ptr &w, size_t cc, 
+cFactory::cFactory(const bricolage::cWorld_ptr &w, size_t cc, 
                            const cOperands &ops)
-    : pubsub2::cFactory(w)
+    : bricolage::cFactory(w)
     , gene_count(w->reg_channels + w->out_channels)
     , module_count(cc)
     , operands(ops)
@@ -23,14 +23,14 @@ cFactory::cFactory(const pubsub2::cWorld_ptr &w, size_t cc,
 
     // Randomly allocate operands to binding pairs
     // std::pair<size_t, size_t> &r = w->sub_range;
-    // for (pubsub2::signal_t a = r.first; a < r.second; ++a)
-    //     for (pubsub2::signal_t b = r.first; b < r.second; ++b)
+    // for (bricolage::signal_t a = r.first; a < r.second; ++a)
+    //     for (bricolage::signal_t b = r.first; b < r.second; ++b)
     //         bindings[std::make_pair(a, b)] = r_operand();
 }
 
-pubsub2::cNetwork_ptr cFactory::construct(bool fill)
+bricolage::cNetwork_ptr cFactory::construct(bool fill)
 {
-    pubsub2::cFactory_ptr p = shared_from_this();
+    bricolage::cFactory_ptr p = shared_from_this();
     cNetwork *net = new cNetwork(p);
     if (fill)
         net->identifier = world->get_next_network_ident();
@@ -57,10 +57,10 @@ pubsub2::cNetwork_ptr cFactory::construct(bool fill)
     // Calculate the attractors
     if (fill)
         net->calc_attractors();
-    return pubsub2::cNetwork_ptr(net);
+    return bricolage::cNetwork_ptr(net);
 }
 
-size_t cFactory::site_count(pubsub2::cNetworkVector &networks)
+size_t cFactory::site_count(bricolage::cNetworkVector &networks)
 {
     return gene_count * module_count * 2 * networks.size();
 }
@@ -68,8 +68,8 @@ size_t cFactory::site_count(pubsub2::cNetworkVector &networks)
 // --------------------------------------------------------------------
 // cNetwork
 // TODO: Make this a template
-cNetwork::cNetwork(const pubsub2::cFactory_ptr &c)
-    : pubsub2::cNetwork(c)
+cNetwork::cNetwork(const bricolage::cFactory_ptr &c)
+    : bricolage::cNetwork(c)
 {
     // nothing special here...
 }
@@ -92,7 +92,7 @@ void cNetwork::mutate(size_t nmutations)
     }
 }
 
-pubsub2::cNetwork_ptr cNetwork::clone() const
+bricolage::cNetwork_ptr cNetwork::clone() const
 {
     // We don't use the construct here -- as we're copying
     cNetwork *copy = new cNetwork(factory);
@@ -103,19 +103,19 @@ pubsub2::cNetwork_ptr cNetwork::clone() const
 
     // We also don't calculate attractors or anything, as we might be doing
     // some mutating first.
-    return pubsub2::cNetwork_ptr(copy);
+    return bricolage::cNetwork_ptr(copy);
 }
 
 // This is the outer-inner loop!
 // TODO: This should be part of a template
-void cNetwork::cycle(pubsub2::cChannelState &c) const
+void cNetwork::cycle(bricolage::cChannelState &c) const
 {
     static algo::Cycle<cNetwork> cycler;
     cycler.cycle(*this, c);
 }
 
 // A slower version with the ability intervene
-void cNetwork::cycle_with_intervention(pubsub2::cChannelState &c) const
+void cNetwork::cycle_with_intervention(bricolage::cChannelState &c) const
 {
     static algo::Cycle<cNetwork> cycler;
     cycler.cycle_with_intervention(*this, c);
@@ -123,8 +123,8 @@ void cNetwork::cycle_with_intervention(pubsub2::cChannelState &c) const
 
 // --------------------------------------------------------------------
 // cGene
-cGene::cGene(pubsub2::sequence_t sequence, pubsub2::signal_t p)
-    : pubsub2::cGene(sequence, p)
+cGene::cGene(bricolage::sequence_t sequence, bricolage::signal_t p)
+    : bricolage::cGene(sequence, p)
 {
 }
 
