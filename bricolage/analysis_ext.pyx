@@ -136,11 +136,11 @@ cdef class CausalFlowAnalyzer:
 
     def numpy_info_from_collection(self, CollectionBase coll):
         i = Information(self.analyse_collection(coll))
-        return np.asarray(i)
+        return numpy.asarray(i)
 
     def numpy_info_from_network(self, Network n):
         i = Information(self.analyse_network(n))
-        return np.asarray(i)
+        return numpy.asarray(i)
 
 
 cdef class MutualInfoAnalyzer:
@@ -175,8 +175,8 @@ cdef class MutualInfoAnalyzer:
 
     def numpy_info_from_network(self, Network n):
         i = Information(self.analyse_network(n))
-        return np.asarray(i)
+        return numpy.asarray(i)
 
     def numpy_info_from_collection(self, CollectionBase coll):
         i = Information(self.analyse_collection(coll))
-        return np.asarray(i)
+        return numpy.asarray(i)

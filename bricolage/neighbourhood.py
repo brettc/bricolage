@@ -3,12 +3,13 @@ from math import log as mathln
 import numpy as np
 
 class NeighbourhoodSample(object):
-    """Sample around a network
+    """Gather a sample of nearby mutants
 
-    Samples are drawn as a random, non-backtracking walk, where the number
-    of steps is drawn from poisson distribution, ensuring that the expected
-    number of single-step walks is proportion of one-step neighbourhood
-    
+    Samples can be simple a one mutation away (exactly what this means depends
+    on the model of mutation), or they can be a number of mutations away,
+    where the number of steps is drawn from poisson distribution, ensuring
+    that the expected number of single-step walks is proportion of one-step
+    neighbourhood.
     """
     def __init__(self, center, sample_size, one_step_proportion=1.0):
         # Sample from the neighbourhood
@@ -33,5 +34,6 @@ class NeighbourhoodSample(object):
 
         self.neighbours = Collection(center.constructor)
         self.neighbours.fill_with_mutations(center, self.mutations)
+        
 
 
