@@ -2,7 +2,7 @@ import pytest
 from bricolage.neighbourhood import NeighbourhoodSample, Collection
 from bricolage.threshold3 import World, Parameters, Constructor, MutateType
 import numpy as np
-from bricolage.analysis import make_neighbourhood_frame
+from bricolage.analysis import get_population_neighbourhood_fitness
 from generate import get_database
 
 np.set_printoptions(linewidth=150)
@@ -42,7 +42,7 @@ def test_neighbourhood():
 def test_population(bowtie_database):
     target = bowtie_database.targets[0]
     popul = bowtie_database.population
-    mean = make_neighbourhood_frame(popul, target, sample_per_network=100)
+    mean = get_population_neighbourhood_fitness(popul, target, sample_per_network=100)
     fits = np.zeros(popul.size)
     popul.get_fitnesses(fits)
     print fits.mean(), mean
