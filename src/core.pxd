@@ -57,8 +57,8 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         cConstructor()
         cNetwork_ptr construct(bint fill)
         size_t site_count(cNetworkVector &networks)
-        void mutate_collection(cNetworkVector &networks, 
-                               cIndexes &mutated, double site_rate)
+        cNetwork_ptr clone_and_mutate_network(
+            cNetwork_ptr &n, size_t mutations, int_t generation)
         cWorld_ptr world
     
     cdef cppclass cCisModule:
@@ -82,6 +82,7 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         void cycle_with_intervention(cChannelState c)
         size_t gene_count()
         void mutate(size_t)
+        cNetwork_ptr clone()
         cGene *get_gene(size_t)
         void calc_attractors()
         void calc_attractors_with_intervention()
@@ -117,6 +118,7 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
     cdef cppclass cTarget:
         cTarget(cWorld_ptr &w, string name, int_t ident)
         double assess(cNetwork &net)
+        void assess_networks(cNetworkVector &networks)
         cWorld *factory
         int_t identifier
         string name
@@ -156,16 +158,39 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         void collection_probs(double *data, cNetworkVector &networks)
         void collection_info(double *data, cNetworkVector &networks)
 
-# cdef extern from "<src/logic2.hpp>" namespace "pubsub2":
-#     cdef cppclass cConstructorLogic2(cConstructor):
-#         cConstructorLogic2(cWorld &f, size_t gc, size_t cc, cOperands &ops)
-#
-#     cdef cppclass cCisModuleLogic2(cCisModule):
-#         operand_t op
-#         signal_t *channels
-#
-#     cCisModuleLogic2 * dynamic_cast_cCisModuleLogic2 \
-#         "dynamic_cast<pubsub2::cCisModuleLogic2 *>" (cCisModule *) except NULL
+    cdef cppclass cJointProbabilities
 
+    cdef cppclass cInformation:
+        cInformation(const cJointProbabilities &joint)
+        cWorld_ptr world
+        size_t stride_n(size_t n)
+        size_t shape_n(size_t n)
+        size_t dimensions()
+        size_t element_size()
+        size_t total_size()
+        void *data()
 
+    cdef cppclass cJointProbabilities:
+        cJointProbabilities(const cWorld_ptr &w, size_t network_size, 
+                        size_t per_network, size_t per_channel)
+        bint calc_information(cInformation &information)
+        cWorld_ptr world
+        size_t stride_n(size_t n)
+        size_t shape_n(size_t n)
+        size_t dimensions()
+        size_t element_size()
+        size_t total_size()
+        void *data()
 
+    cdef cppclass cCausalFlowAnalyzer:
+        cCausalFlowAnalyzer(const cWorld_ptr& world, const cRates &rates);
+        cRates rates
+        cRates natural_probabilities
+        cJointProbabilities *analyse_network(cNetwork &net)
+        cJointProbabilities *analyse_collection(const cNetworkVector &networks)
+
+    cdef cppclass cMutualInfoAnalyzer:
+        cMutualInfoAnalyzer(const cWorld_ptr& world, const cIndexes categories);
+        cIndexes categories
+        cJointProbabilities *analyse_network(cNetwork &net)
+        cJointProbabilities *analyse_collection(const cNetworkVector &networks)

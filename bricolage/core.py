@@ -1,10 +1,22 @@
+from enum import IntEnum
 from .core_ext import SelectionModel, World, Target
 
 __all__ = ["World", "SelectionModel", "Parameters", "Target"]
 
+class InterventionState(IntEnum):
+    INTERVENE_NONE = 0
+    INTERVENE_ON = 1
+    INTERVENE_OFF = 2
+
+class MutateType(IntEnum):
+    JUMP = 0
+    PROGRESSIVE = 1
+
 class Parameters(object):
+
     def __init__(self, **kwargs):
         # Defaults are provided here
+        self.description = "No description"
         self.seed = 1
         self.cis_count = 3
         self.gene_count = 3
@@ -13,6 +25,8 @@ class Parameters(object):
         self.out_channels = 1
         self.selection_class = SelectionModel
         self.population_size = 100
+        self.mutate_type = MutateType.JUMP
+        self.add_zeros = 0
 
         self._override(kwargs)
 
@@ -20,15 +34,3 @@ class Parameters(object):
         # TODO: Something clever here
         for k, v in kwargs.items():
             setattr(self, k, v)
-            # if hasattr(self, k):
-    #         else:
-    #             # TODO: Issue a warning
-    #             pass
-                # raise RuntimeError("Invalid Setting: {}, in Parameters".format(k))
-                #
-    def dump(self, stream):
-        for k, v in self.__dict__.items():
-            stream.write(k)
-            stream.write(": ")
-            stream.write(str(v))
-            stream.write("\n")

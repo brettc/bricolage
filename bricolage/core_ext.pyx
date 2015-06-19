@@ -2,6 +2,7 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: cdivision=True
+# distutils: define_macros=NPY_NO_DEPRECATED_API
 
 import cython
 import numpy
@@ -318,19 +319,23 @@ cdef class Network:
     def cycle_with_intervention(self, ChannelState c):
         self._this.cycle_with_intervention(c._this)
 
-    def _evil_mutate(self, size_t nmutations):
+    def recalculate(self, with_intervention=False):
+        if with_intervention:
+            self._this.calc_attractors_with_intervention()
+        else:
+            self._this.calc_attractors()
+
+        self._attractors = None
+        self._rates = None
+
+    def mutate(self, size_t nmutations):
         """Mutate the network. 
 
         This invalidates lots of assumptions required for selection to work
         correctly. Use only if you understand what you are doing.
         """
         self._this.mutate(nmutations)
-        self._invalidate_cached()
-
-    def _invalidate_cached(self):
-        self._this.calc_attractors()
-        self._attractors = None
-        self._rates = None
+        self.recalculate()
 
     property attractors:
         """A tuple containing the attractors for each environment"""
@@ -420,11 +425,9 @@ cdef class Gene:
     property intervene:
         def __get__(self):
             return self._this.intervene
-
-    # def _evil_set_pub(self, size_t p):
-    #     assert p in self.network.world.pub_signals
-    #     # self._this.pub = p
-    #     self.network._invalidate_cached()
+        def __set__(self, InterventionState i):
+            self._this.intervene = i
+            self.network.recalculate(with_intervention=True)
 
     property module_count:
         def __get__(self):
@@ -460,7 +463,7 @@ cdef class CisModule:
     def set_site(self, size_t i, size_t c):
         assert c in self.gene.network.world.sub_signals
         old = self._this.set_site(i, c)
-        self.gene.network._invalidate_cached()
+        self.gene.network.recalculate()
         return old
 
     property intervene:
@@ -480,7 +483,7 @@ cdef class CisModule:
             for i in range(self._this.site_count()):
                 assert t[i] in valid
                 self._this.channels[i] = t[i]
-            self.gene.network._invalidate_cached()
+            self.gene.network.recalculate()
 
     property channel_names:
         def __get__(self):
@@ -535,6 +538,16 @@ cdef class CollectionBase:
         for i in range(self._collection.size()):
             yield self.get_at(i)
 
+    def assess(self, Target target):
+        target._this.assess_networks(deref(self._collection))
+
+    def get_fitnesses(self, np.double_t[:] fits):
+        assert fits.shape[0] == self.size
+        cdef size_t i
+        for i in range(self._collection.size()):
+            fits[i] = deref(self._collection)[i].get().fitness
+
+
 cdef class Collection(CollectionBase):
     def __cinit__(self, Constructor c, size_t size=0):
         self._this = new cNetworkVector()
@@ -542,6 +555,21 @@ cdef class Collection(CollectionBase):
 
     def __dealloc__(self):
         del self._this
+
+    def fill(self, Network n, size_t size):
+        cdef size_t i
+        for i in range(size):
+            self._this.push_back(n._this.clone())
+
+    def fill_with_mutations(self, Network n, np.int_t[:] mutations):
+        cdef:
+            size_t i
+            size_t sz = mutations.shape[0]
+            cConstructor *con = n._this.constructor.get()
+
+        for i in range(sz):
+            self._this.push_back(
+                con.clone_and_mutate_network(n._shared, mutations[i], 1))
 
 cdef class Ancestry(CollectionBase):
     def __cinit__(self, Constructor c, size_t size=0):
@@ -557,7 +585,19 @@ cdef class Ancestry(CollectionBase):
             self._this.front().get().generation,
             self._this.back().get().generation,
         )
+
+    def network_at_generation(self, size_t gen):
+        # Should really use binary search ...
+        cdef size_t i
+        for i in range(self._this.size() - 1):
+            if deref(self._this)[i].get().generation > gen:
+                break
+        else:
+            # If we hit the end actually return the last one
+            i += 1
+        return self.get_at(i - 1)
         
+
     def __dealloc__(self):
         del self._this
 
@@ -602,9 +642,6 @@ cdef class Population(CollectionBase):
 
     def mutate(self, double site_rate, int generation=0):
         return self._this.mutate(site_rate, generation)
-
-    def assess(self, Target target):
-        self._this.assess(deref(target._this))
 
     def select(self, SelectionModel sm, size=None):
         cdef size_t s
@@ -670,6 +707,9 @@ cdef class Target:
         # assert net.constructor.world is self.world
         return self._this.assess(deref(net._this));
 
+    def assess_collection(self, CollectionBase coll):
+        self._this.assess_networks(deref(coll._collection));
+
     def as_array(self):
         return numpy.array(self._this.optimal_rates)
 
@@ -681,84 +721,20 @@ cdef class Target:
         def __get__(self):
             return self._this.name
 
-cdef class NetworkAnalysis:
-    def __cinit__(self, Network net):
-        self.network = net
-        self._this = new cNetworkAnalysis(net._shared)
-
-    def __dealloc__(self):
-        del self._this
-
-    def get_edges(self):
-        cdef:
-            cEdgeList edges
-        self._this.make_edges(edges)
-        return edges
-
-    def get_active_edges(self):
-        cdef:
-            cEdgeList edges
-        self._this.make_active_edges(edges)
-        return edges
-
-cdef class InfoE:
-    def __cinit__(self, World w, init_func):
-        self.world = w
-        a, b = self.world._this.cue_range
+    def calc_categories(self):
+        """Categorise the targets"""
+        cat_dict = {}
         cats = []
-        for i, e in enumerate(self.world.environments):
-            cats.append(init_func(*e.as_array()[a:b]))
+        cat_n = 0
+        for et in self.as_array():
+            et = tuple(et)
+            if et in cat_dict:
+                cats.append(cat_dict[et])
+            else:
+                cat_dict[et] = cat_n
+                cats.append(cat_n)
+                cat_n += 1
+        return cats
+            
 
-        # Make sure the categories are consecutive 0, 1, 2 ...
-        catset = set(cats)
-        ncats = len(catset)
-        if catset != set(range(ncats)):
-            raise ValueError("Categories must be consecutively numbered"
-                             " integers from 0 to N")
-        # and there are at least 2
-        if ncats < 2:
-            raise ValueError("There must be at least two categories")
 
-        self._this = new cInfoE(w._shared, ncats)
-        self._this.categories = cats
-
-    property categories:
-        def __get__(self):
-            return self._this.categories
-
-    def network_probs(self, Network net):
-        cdef:
-            size_t b=0, c=0, d=0
-
-        self._this.get_extents(b, c, d)
-        np_arr = numpy.zeros((b, c, d))
-
-        cdef double [:, :, :] np_arr_view = np_arr
-        self._this.network_probs(&np_arr_view[0][0][0],
-                                   deref(net._this))
-        return np_arr
-
-    def collection_probs(self, CollectionBase coll):
-        cdef:
-            size_t a, b=0, c=0, d=0
-
-        a = coll._collection.size()
-        self._this.get_extents(b, c, d)
-        np_arr = numpy.zeros((a, b, c, d))
-
-        cdef double [:, :, :, :] np_arr_view = np_arr
-        self._this.collection_probs(&np_arr_view[0][0][0][0],
-                                   deref(coll._collection))
-        return np_arr
-
-    def collection_info(self, CollectionBase coll):
-        cdef size_t a, b=0, c=0, d=0
-        a = coll._collection.size()
-        self._this.get_extents(b, c, d)
-        np_arr = numpy.zeros((a, b))
-        cdef double [:, :] np_arr_view = np_arr
-        self._this.collection_info(&np_arr_view[0][0], deref(coll._collection))
-        return np_arr
-
-    def __dealloc__(self):
-        del self._this

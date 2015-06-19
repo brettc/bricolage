@@ -1,9 +1,9 @@
 from . import core
 from .operand import Operand
 from .logic2_ext import Constructor
-from .core_ext import World, Target, Population, NetworkAnalysis
+from .core_ext import World, Target, Population
 __all__ = ["World", "Constructor", "Parameters", "Operand",
-           "Population", "Target", "NetworkAnalysis"]
+           "Population", "Target"] 
 
 class Parameters(core.Parameters):
     def __init__(self, **kwargs):

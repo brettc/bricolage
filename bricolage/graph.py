@@ -1,7 +1,7 @@
 from enum import IntEnum
 import networkx as nx
 from pygraphviz import AGraph
-from core_ext import NetworkAnalysis
+from analysis_ext import NetworkAnalysis
 import pathlib
 
 class NodeType(IntEnum):
@@ -32,15 +32,8 @@ class BaseGraph(object):
     def is_inert(self, node):
         return False
 
-    # def is_internal(self, node):
-    #     t, n = node
-    #     if t == "G":
-    #         if n < self.params.reg_gene_count:
-    #             return True
-    #     else:
-    #         if n in self.params.reg_signals:
-    #             return True
-    #     return False
+    def is_internal(self, node):
+        return not self.is_input(node) and not self.is_output(node)
 
     def is_input(self, node):
         t, n = node
@@ -90,14 +83,21 @@ class BaseGraph(object):
             nindex = int(name[1:])
         return ntype, nindex
 
-    def remove_nodes(self, nodetype, internal_only=False):
+    def remove_nodes(self, nodetype, internal_only=False, external_only=False):
+        assert not (internal_only and external_only)
         G = self.nx_graph
         for nd in G.nodes():
             if nd[0] != nodetype:
                 continue
+
             if internal_only:
-                if self.is_input(nd) or self.is_output(nd):
+                if not self.is_internal(nd):
                     continue
+            elif external_only:
+                if self.is_internal(nd):
+                    continue
+
+            # Ok -- do the removal
             pred = G.predecessors(nd)
             succ = G.successors(nd)
             for p in pred:
@@ -131,36 +131,33 @@ class FullGraph(BaseGraph):
     def get_channel_label(self, i):
         return self.world.name_for_channel(i)
 
-
 class SignalFlowGraph(FullGraph):
+    begin_node = (NodeType.BEGIN, 0)
+    end_node = (NodeType.END, 0)
+
     def __init__(self, analysis):
         FullGraph.__init__(self, analysis, knockouts=True)
         G = self.nx_graph
-        self.begin_node = (NodeType.BEGIN, 0)
-        self.end_node = (NodeType.END, 0)
 
-        # Replace input nodes with "begin"
         inp_nodes = [n for n in G.nodes_iter() if self.is_input(n)]
         for n in inp_nodes:
-            G.add_edge((NodeType.BEGIN, 0), n)
-            succ = G.successors(n)
-            for s in succ:
-                G.add_edge(self.begin_node, s)
-            G.remove_node(n)
+            G.add_edge(self.begin_node, n)
 
-        # Replace output nodes with "end"
         out_nodes = [n for n in G.nodes_iter() if self.is_output(n)]
         for n in out_nodes:
-            pred = G.predecessors(n)
-            for p in pred:
-                G.add_edge(p, self.end_node)
-            G.remove_node(n)
+            G.add_edge(n, self.end_node)
 
         # Now remove the other stuff
         self.remove_nodes(NodeType.MODULE)
         self.remove_nodes(NodeType.GENE)
 
+        # We've replaced the outside channels with the begin/end nodes
+        self.remove_nodes(NodeType.CHANNEL, external_only=True)
+
     def minimum_cut(self):
+        # Sometimes begin nodes may not even be in the graph!
+        if self.begin_node not in self.nx_graph.nodes():
+            return None
         return nx.minimum_node_cut(
             self.nx_graph, self.begin_node, self.end_node)
 
@@ -302,15 +299,16 @@ class DotMaker(object):
         a = self.get_layout()
         a.write(f)
 
-def save_network_as_fullgraph(n, path='.', name=None):
+def save_network_as_fullgraph(n, path='.', name=None, simplify=True):
     output_path = pathlib.Path(path)
     ana = NetworkAnalysis(n)
-    gph = FullGraph(ana)
+    gph = FullGraph(ana, simplify)
     dot = DotMaker(gph)
     if name is None:
         name = n.identifier
     print 'saving', name
     dot.save_picture(str(output_path / "network-{}.png".format(name)))
+    dot.save_dot(str(output_path / "network-{}.dot".format(name)))
 
 
 

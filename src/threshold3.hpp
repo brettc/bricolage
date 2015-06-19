@@ -4,6 +4,8 @@
 
 namespace thresh3 {
 
+enum MutateType { JUMP=0, PROGRESSIVE=1 };
+
 typedef std::function<int()> random_int_t;
 inline random_int_t random_int_range(int a, int b, const pubsub2::cWorld_ptr &w)
 { 
@@ -13,10 +15,16 @@ inline random_int_t random_int_range(int a, int b, const pubsub2::cWorld_ptr &w)
 class cConstructor : public pubsub2::cConstructor
 {
 public:
-    cConstructor(const pubsub2::cWorld_ptr &w, size_t module_count);
+    cConstructor(const pubsub2::cWorld_ptr &w, size_t module_count, 
+                 const MutateType mtype);
     size_t gene_count, module_count;
+    MutateType mutate_type;
+    pubsub2::cIndexes draw_from_subs; // A vector of sub values that is used to draw from
     random_int_t r_gene, r_module, r_site;
-    random_int_t r_binding, r_direction, r_input;
+    random_int_t r_binding, r_direction;
+    random_int_t r_sub;
+
+    void set_draw_from_subs(const pubsub2::cIndexes &d);
 
     // Overrides
     pubsub2::cNetwork_ptr construct(bool fill);

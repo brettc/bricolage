@@ -14,6 +14,24 @@
 #include <tuple>
 #include <random>
 
+// Failed attempt to templatize. Let's deal with this later.
+// template <typename T, std::size_t NumDims>
+// struct multi_array_wrapper
+// {
+//     multi_array_wrapper::multi_array_wrapper(const extent_gen &ranges)
+//     typedef boost::multi_array<T, NumDims> array_type;
+//     array_type _array;
+//
+//     // These provide information for constructing a buffer interface from
+//     // python, allowing us to operate on the array via numpy
+//     size_t stride_n(size_t n) { return _array.strides()[n]; }
+//     size_t shape_n(size_t n) { return _array.shape()[n]; }
+//     size_t dimensions() { return _array.num_dimensions(); }
+//     size_t element_size() { return sizeof(array_type::element); }
+//     size_t total_size() { return element_size() * _array.num_elements(); }
+//     void *data() { return _array.data(); }
+// };
+
 namespace pubsub2
 {
 
@@ -232,23 +250,9 @@ struct cTarget
     // TODO: per env weighting
     // TODO: per output weighting
     double assess(const cNetwork &net) const;
+    void assess_networks(cNetworkVector &networks) const;
 };
 
-typedef boost::multi_array<double, 3> freqs_t;
-typedef boost::multi_array<double, 4> networks_probs_t;
-typedef boost::multi_array_ref<double, 4> networks_probs_ref_t;
-struct cInfoE
-{
-    cInfoE(const cWorld_ptr &world, size_t nc);
-    cWorld_ptr world;
-    size_t category_count;
-    cIndexes categories;
-
-    void get_extents(size_t &channels, size_t &categories, size_t &on_off);
-    void network_probs(double *data, const cNetwork &net);
-    void collection_probs(double *data, const cNetworkVector &networks);
-    void collection_info(double *data, const cNetworkVector &networks);
-};
 
 struct cSelectionModel
 {
@@ -310,5 +314,72 @@ struct cNetworkAnalysis
     void make_active_edges(cEdgeList &edges);
 };
 
+struct cJointProbabilities;
+
+typedef boost::multi_array<double, 3> info_array_type;
+struct cInformation
+{
+    cInformation(const cJointProbabilities &jp);
+    cWorld_ptr world;
+    info_array_type _array;
+
+    // These provide information for constructing a buffer interface from
+    // python, allowing us to operate on the array via numpy
+    size_t stride_n(size_t n) { return _array.strides()[n]; }
+    size_t shape_n(size_t n) { return _array.shape()[n]; }
+    size_t dimensions() { return _array.num_dimensions(); }
+    size_t element_size() { return sizeof(info_array_type::element); }
+    size_t total_size() { return element_size() * _array.num_elements(); }
+    void *data() { return _array.data(); }
+};
+
+typedef boost::multi_array<double, 5> joint_array_type;
+struct cJointProbabilities 
+{
+    cJointProbabilities(const cWorld_ptr &w, size_t network_size, 
+                        size_t per_network, size_t per_channel);
+    cWorld_ptr world;
+    joint_array_type _array;
+
+    void calc_information(cInformation &information) const;
+
+    // These provide information for constructing a buffer interface from
+    // python, allowing us to operate on the array via numpy
+    size_t stride_n(size_t n) { return _array.strides()[n]; }
+    size_t shape_n(size_t n) { return _array.shape()[n]; }
+    size_t dimensions() { return _array.num_dimensions(); }
+    size_t element_size() { return sizeof(joint_array_type::element); }
+    size_t total_size() { return element_size() * _array.num_elements(); }
+    void *data() { return _array.data(); }
+};
+
+struct cCausalFlowAnalyzer
+{
+    cCausalFlowAnalyzer(cWorld_ptr &world, const cRates &rates);
+    cWorld_ptr world;
+    cRates rates;
+    cRates natural_probabilities;
+
+    // Note you need to delete the return values from these!
+    cJointProbabilities *analyse_network(cNetwork &net);
+    cJointProbabilities *analyse_collection(const cNetworkVector &networks);
+
+    void _calc_natural(cNetwork &net);
+    void _analyse(cNetwork &net, joint_array_type::reference sub); 
+};
+
+struct cMutualInfoAnalyzer
+{
+    cMutualInfoAnalyzer(cWorld_ptr &world, const cIndexes &cats);
+    cWorld_ptr world;
+    cIndexes categories;
+    size_t max_category;
+
+    // Note you need to delete the return values from these!
+    cJointProbabilities *analyse_network(cNetwork &net);
+    cJointProbabilities *analyse_collection(const cNetworkVector &networks);
+
+    void _analyse(cNetwork &net, joint_array_type::reference sub); 
+};
 
 } // end namespace pubsub2
