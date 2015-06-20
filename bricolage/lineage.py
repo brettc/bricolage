@@ -295,10 +295,10 @@ class FullLineage(BaseLineage):
             self.save_generation(initial=True)
 
     def __repr__(self):
-        return "<FullLineage: '{}', {}/{}G, {}N>".format(
+        return "<FullLineage: '{}', {}I x {}G, {}N>".format(
             str(self.path.name),
-            len(self._generations),
             self._size,
+            len(self._generations),
             len(self._networks),
         )
 
