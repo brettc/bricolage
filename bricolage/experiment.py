@@ -6,6 +6,7 @@ import shutil
 import random
 import argparse
 
+
 try:
     from send2trash import send2trash
 except ImportError:
@@ -14,6 +15,7 @@ except ImportError:
 
 from pathlib import Path
 from lineage import FullLineage, SnapshotLineage
+from experimentdb import Database, TreatmentRecord, ReplicateRecord
 
 class ExperimentError(RuntimeError):
     pass
@@ -51,12 +53,29 @@ class Replicate(object):
         self.fresh = True
         self.params = copy.deepcopy(self.treatment.params)
         self.params.seed = self.seed
+        self.generations = -1
+
+    @property
+    def session(self):
+        return self.treatment.experiment.database.session
 
     def run(self):
+        # TODO: Maybe use this, instead of merging
+        # record = self.session.query(ReplicateRecord)\
+        #     .filter(ReplicateRecord.treatment_id == self.treatment.seq)\
+        #     .filter(ReplicateRecord.replicate_id == self.seq).one()
         if not self.path.exists():
             self.path.mkdir()
         with self.get_lineage() as lin:
-            self.treatment.run_replicate(self, lin)
+            try:
+                self.treatment.run_replicate(self, lin)
+            except (KeyboardInterrupt, SystemExit):
+                # Try and exit gracefully with a keyboard interrupt
+                self.treatment.experiment.user_interrupt = True
+
+            self.generations = lin.generation
+            self.session.merge(ReplicateRecord(self))
+            self.session.commit()
 
     @property
     def dirname(self):
@@ -124,6 +143,10 @@ class Treatment(object):
         self.params = params
         self.count = count
         self.experiment = None
+        self.seq = None
+        self.seed = None
+        self.rng = None
+        self.replicates = None
 
     def _bind(self, experiment):
         assert self.experiment is None
@@ -153,9 +176,11 @@ class Treatment(object):
             self.analysis_path.mkdir()
 
         for r in self.replicates:
-            r.run()
+            if not self.experiment.user_interrupt:
+                r.run()
 
 
+# TODO: Externalise the root
 class Experiment(object):
     def __init__(self, path, name, seed, analysis_path=None, full=True):
         self.path = _construct_path(path, name)
@@ -174,6 +199,10 @@ class Experiment(object):
 
         self.seed = seed
         self.rng = random.Random(seed)
+
+        # We create the database on the analysis path --- oooh! Clever.
+        self.database = Database(self.analysis_path)
+        self.user_interrupt = False
 
     def add(self, treatment):
         self.treatments.append(treatment)
@@ -198,8 +227,6 @@ class Experiment(object):
         path.mkdir()
 
     def _remove_paths(self):
-        # TODO: error if no path exists?
-        # TODO: use send2trash
         if self.path.exists():
             _remove_folder(self.path)
         if self.path is not self.analysis_path:
@@ -207,6 +234,47 @@ class Experiment(object):
                 _remove_folder(self.analysis_path)
             self.analysis_path.mkdir()
 
+    def _init_db(self):
+        for t in self.treatments:
+            self.database.session.merge(TreatmentRecord(t))
+            for r in t.replicates:
+                self.database.session.merge(ReplicateRecord(r))
+        self.database.session.commit()
+
+    def _make_parser(self):
+        parser = argparse.ArgumentParser()
+        subparsers = parser.add_subparsers(title="Available Commands")
+
+        p_run = subparsers.add_parser('run', help='Run the experiment')
+        p_run.add_argument('--overwrite', action="store_true", 
+                        help="Trash the entire experiment and start again.")
+        p_run.add_argument('--dry', action="store_true", 
+                        help="Just create the database, don't run the simulations.")
+        p_run.add_argument('--verbose', action="store_true", 
+                        help="Say lots.")
+        p_run.set_defaults(func=self.run)
+
+        p_status = subparsers.add_parser('status', help='Show status of experiment')
+        p_status.add_argument('--verbose', action="store_true", 
+                        help="Say lots.")
+        p_status.set_defaults(func=self.status)
+
+        p_run = subparsers.add_parser('trash', help='Trash the experiment')
+        p_run.set_defaults(func=self.trash)
+
+        return parser
+
+    def run_from_commandline(self):
+        parser = self._make_parser()
+        args = parser.parse_args()
+        try:
+            args.func(args)
+        except ExperimentError:
+            exit(1)
+        exit(0)
+
+    # --------------------
+    # Commands
     def run(self, args):
         if args.overwrite:
             self._remove_paths()
@@ -216,46 +284,34 @@ class Experiment(object):
             if self.path != self.analysis_path:
                 self._create_path(self.analysis_path)
 
+        self.database.create(args)
+        self._init_db()
+
+        if args.dry:
+            log.info("Dry run -- exiting without simulating")
+            return
+
         # Now run
         log.info("Beginning experiment in {}".format(str(self.path)))
         for treat in self.treatments:
-            treat.run()
+            if not self.user_interrupt:
+                treat.run()
+
+        if self.user_interrupt:
+            log.info("User interrupted --- quitting")
+
 
     def status(self, args):
-        print 'this is the status'
+        if not self.path.exists() or not self.database.path.exists():
+            log.error("Experiment does not exist yet. You need to run it")
+            raise ExperimentError
+
+        self.database.create(args)
+        trecords = self.database.session.query(TreatmentRecord).all()
+        for t in trecords:
+            print t
+            for r in t.replicates:
+                print r
 
     def trash(self, args):
         self._remove_paths()
-
-
-def make_parser(exp):
-    parser = argparse.ArgumentParser()
-    subparsers = parser.add_subparsers(title="Available Commands")
-
-    p_run = subparsers.add_parser('run', help='Run the experiment')
-    p_run.add_argument('--overwrite', action="store_true", 
-                       help="Trash the entire experiment and start again.")
-    p_run.set_defaults(func=exp.run)
-
-    p_status = subparsers.add_parser('status', help='Show status of experiment')
-    p_status.set_defaults(func=exp.status)
-
-    p_run = subparsers.add_parser('trash', help='Trash the experiment')
-    p_run.set_defaults(func=exp.trash)
-
-
-    return parser
-
-def run_experiment(exp):
-    parser = make_parser(exp)
-    args = parser.parse_args()
-    try:
-        args.func(args)
-    except ExperimentError:
-        exit(1)
-    exit(0)
-
-
-
-
-    
