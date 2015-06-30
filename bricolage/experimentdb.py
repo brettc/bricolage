@@ -49,10 +49,29 @@ class Database(object):
         self.engine = None
         self.session = None
 
-    def create(self, args):
+    def create(self, echo=False):
         log.info("Initialising database at {}".format(str(self.path)))
         self.engine = create_engine('sqlite:///{}'.format(str(self.path)), 
-                                    echo=args.verbose)
+                                    echo=echo)
         SQLBase.metadata.create_all(self.engine)
         self.session = Session(self.engine)
+
+    def save_frame(self, table, replicate, frame):
+        if self.engine.dialect.has_table(self.engine.connect(), table):
+            # Delete any existing 
+            self.engine.execute("delete from {}"
+                                " where treatment_id = {}"
+                                " and replicate_id = {}".format(
+                table, replicate.treatment.seq, replicate.seq))
+
+        # Add the treatment / replicate columns
+        frame['replicate_id'] = replicate.seq
+        frame['treatment_id'] = replicate.treatment.seq
+
+        # Set an index, and add it -- 
+        # TODO: Still missing more indexing info
+        frame.set_index(['treatment_id', 'replicate_id'], inplace=True)
+        frame.to_sql(table, self.engine, if_exists='append', index_label=
+                     ['treatment_id', 'replicate_id'])
+        
 
