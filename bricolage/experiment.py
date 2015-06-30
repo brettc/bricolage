@@ -1,11 +1,13 @@
-import logging
-log = logging.getLogger("experiment")
+import logtools
+log = logtools.get_logger()
 
 import copy
 import shutil
 import random
 import argparse
 
+from .analysis_ext import NetworkAnalysis
+import graph
 
 try:
     from send2trash import send2trash
@@ -180,9 +182,42 @@ class Treatment(object):
                 r.run()
 
 
+class add_command(object):
+    subparsers = {}
+    def __init__(self, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+
+    def __call__(self, func):
+        if 'help' not in self.kwargs:
+            self.kwargs['help'] = func.__doc__
+        self.subparsers[func] = self.args, self.kwargs
+        return func
+
+
+class add_argument(object):
+    options = {}
+    def __init__(self, name, *args, **kwargs):
+        self.name = name
+        self.args = args
+        self.kwargs = kwargs
+
+    def __call__(self, func):
+        ops = self.options.setdefault(func, [])
+        ops.append((self.name, self.args, self.kwargs))
+
+        # Make a command if it isn't there
+        if func not in add_command.subparsers:
+            add_command()(func)
+
+        return func
+
+
 # TODO: Externalise the root
 class Experiment(object):
     def __init__(self, path, name, seed, analysis_path=None, full=True):
+        logtools.init_logging()
+
         self.path = _construct_path(path, name)
         if analysis_path:
             self.analysis_path = _construct_path(analysis_path, name)
@@ -241,41 +276,41 @@ class Experiment(object):
                 self.database.session.merge(ReplicateRecord(r))
         self.database.session.commit()
 
+    def iter_lineages(self):
+        for t in self.treatments:
+            for r in t.replicates:
+                with r.get_lineage() as lin:
+                    yield r, lin
+
     def _make_parser(self):
         parser = argparse.ArgumentParser()
         subparsers = parser.add_subparsers(title="Available Commands")
-
-        p_run = subparsers.add_parser('run', help='Run the experiment')
-        p_run.add_argument('--overwrite', action="store_true", 
-                        help="Trash the entire experiment and start again.")
-        p_run.add_argument('--dry', action="store_true", 
-                        help="Just create the database, don't run the simulations.")
-        p_run.add_argument('--verbose', action="store_true", 
-                        help="Say lots.")
-        p_run.set_defaults(func=self.run)
-
-        p_status = subparsers.add_parser('status', help='Show status of experiment')
-        p_status.add_argument('--verbose', action="store_true", 
-                        help="Say lots.")
-        p_status.set_defaults(func=self.status)
-
-        p_run = subparsers.add_parser('trash', help='Trash the experiment')
-        p_run.set_defaults(func=self.trash)
-
+        for func, (args, kwargs) in add_command.subparsers.items():
+            subp = subparsers.add_parser(func.__name__, *args, **kwargs)
+            subp.set_defaults(func=func)
+            if func in add_argument.options:
+                for name, optargs, optkwargs in add_argument.options[func]:
+                    subp.add_argument(name, *optargs, **optkwargs)
         return parser
 
     def run_from_commandline(self):
         parser = self._make_parser()
         args = parser.parse_args()
         try:
-            args.func(args)
+            args.func(self, args)
         except ExperimentError:
             exit(1)
         exit(0)
 
     # --------------------
     # Commands
+    @add_argument('--overwrite', action="store_true", 
+                  help="Trash the entire experiment and start again.")
+    @add_argument('--dry', action="store_true", 
+                  help="Just create the database, don't run the simulations.")
+    @add_argument('--verbose', action="store_true", help="Say lots.")
     def run(self, args):
+        """Run the experiment."""
         if args.overwrite:
             self._remove_paths()
 
@@ -284,7 +319,7 @@ class Experiment(object):
             if self.path != self.analysis_path:
                 self._create_path(self.analysis_path)
 
-        self.database.create(args)
+        self.database.create()
         self._init_db()
 
         if args.dry:
@@ -300,18 +335,46 @@ class Experiment(object):
         if self.user_interrupt:
             log.info("User interrupted --- quitting")
 
-
+    @add_argument('--verbose', action="store_true", help="Say lots.")
     def status(self, args):
+        """Show status of experiment"""
         if not self.path.exists() or not self.database.path.exists():
             log.error("Experiment does not exist yet. You need to run it")
             raise ExperimentError
 
-        self.database.create(args)
+        self.database.create(args.verbose)
         trecords = self.database.session.query(TreatmentRecord).all()
         for t in trecords:
             print t
             for r in t.replicates:
                 print r
 
+    @add_command()
+    def draw_top(self, args):
+        """Draw top graphs from final populations."""
+        for rep, lin in self.iter_lineages():
+            winners = [(n.fitness, n) for n in lin.population]
+            winners.sort(reverse=True)
+            for i, (fit, net) in enumerate(winners):
+                if i == 3:# args.maxn:
+                    break
+                draw_net(rep, 'winner', net, lin.generation)
+
+
+    @add_command()
     def trash(self, args):
+        """Trash the experiment.
+        NOTE: If you have move2trash installed you can recover it from the trash.
+        """
         self._remove_paths()
+
+
+def draw_net(rep, prefix, net, gen):
+        ana = NetworkAnalysis(net)
+        g = graph.FullGraph(ana)#, knockouts=False)
+        d = graph.DotMaker(g)
+        p = rep.analysis_path / '{}-G{:07d}-N{:02d}-F{}.png'.format(
+            prefix, gen, net.identifier, net.fitness)
+        log.info("writing {}".format(str(p)))
+        d.save_picture(str(p))
+        d.save_dot(str(p.with_suffix('.dot')))
