@@ -34,6 +34,7 @@ class BaseLineage(object):
         self.population = None
         self.targets = []
         self.generation = 0
+        self.extra = Attributes()
 
         # You need to set a target before doing anything
         self.current_target = None
@@ -193,6 +194,9 @@ class BaseLineage(object):
             target_index = rec['target']
             if target_index >= 0:
                 self.set_target(target_index)
+
+            if hasattr(self._attrs, 'extra'):
+                self.extra = self._attrs.extra
         except:
             self._h5.close()
             raise
@@ -211,6 +215,7 @@ class BaseLineage(object):
         )
         # This pickles it all
         self._attrs.data = data
+        self._attrs.extra = self.extra
         self._h5.flush()
 
     def close(self):
@@ -335,11 +340,11 @@ class FullLineage(BaseLineage):
         gen_pop.assess(self.targets[t_index])
         return gen_pop
 
-    def all_generations(self):
+    def all_generations(self, every=1):
         g = 0
         while g <= self.generation:
             yield g, self.get_generation(g)
-            g += 1
+            g += every
 
     def get_ancestry(self, ident):
         nets = []
