@@ -92,7 +92,42 @@ class LineageSummarizer(object):
         return pd.DataFrame(d)
 
 
+class InfoSummarizer(object):
+    def __init__(self, lin, target, flow):
+        assert isinstance(lin, FullLineage)
+        self._lineage = lin
+        self._cf = CausalFlowAnalyzer(lin.world, flow)
+        self._mf = MutualInfoAnalyzer(lin.world, target.calc_categories())
+        self.params = lin.params
+        self.target = target
 
+    def get_names(self):
+        regs = self.params.reg_channels
+        names = []
+        for c in range(regs):
+            names.append('C_{}'.format(c))
+        names.append('CT')
+        return names
+
+    def get_values(self, g):
+        ci = self._cf.numpy_info_from_collection(g)
+
+        # Sum the information across the outputs 
+        csummed = ci.sum(axis=2)
+
+        # Get means across the population
+        cmeans = np.mean(csummed, axis=0)
+
+        vals = []
+        regs = self.params.reg_channels
+        for i, c in enumerate(range(regs)):
+            vals.append(('C_{}'.format(c), cmeans[i]))
+
+        # Now get the whole sum?
+        ctot = csummed.sum(axis=1)
+        vals.append(('CT', ctot.mean()))
+        return vals
+        
 
 def make_population_frames(pop, target, flow, do_cuts=True):
     # Assumption -- fitness is calculated!

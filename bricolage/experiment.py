@@ -8,6 +8,7 @@ import argparse
 
 from .analysis_ext import NetworkAnalysis
 import graph
+import numpy as np
 
 try:
     from send2trash import send2trash
@@ -17,7 +18,9 @@ except ImportError:
 
 from pathlib import Path
 from lineage import FullLineage, SnapshotLineage
-from experimentdb import Database, TreatmentRecord, ReplicateRecord
+from experimentdb import Database, TreatmentRecord, ReplicateRecord, StatsRecord
+from sqlalchemy.sql import and_, delete
+from analysis import InfoSummarizer
 
 class ExperimentError(RuntimeError):
     pass
@@ -39,6 +42,7 @@ def _remove_folder(path):
 def _construct_path(path, name):
     if not isinstance(path, Path):
         path = Path(path)
+
     path = path / name
     return path.absolute()
 
@@ -59,7 +63,9 @@ class Replicate(object):
 
     @property
     def session(self):
-        return self.treatment.experiment.database.session
+        if not hasattr(self, '_session'):
+            self._session = self.treatment.experiment.database.session
+        return self._session
 
     def run(self):
         # TODO: Maybe use this, instead of merging
@@ -135,6 +141,19 @@ class Replicate(object):
             log.info("Created lineage {}".format(lin))
 
         return lin
+
+    def clean_stats(self, names):
+        statement = delete(StatsRecord).where(and_(
+            StatsRecord.kind.in_(names),
+            StatsRecord.replicate_id == self.seq,
+            StatsRecord.treatment_id == self.treatment.seq))
+        self.treatment.experiment.database.engine.execute(statement)
+
+    def write_stats(self, gen, namevalues):
+        stats = [StatsRecord(self, gen, n, v) for n, v in namevalues]
+        self.session.add_all(stats)
+        # log.info("Writing stats for generation {}".format(gen))
+        # self.session.bulk_save_objects(stats)
 
 
 class Treatment(object):
@@ -212,6 +231,7 @@ class add_argument(object):
 
         return func
 
+verbose = add_argument('--verbose', action="store_true", help="Say lots.")
 
 # TODO: Externalise the root
 class Experiment(object):
@@ -308,7 +328,7 @@ class Experiment(object):
                   help="Trash the entire experiment and start again.")
     @add_argument('--dry', action="store_true", 
                   help="Just create the database, don't run the simulations.")
-    @add_argument('--verbose', action="store_true", help="Say lots.")
+    @verbose
     def run(self, args):
         """Run the experiment."""
         if args.overwrite:
@@ -335,7 +355,7 @@ class Experiment(object):
         if self.user_interrupt:
             log.info("User interrupted --- quitting")
 
-    @add_argument('--verbose', action="store_true", help="Say lots.")
+    @verbose
     def status(self, args):
         """Show status of experiment"""
         if not self.path.exists() or not self.database.path.exists():
@@ -360,13 +380,41 @@ class Experiment(object):
                     break
                 draw_net(rep, 'winner', net, lin.generation)
 
-
     @add_command()
     def trash(self, args):
         """Trash the experiment.
         NOTE: If you have move2trash installed you can recover it from the trash.
         """
         self._remove_paths()
+
+    @verbose
+    @add_argument('--every', type=int, default=25)
+    def calc_fitness(self, args):
+        self.database.create(args.verbose)
+        for rep, lin in self.iter_lineages():
+            rep.clean_stats('FitAve FitVar'.split())
+            rep.clean_stats('FitAve FitVar'.split())
+            fits = np.zeros(lin.params.population_size)
+            for n, gen in lin.all_generations(every=args.every):
+                gen.get_fitnesses(fits)
+                rep.write_stats(n, (
+                    ('FitAve', fits.mean()),
+                    ('FitVar', fits.var())
+                ))
+            self.database.session.commit()
+
+    @verbose
+    @add_argument('--every', type=int, default=25)
+    def calc_info(self, args):
+        self.database.create(args.verbose)
+        for rep, lin in self.iter_lineages():
+            targ = lin.targets[-1]
+            flow = lin.extra.flow
+            infosum = InfoSummarizer(lin, targ, flow)
+            rep.clean_stats(infosum.get_names())
+            for n, gen in lin.all_generations(every=args.every):
+                rep.write_stats(n, infosum.get_values(gen))
+            self.database.session.commit()
 
 
 def draw_net(rep, prefix, net, gen):

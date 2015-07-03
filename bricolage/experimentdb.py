@@ -42,6 +42,30 @@ class ReplicateRecord(SQLBase):
         return "Replicate:{0.treatment_id:02d}:{0.replicate_id:02d}, "\
             "S{0.seed:010d}, G{0.generations:010d}".format(self)
 
+class StatsRecord(SQLBase):
+    __tablename__ = 'stats'
+    treatment_id = Column(Integer, 
+                          ForeignKey('treatment.treatment_id'), 
+                          primary_key=True)
+    replicate_id = Column(Integer, 
+                          ForeignKey('replicate.replicate_id'), 
+                          primary_key=True)
+    generation = Column(Integer,
+                        primary_key=True)
+    kind = Column(String(10), primary_key=True)
+    value = Column(Float())
+
+    def __init__(self, rep, gen, kind, val):
+        self.treatment_id = rep.treatment.seq
+        self.replicate_id = rep.seq
+        self.generation = gen
+        self.kind = kind
+        self.value = val
+
+    # def __str__(self):
+    #     return "Replicate:{0.treatment_id:02d}:{0.replicate_id:02d}, "\
+    #         "S{0.seed:010d}, G{0.generations:010d}".format(self)
+
 
 class Database(object):
     def __init__(self, folder):
@@ -55,6 +79,9 @@ class Database(object):
                                     echo=echo)
         SQLBase.metadata.create_all(self.engine)
         self.session = Session(self.engine)
+
+    def drop_table(self, table):
+        self.engine.execute("drop table if exists {}".format(table))
 
     def save_frame(self, table, replicate, frame):
         if self.engine.dialect.has_table(self.engine.connect(), table):
@@ -74,4 +101,12 @@ class Database(object):
         frame.to_sql(table, self.engine, if_exists='append', index_label=
                      ['treatment_id', 'replicate_id'])
         
+    def remove(self, rep, kind=None):
+        template = "delete from stats where "
+        template += " treatment_id = {} and replicate_id = {}"
+        args = [rep.treatment.seq, rep.seq]
+        if kind is not None:
+            template += " and kind = '{}'"
+            args.append(kind)
+        self.engine.execute(template.format(*args))
 
