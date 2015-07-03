@@ -1,3 +1,6 @@
+import logging
+log = logging.getLogger("core")
+
 from enum import IntEnum
 from .core_ext import SelectionModel, World, Target
 
@@ -16,7 +19,6 @@ class Parameters(object):
 
     def __init__(self, **kwargs):
         # Defaults are provided here
-        self.description = "No description"
         self.seed = 1
         self.cis_count = 3
         self.gene_count = 3
@@ -25,12 +27,31 @@ class Parameters(object):
         self.out_channels = 1
         self.selection_class = SelectionModel
         self.population_size = 100
+        self.mutation_rate = 0.001
         self.mutate_type = MutateType.JUMP
         self.add_zeros = 0
 
         self._override(kwargs)
 
     def _override(self, kwargs):
-        # TODO: Something clever here
         for k, v in kwargs.items():
             setattr(self, k, v)
+
+    def same_as(self, other):
+        sdict = self.__dict__
+        odict = other.__dict__
+
+        if set(sdict.keys()) != set(odict.keys()):
+            x = set(sdict.keys())
+            y = set(odict.keys())
+            log.warning("Differences in parameters-- {}/{}".format(x-y, y-x))
+            return False
+
+        for k, v in sdict.items():
+            if odict[k] != v:
+                log.warning("parameters {}, has changed: {} -> {}".format(
+                    k, v, odict[k]))
+                return False
+        
+        return True
+
