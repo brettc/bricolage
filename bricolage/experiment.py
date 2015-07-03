@@ -154,7 +154,24 @@ class Replicate(object):
         self.session.add_all(stats)
         # log.info("Writing stats for generation {}".format(gen))
         # self.session.bulk_save_objects(stats)
+      
+    def draw_winners(self, lin, maxw=3):
+        winners = [(n.fitness, n) for n in lin.population]
+        winners.sort(reverse=True)
+        for i, (fit, net) in enumerate(winners):
+            if i == maxw:# args.maxn:
+                break
+            self.draw_net('winner', net, lin.generation)
 
+    def draw_net(self, prefix, net, gen):
+            ana = NetworkAnalysis(net)
+            g = graph.FullGraph(ana)#, knockouts=False)
+            d = graph.DotMaker(g)
+            p = self.analysis_path / '{}-G{:07d}-N{:02d}-F{}.png'.format(
+                prefix, gen, net.identifier, net.fitness)
+            log.info("writing {}".format(str(p)))
+            d.save_picture(str(p))
+            d.save_dot(str(p.with_suffix('.dot')))
 
 class Treatment(object):
     """Replicate a set of experiments into different folders"""
@@ -337,7 +354,8 @@ class Experiment(object):
         if not self.path.exists():
             self._create_path(self.path)
             if self.path != self.analysis_path:
-                self._create_path(self.analysis_path)
+                if not self.analysis_path.exists():
+                    self._create_path(self.analysis_path)
 
         self.database.create()
         self._init_db()
@@ -373,12 +391,7 @@ class Experiment(object):
     def draw_top(self, args):
         """Draw top graphs from final populations."""
         for rep, lin in self.iter_lineages():
-            winners = [(n.fitness, n) for n in lin.population]
-            winners.sort(reverse=True)
-            for i, (fit, net) in enumerate(winners):
-                if i == 3:# args.maxn:
-                    break
-                draw_net(rep, 'winner', net, lin.generation)
+            rep.draw_winners(lin)
 
     @add_command()
     def trash(self, args):
@@ -417,12 +430,3 @@ class Experiment(object):
             self.database.session.commit()
 
 
-def draw_net(rep, prefix, net, gen):
-        ana = NetworkAnalysis(net)
-        g = graph.FullGraph(ana)#, knockouts=False)
-        d = graph.DotMaker(g)
-        p = rep.analysis_path / '{}-G{:07d}-N{:02d}-F{}.png'.format(
-            prefix, gen, net.identifier, net.fitness)
-        log.info("writing {}".format(str(p)))
-        d.save_picture(str(p))
-        d.save_dot(str(p.with_suffix('.dot')))
