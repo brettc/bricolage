@@ -6,9 +6,9 @@ from bricolage.logtools import init_logging, get_logger
 init_logging()
 log = get_logger()
 
-from bricolage.experiment import Experiment, Treatment, add_command, add_argument
+from bricolage.experiment import Experiment, Treatment, add_argument
 from bricolage.threshold3 import Parameters
-from bricolage.analysis import make_population_frame
+from bricolage.analysis import InfoSummarizer
 
 def target1(a, b):
     if a and b:
@@ -19,7 +19,8 @@ class TestTreatment(Treatment):
     def run_replicate(self, replicate, lineage):
         if len(lineage.targets) == 0:
             lineage.add_target(target1)
-        while lineage.generation < 500:
+        lineage.extra.flow = [1.0]
+        while lineage.generation < 10000:
             lineage.next_generation()
 
 p = Parameters(
@@ -31,19 +32,23 @@ p = Parameters(
     mutation_rate=.001,
 )
 
+
 class MyExperiment(Experiment):
     @add_argument('--verbose', action='store_true')
-    def calc_info(self, args):
-        self.database.create()
-
+    @add_argument('--every', type=int, default=10)
+    def test_info(self, args):
+        self.database.create(args.verbose)
         for rep, lin in self.iter_lineages():
-            targ = lin.targets[0]
-            flow = [1.0]
-            fr = make_population_frame(lin.population, targ, flow, do_cuts=False)
-            self.database.save_frame('boop', rep, fr)
+            targ = lin.targets[-1]
+            flow = lin.extra.flow
+            infosum = InfoSummarizer(lin, targ, flow)
+            rep.clean_stats(infosum.get_names())
+            for n, gen in lin.all_generations(every=args.every):
+                rep.write_stats(n, infosum.get_values(gen))
+            self.database.session.commit()
 
 
-the_exp = MyExperiment('.', 'bob', seed=5).add_all(
+the_exp = MyExperiment('/Users/brett/Desktop', 'bob', seed=5).add_all(
     TestTreatment('one', p, 3),
     TestTreatment('two', p, 3),
 )
