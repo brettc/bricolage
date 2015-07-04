@@ -46,7 +46,7 @@ class BaseLineage(object):
     def __exit__(self, type, value, traceback):
         self.close()
 
-    def add_target(self, func, name="", target_class=None):
+    def add_target(self, func, name="", target_class=None, weighting=None):
         if self.readonly:
             raise LineageError("Network is readonly")
         if target_class is None:
@@ -58,6 +58,10 @@ class BaseLineage(object):
 
         # Add locally and save
         t = target_class(self.world, func, name=name)
+
+        if weighting is not None:
+            t.weighting = weighting
+
         self.targets.append(t)
 
         # By default, set the target to the latest

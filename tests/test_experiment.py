@@ -28,8 +28,7 @@ def test_exp1(tmpdir):
     pth = Path('.')
     name = 'exp1'
     e = Experiment(pth, name, seed=1, analysis_path="/Users/brett/Desktop")
-    TestTreatment(e, 'bob', p, 10)
-    e.run()
+    e.add(TestTreatment('bob', p, 10))
 
     # with e.treatments[0].replicates[5].get_lineage(True) as l:
     #     print l.generation

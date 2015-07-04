@@ -246,11 +246,13 @@ struct cTarget
     std::string name;
     int_t identifier;
     cRatesVector optimal_rates;
+    cRates weighting;
 
     // TODO: per env weighting
     // TODO: per output weighting
     double assess(const cNetwork &net) const;
     void assess_networks(cNetworkVector &networks) const;
+    void set_weighting(const cRates &w);
 };
 
 

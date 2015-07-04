@@ -1,5 +1,5 @@
 from sympy.logic import SOPform, simplify_logic
-from sympy import symbols
+from sympy import symbols, sympify
 from sympy.printing.latex import latex
 
 import itertools
@@ -27,14 +27,6 @@ def boolean_func_from_coop_binding(factory, channels, bindings):
     # We'll put the truth table entries that are TRUE into this
     is_true = []
     for state in all_states:
-        for i, s in enumerate(state):
-            # Ignore states where CHANNEL 0 is on
-            if s and channels[i] == 0:
-                continue
-            # or CHANNEL 1 is off
-            if not s and channels[i] == 1:
-                continue
-
         # We squash our entries down to the unique entries
         entry = [0] * len(unique)
         summed = 0
@@ -46,20 +38,29 @@ def boolean_func_from_coop_binding(factory, channels, bindings):
                 # And add the binding strength in
                 summed += b
 
+        # This tracks what we do in the cpp class ...
         if summed >= len(bindings):
             is_true.append(entry)
 
-    # For some bizarre I don't yet understand, the variable names sometimes
-    # cause it to crash
+    # This should be possible, but sympy barfs on 'E1' for some bizarre reason
+    # names = [factory.name_for_channel(u) for u in unique] 
+    # So, we use simple names and the replace at the end...
     names = list('abcdefghijklmnopqrstuvwxyz')[:len(unique)]
-
     sop = SOPform(names, is_true)
 
-    # # Can we simplify this, once we know the off/on channels?
-    # off_c, on_c = symbols("a,b")
-    # off_c = False
-    # on_c = True
-    # sop = simplify_logic(sop & off_c, form='dnf', deep=True)
+    # Now force the 0 and 1 (on and off channels) to be evaluated
+    for i, u in enumerate(unique):
+        # off channel
+        if u == 0:
+            # This is ALWAYS OFF
+            sop = sop.subs(names[i], 0)
+        # On channel
+        if u == 1:
+            # This is ALWAYS ON
+            sop = sop.subs(names[i], 1)
+
+    # Simplify the logic again
+    sop = simplify_logic(sop)
 
     if sop == False:
         return "OFF"
@@ -67,6 +68,8 @@ def boolean_func_from_coop_binding(factory, channels, bindings):
         return "ON"
 
     text = detex(sop)
+
+    # Necessary cos of the E1 problem
     for i, n in enumerate(names): 
         text = text.replace(n, factory.name_for_channel(unique[i]))
 

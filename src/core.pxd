@@ -119,10 +119,12 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         cTarget(cWorld_ptr &w, string name, int_t ident)
         double assess(cNetwork &net)
         void assess_networks(cNetworkVector &networks)
+        void set_weighting(const cRates &w);
         cWorld *factory
         int_t identifier
         string name
         cRatesVector optimal_rates
+        cRates weighting
 
     cdef cppclass cSelectionModel:
         cSelectionModel(cWorld_ptr &factory)

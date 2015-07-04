@@ -37,6 +37,12 @@ def test_target():
     t = T.Target(w, make_target1)
     assert t.as_array().shape == (pow(2, 3), 2)
 
+    # Default
+    assert t.weighting == [.5, .5]
+
+    t.weighting = [1, 4]
+    assert t.weighting == [.2, .8]
+
 
 def test_pickling_world(tmpdir):
     tmpdir = pathlib.Path(str(tmpdir))
@@ -74,6 +80,7 @@ def test_pickling_target(tmpdir):
     # Now ensure that pickling Targets works too
     t1 = T.Target(w, make_target1, name='a')
     t2 = T.Target(w, make_target2, name='b')
+    t2.weighting = [1, 2]
 
     with open(str(tmpdir / 'target1.pickle'), 'wb') as f:
         pickle.dump((t1, t2), f, -1)
@@ -89,6 +96,9 @@ def test_pickling_target(tmpdir):
 
     assert t1.identifier == rt1.identifier
     assert t2.identifier == rt2.identifier
+
+    assert t1.weighting == rt1.weighting
+    assert t2.weighting == rt2.weighting
 
 def test_channelstate():
     p = T.Parameters(

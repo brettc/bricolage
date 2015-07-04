@@ -14,8 +14,8 @@ def test_network():
     params = Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
                         cue_channels=3,)
     world = World(params)
-    const = Factory(world)
-    net = const.create_network()
+    factory = Factory(world)
+    net = factory.create_network()
     print net.attractors
     print world.pub_signals
     # net.genes[0].pub = 3
@@ -24,8 +24,8 @@ def test_network_pickle():
     params = Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
                         cue_channels=3,)
     world = World(params)
-    const = Factory(world)
-    n1 = const.create_network()
+    factory = Factory(world)
+    n1 = factory.create_network()
     out = pickle.dumps(n1, -1)
     n2 = pickle.loads(out)
     for g1, g2 in zip(n1.genes, n2.genes):
@@ -37,8 +37,8 @@ def test_population():
     params = Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
                         cue_channels=3,)
     world = World(params)
-    const = Factory(world)
-    popul = Population(const, 1000)
+    factory = Factory(world)
+    popul = Population(factory, 1000)
     f = numpy.zeros(1000)
     popul.get_fitnesses(f)
     print popul[0].attractors[1]
@@ -48,10 +48,10 @@ def test_xor():
     params = Parameters(seed=2, cis_count=2, cue_channels=2, reg_channels=0,
                         out_channels=1)
     world = World(params)
-    const = Factory(world)
+    factory = Factory(world)
     target = Target(world, fitness_func1)
     select = SelectionModel(world)
-    pop = Population(const, 10000)
+    pop = Population(factory, 10000)
 
     while 1:
         pop.assess(target)

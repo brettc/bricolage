@@ -659,10 +659,13 @@ cdef class Population(CollectionBase):
         def __get__(self):
             return self._this.selected
 
-def _construct_target(World w, name, ident, rates):
+# NOTE: allow weighting to be None for backward compatibility
+def _construct_target(World w, name, ident, rates, weighting=None):
     t = Target(w, None, name, ident)
     # Manually construct these
     t._this.optimal_rates = rates
+    if weighting is not None:
+        t.weighting = weighting
     return t
 
 cdef class Target:
@@ -694,11 +697,19 @@ cdef class Target:
             for j, val in enumerate(outputs):
                 self._this.optimal_rates[i][j] = float(val)
 
+    property weighting:
+        def __get__(self):
+            return self._this.weighting
+
+        def __set__(self, vector[double] wghts):
+            self._this.set_weighting(wghts)
+
     def __reduce__(self):
         return _construct_target, (self.world, 
                                    self._this.name, 
                                    self._this.identifier,
-                                   self._this.optimal_rates)
+                                   self._this.optimal_rates,
+                                   self._this.weighting)
 
     def __dealloc__(self):
         del self._this
