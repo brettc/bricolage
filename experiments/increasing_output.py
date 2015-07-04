@@ -35,7 +35,7 @@ params2 = Parameters(
     out_channels=4, 
     cue_channels=3 ,
     population_size=1000,
-    mutation_rate=.003,
+    mutation_rate=.005,
     mutate_type=MutateType.PROGRESSIVE,
     add_zeros=5)
 
