@@ -106,7 +106,8 @@ class InfoSummarizer(object):
         names = []
         for c in range(regs):
             names.append('C_{}'.format(c))
-        names.append('CT')
+        names.append('C_AVE')
+        names.append('C_MAX')
         return names
 
     def get_values(self, g):
@@ -125,7 +126,8 @@ class InfoSummarizer(object):
 
         # Now get the whole sum?
         ctot = csummed.sum(axis=1)
-        vals.append(('CT', ctot.mean()))
+        vals.append(('C_AVE', ctot.mean()))
+        vals.append(('C_MAX', cmeans.max()))
         return vals
         
 
