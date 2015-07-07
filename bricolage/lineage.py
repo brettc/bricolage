@@ -70,7 +70,11 @@ class BaseLineage(object):
 
     # TODO: add by name?
     def set_target(self, index):
+        if index == self.target_index:
+            return
+
         assert 0 <= index < len(self.targets)
+
         self.target_index = index
         self.current_target = self.targets[self.target_index]
 
@@ -260,14 +264,8 @@ class SnapshotLineage(BaseLineage):
 
         self._h5.flush()
 
-    def get_generation(self, wanted_g):
-        results = self._generations.read_where(
-            'generation == {}'.format(wanted_g))
-        if not results:
-            return None
-        rec = results[0]
+    def _load_generation(self, rec):
         gen = rec['generation']
-        assert gen == wanted_g
         t_index = rec['target']
         indexes = rec['indexes']
         arr = self._networks.read_coordinates(indexes)
@@ -276,7 +274,22 @@ class SnapshotLineage(BaseLineage):
 
         # Assess the population by the same target 
         gen_pop.assess(self.targets[t_index])
-        return gen_pop
+        return gen, gen_pop
+
+    def get_generation(self, wanted_g):
+        results = self._generations.read_where(
+            'generation == {}'.format(wanted_g))
+        if not results:
+            return None
+        rec = results[0]
+        g, gen = self._load_generation(rec)
+        assert g == wanted_g
+        return gen
+
+    def all_generations(self):
+        # Just iterate over what is there
+        for rec in self._generations:
+            yield self._load_generation(rec)
 
     def close(self):
         # If the latest generation isn't saved, the save it automatically.

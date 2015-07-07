@@ -126,6 +126,23 @@ def test_snapshot_autosave(tmpdir, p_3x2):
     assert_pops_equal(pa, b.population)
     b.close()
 
+def test_snapshot_iterate(p_3x2, tmpdir):
+    base = pathlib.Path(str(tmpdir))
+    path = base / 'iterate.db'
+    with L.SnapshotLineage(path, params=p_3x2) as a:
+        a.add_target(target1)
+        for i in range(100):
+            if i % 10 == 0:
+                a.save_snapshot()
+            a.next_generation()
+
+    with L.SnapshotLineage(path) as a:
+        expected_g = 0
+        for g, gen in a.all_generations():
+            assert g == expected_g
+            expected_g += 10
+
+
 def test_snapshot_lineage(p_3x2, tmpdir):
     base = pathlib.Path(str(tmpdir))
     path_1 = base / 'snap1.db'
