@@ -5,6 +5,7 @@ import copy
 import shutil
 import random
 import argparse
+import inspect
 
 from .analysis_ext import NetworkAnalysis
 import graph
@@ -25,6 +26,13 @@ from analysis import InfoSummarizer
 class ExperimentError(RuntimeError):
     pass
 
+def _make_name_from_program():
+    # Get caller of the caller ...
+    stackinfo = inspect.stack()[2]
+    fname = stackinfo[1]
+    # should be a python path
+    prog = Path(fname)
+    return prog.name[:prog.name.find('.')]
 
 def _remove_folder(path):
     if not path.exists():
@@ -252,8 +260,11 @@ verbose = add_argument('--verbose', action="store_true", help="Say lots.")
 
 # TODO: Externalise the root
 class Experiment(object):
-    def __init__(self, path, name, seed, analysis_path=None, full=True):
+    def __init__(self, path, name=None, seed=1, analysis_path=None, full=True):
         logtools.init_logging()
+
+        if name is None:
+            name = _make_name_from_program()
 
         self.path = _construct_path(path, name)
         if analysis_path:
@@ -405,14 +416,13 @@ class Experiment(object):
     def calc_fitness(self, args):
         self.database.create(args.verbose)
         for rep, lin in self.iter_lineages():
-            rep.clean_stats('FitAve FitVar'.split())
-            rep.clean_stats('FitAve FitVar'.split())
+            rep.clean_stats('FIT_M FIT_V'.split())
             fits = np.zeros(lin.params.population_size)
             for n, gen in lin.all_generations(every=args.every):
                 gen.get_fitnesses(fits)
                 rep.write_stats(n, (
-                    ('FitAve', fits.mean()),
-                    ('FitVar', fits.var())
+                    ('FIT_M', fits.mean()),
+                    ('FIT_V', fits.var())
                 ))
             self.database.session.commit()
 
@@ -427,6 +437,7 @@ class Experiment(object):
             rep.clean_stats(infosum.get_names())
             for n, gen in lin.all_generations(every=args.every):
                 rep.write_stats(n, infosum.get_values(gen))
+                print rep.treatment.seq, rep.seq, n
             self.database.session.commit()
 
 
