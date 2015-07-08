@@ -98,6 +98,7 @@ class InfoSummarizer(object):
         self._lineage = lin
         self._cf = CausalFlowAnalyzer(lin.world, flow)
         self._mf = MutualInfoAnalyzer(lin.world, target.calc_categories())
+        self._fits = np.zeros(lin.params.population_size)
         self.params = lin.params
         self.target = target
 
@@ -105,13 +106,14 @@ class InfoSummarizer(object):
         regs = self.params.reg_channels
         names = []
         for c in range(regs):
-            names.append('C_{}'.format(c))
-        names.append('C_AVE')
-        names.append('C_MAX')
+            names.append('C_{}'.format(c+1))
+        names.extend('C_MEAN C_MAX C_MXMN'.split())
+        names.extend('FIT_MN FIT_VA FIT_MX'.split())
         return names
 
     def get_values(self, g):
         ci = self._cf.numpy_info_from_collection(g)
+        g.get_fitnesses(self._fits)
 
         # Sum the information across the outputs 
         csummed = ci.sum(axis=2)
@@ -122,12 +124,18 @@ class InfoSummarizer(object):
         vals = []
         regs = self.params.reg_channels
         for i, c in enumerate(range(regs)):
-            vals.append(('C_{}'.format(c), cmeans[i]))
+            vals.append(('C_{}'.format(c+1), cmeans[i]))
 
         # Now get the whole sum?
         ctot = csummed.sum(axis=1)
-        vals.append(('C_AVE', ctot.mean()))
-        vals.append(('C_MAX', cmeans.max()))
+        vals.extend([
+            ('C_MEAN', ctot.mean()),
+            ('C_MAX', csummed.max()),
+            ('C_MXMN', cmeans.max()),
+            ('F_MEAN', self._fits.mean()),
+            ('F_VAR', self._fits.var()),
+            ('F_MAX', self._fits.max()),
+        ])
         return vals
         
 

@@ -178,8 +178,9 @@ void cJointProbabilities::calc_information(cInformation &info) const
                     for (index ci = 0; ci < col_size; ++ci)
                     {
                         double val = _array[i][j][k][ri][ci];
-                        if (val != 0.0)
-                            I += val * log2(val / (rows[ri] * cols[ci]));
+                        double denom = rows[ri] * cols[ci];
+                        if (val != 0.0 && denom != 0.0)
+                            I += val * log2(val / denom);
                     }
                 info._array[i][j][k] = I;
             }
