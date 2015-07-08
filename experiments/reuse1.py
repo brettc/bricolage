@@ -7,8 +7,8 @@ sys.path.append(str(Path(__file__).absolute().parent.parent))
 from bisect import bisect
 
 from bricolage.experiment import Experiment, Treatment
-from bricolage.threshold3 import Parameters, MutateType
-from boolean_functions import get_functions
+from bricolage.threshold3 import Parameters
+from bricolage.boolean_functions import get_functions
 
 F1 = 5
 F2 = 2
@@ -31,10 +31,10 @@ def target():
 
 params = Parameters(
     cis_count=3, 
-    reg_channels=16,
+    reg_channels=10,
     out_channels=6, 
     cue_channels=6 ,
-    population_size=1000,
+    population_size=5000,
     mutation_rate=.001)
 
 class MyTreatment(Treatment):
@@ -46,7 +46,7 @@ class MyTreatment(Treatment):
         # lineage.extra.flow = [0, 1, 1, 0]
         lineage.set_target(0)
 
-        while lineage.generation < 100000:
+        while lineage.generation < 50000:
             g = lineage.generation
             # Complexify the targets
             if g > 0 and g % 10000 == 0:
@@ -60,11 +60,9 @@ class MyTreatment(Treatment):
         replicate.draw_winners(lineage)
 
 
-# t = MyTreatment("x", params, 4)
 t = MyTreatment("double", params, 20)
 the_exp = Experiment(
     '/Users/Brett/Desktop', 
-    'reuse1', 
     analysis_path='/Users/Brett/Dropbox/SimulationOutput/',
     seed=1
 )

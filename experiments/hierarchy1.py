@@ -7,7 +7,7 @@ from functools import partial
 
 from bricolage.experiment import Experiment, Treatment
 from bricolage.threshold3 import Parameters
-from boolean_functions import get_functions
+from bricolage.boolean_functions import get_functions
 
 USE_FUNCTION = 4
 
