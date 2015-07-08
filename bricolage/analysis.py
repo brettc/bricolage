@@ -92,7 +92,52 @@ class LineageSummarizer(object):
         return pd.DataFrame(d)
 
 
+class InfoSummarizer(object):
+    def __init__(self, lin, target, flow):
+        assert isinstance(lin, FullLineage)
+        self._lineage = lin
+        self._cf = CausalFlowAnalyzer(lin.world, flow)
+        self._mf = MutualInfoAnalyzer(lin.world, target.calc_categories())
+        self._fits = np.zeros(lin.params.population_size)
+        self.params = lin.params
+        self.target = target
 
+    def get_names(self):
+        regs = self.params.reg_channels
+        names = []
+        for c in range(regs):
+            names.append('C_{}'.format(c+1))
+        names.extend('C_MEAN C_MAX C_MXMN'.split())
+        names.extend('FIT_MN FIT_VA FIT_MX'.split())
+        return names
+
+    def get_values(self, g):
+        ci = self._cf.numpy_info_from_collection(g)
+        g.get_fitnesses(self._fits)
+
+        # Sum the information across the outputs 
+        csummed = ci.sum(axis=2)
+
+        # Get means across the population
+        cmeans = np.mean(csummed, axis=0)
+
+        vals = []
+        regs = self.params.reg_channels
+        for i, c in enumerate(range(regs)):
+            vals.append(('C_{}'.format(c+1), cmeans[i]))
+
+        # Now get the whole sum?
+        ctot = csummed.sum(axis=1)
+        vals.extend([
+            ('C_MEAN', ctot.mean()),
+            ('C_MAX', csummed.max()),
+            ('C_MXMN', cmeans.max()),
+            ('F_MEAN', self._fits.mean()),
+            ('F_VAR', self._fits.var()),
+            ('F_MAX', self._fits.max()),
+        ])
+        return vals
+        
 
 def make_population_frames(pop, target, flow, do_cuts=True):
     # Assumption -- fitness is calculated!
@@ -102,13 +147,13 @@ def make_population_frames(pop, target, flow, do_cuts=True):
     fits_frame = pd.DataFrame({'fitness': fits})
 
     # The causal flow analysis
-    cf = CausalFlowAnalyzer(pop.constructor.world, flow)
+    cf = CausalFlowAnalyzer(pop.factory.world, flow)
     ci = cf.numpy_info_from_collection(pop)
     csummed = ci.sum(axis=2)
     cframe = pd.DataFrame(csummed)
     cframe.columns = ["C{}".format(i) for i in range(1, len(cframe.columns) + 1)]
 
-    mf = MutualInfoAnalyzer(pop.constructor.world, target.calc_categories())
+    mf = MutualInfoAnalyzer(pop.factory.world, target.calc_categories())
     mi = mf.numpy_info_from_collection(pop)
     msummed = mi.sum(axis=2)
     mframe = pd.DataFrame(msummed)
@@ -147,7 +192,7 @@ def make_ancestry_frames(anc, target, flow):
     fits_frame.index = gens
 
     # The causal flow analysis
-    cf = CausalFlowAnalyzer(anc.constructor.world, flow)
+    cf = CausalFlowAnalyzer(anc.factory.world, flow)
     cj = cf.analyse_collection(anc)
     ci = np.asarray(Information(cj))
     csummed = ci.sum(axis=2)
@@ -156,7 +201,7 @@ def make_ancestry_frames(anc, target, flow):
     cframe.columns = ["C{}".format(i) for i in range(1, len(cframe.columns) + 1)]
 
     # The mutual flow analysis
-    mf = MutualInfoAnalyzer(anc.constructor.world, target.calc_categories())
+    mf = MutualInfoAnalyzer(anc.factory.world, target.calc_categories())
     mj = mf.analyse_collection(anc)
     mi = np.asarray(Information(mj))
     msummed = mi.sum(axis=2)

@@ -46,7 +46,7 @@ def target2(a, b, c):
 
 def test_numpy_export(p_3x2, module):
     world = module.World(p_3x2)
-    factory = module.Constructor(world)
+    factory = module.Factory(world)
     
     p1 = module.Population(factory, 1000)
     as_array = factory.to_numpy(p1)
@@ -125,6 +125,23 @@ def test_snapshot_autosave(tmpdir, p_3x2):
     b = L.SnapshotLineage(path)
     assert_pops_equal(pa, b.population)
     b.close()
+
+def test_snapshot_iterate(p_3x2, tmpdir):
+    base = pathlib.Path(str(tmpdir))
+    path = base / 'iterate.db'
+    with L.SnapshotLineage(path, params=p_3x2) as a:
+        a.add_target(target1)
+        for i in range(100):
+            if i % 10 == 0:
+                a.save_snapshot()
+            a.next_generation()
+
+    with L.SnapshotLineage(path) as a:
+        expected_g = 0
+        for g, gen in a.all_generations():
+            assert g == expected_g
+            expected_g += 10
+
 
 def test_snapshot_lineage(p_3x2, tmpdir):
     base = pathlib.Path(str(tmpdir))
@@ -270,33 +287,4 @@ def test_targets(p_3x2, tmpdir):
         # appropriate target
         fb1 = [n.fitness for n in b.get_generation(pa1_gen)]
         assert fa1 == fb1
-
-def test_treatment(tmpdir, p_3x2):
-    tmpdir = pathlib.Path(str(tmpdir))
-    name = 'treat'
-    path = tmpdir / name
-    apath = tmpdir / (name + '_analysis')
-    treat = L.Treatment(path, p_3x2, analysis_path=apath)
-    max_gen = 100
-
-    for rep in treat.iter_replicates():
-        with rep.get_lineage() as lin:
-            lin.add_target(target1)
-            while lin.generation < max_gen:
-                lin.next_generation()
-
-        assert rep.analysis_path is not rep.path
-        assert rep.analysis_path.exists()
-
-    with treat.replicates[5].get_lineage() as l5:
-        assert l5.population
-    
-    # Kill this
-    del treat
-
-    treat = L.Treatment(path, p_3x2)
-    for rep in treat.iter_replicates():
-        with rep.get_lineage() as lin:
-            assert lin.generation == max_gen
-
 

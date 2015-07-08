@@ -1,5 +1,5 @@
 from bricolage.neighbourhood import NeighbourhoodSample, Collection
-from bricolage.threshold3 import World, Parameters, Constructor, MutateType
+from bricolage.threshold3 import World, Parameters, Factory, MutateType
 import numpy as np
 np.set_printoptions(linewidth=150)
 
@@ -21,7 +21,7 @@ def test_progressive():
     params = Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
                         cue_channels=3, mutate_type=MutateType.PROGRESSIVE)
     world = World(params)
-    const = Constructor(world)
+    const = Factory(world)
     net = const.create_network()
     binding1 = get_binding_values(const, net)
     for i in range(1000):
@@ -35,7 +35,7 @@ def test_variable():
     params = Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
                         cue_channels=3, mutate_type=MutateType.PROGRESSIVE, add_zeros=20)
     world = World(params)
-    const = Constructor(world)
+    const = Factory(world)
     print const.draw_from_subs
     net = const.create_network()
     subs = get_cis_values(const, net)

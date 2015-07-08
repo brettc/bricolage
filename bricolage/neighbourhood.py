@@ -32,7 +32,7 @@ class NeighbourhoodSample(object):
         else:
             self.mutations = np.ones(self.sample_size, dtype=int)
 
-        self.neighbours = Collection(center.constructor)
+        self.neighbours = Collection(center.factory)
         self.neighbours.fill_with_mutations(center, self.mutations)
         
 

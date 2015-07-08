@@ -32,6 +32,7 @@ cdef class NetworkAnalysis:
         self._this.make_active_edges(edges)
         return edges
 
+
 cdef class JointProbabilities:
     def __cinit__(self, World w):
         self.world = w
@@ -75,6 +76,7 @@ cdef class JointProbabilities:
     def __releasebuffer__(self, Py_buffer *buffer):
         pass
 
+
 cdef class Information:
     def __cinit__(self, JointProbabilities joint):
         self._this = new cInformation(deref(joint._this))
@@ -109,6 +111,7 @@ cdef class Information:
 
     def __releasebuffer__(self, Py_buffer *buffer):
         pass
+
 
 cdef class CausalFlowAnalyzer:
     def __cinit__(self, World w, cRates rates):

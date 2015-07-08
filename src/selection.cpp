@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <iostream>
 
-using namespace pubsub2;
+using namespace bricolage;
 
 cTarget::cTarget(const cWorld_ptr &w, const std::string &n, int_t id)
     : world(w) 
@@ -17,6 +17,26 @@ cTarget::cTarget(const cWorld_ptr &w, const std::string &n, int_t id)
     cRates temp;
     std::fill_n(std::back_inserter(temp), w->out_channels, 0.0);
     std::fill_n(std::back_inserter(optimal_rates), w->environments.size(), temp);
+
+    // Default is equal weighting
+    std::fill_n(std::back_inserter(weighting), w->out_channels, 1.0 /
+                double(w->out_channels));
+}
+
+void cTarget::set_weighting(const cRates &wghts)
+{
+    if (wghts.size() != weighting.size())
+        throw std::runtime_error("weighting size and output size differ");
+
+    double sum = 0.0;
+    for (auto w : wghts)
+        sum += w;
+
+    // Normalize the weights
+    double normfactor = 1.0 / sum;
+    for (size_t i = 0; i < wghts.size(); ++i)
+        weighting[i] = wghts[i] * normfactor;
+
 }
 
 // TODO: per output weighting
@@ -47,13 +67,10 @@ double cTarget::assess(const cNetwork &net) const
             scores[j] += ((1.0 - fabs(net.rates[i][j] - optimal_rates[i][j])) 
                           / double(nsize));
 
-    // Now take the average
+    // Now apply the weighting
     double score = 0.0;
     for (size_t j = 0; j < osize; ++j)
-    {
-        scores[j] /= double(osize);
-        score += scores[j];
-    }
+        score += scores[j] * weighting[j];
 
     // Must be greater 0 >= n <= 1.0
     net.fitness = score;

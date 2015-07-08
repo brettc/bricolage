@@ -1,7 +1,7 @@
 # Define everything in the external library
 from utility cimport *
 
-cdef extern from "<src/core.hpp>" namespace "pubsub2":
+cdef extern from "<src/core.hpp>" namespace "bricolage":
     cdef enum:
         MAX_CIS_CHANNELS = 4
 
@@ -23,10 +23,10 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
     cdef int c_sgn(int)
     cdef int c_cmp(int, int)
 
-    cdef cppclass cConstructor
+    cdef cppclass cFactory
     cdef cppclass cNetwork
     ctypedef shared_ptr[cNetwork] cNetwork_ptr
-    ctypedef shared_ptr[cConstructor] cConstructor_ptr
+    ctypedef shared_ptr[cFactory] cFactory_ptr
     ctypedef vector[cNetwork_ptr] cNetworkVector
         
     cdef enum InterventionState:
@@ -53,8 +53,8 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
 
     ctypedef shared_ptr[cWorld] cWorld_ptr
 
-    cdef cppclass cConstructor:
-        cConstructor()
+    cdef cppclass cFactory:
+        cFactory()
         cNetwork_ptr construct(bint fill)
         size_t site_count(cNetworkVector &networks)
         cNetwork_ptr clone_and_mutate_network(
@@ -76,7 +76,7 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         InterventionState intervene
 
     cdef cppclass cNetwork:
-        cNetwork(cConstructor_ptr &)
+        cNetwork(cFactory_ptr &)
 
         void cycle(cChannelState c)
         void cycle_with_intervention(cChannelState c)
@@ -88,7 +88,7 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         void calc_attractors_with_intervention()
         
         void *pyobject
-        cConstructor_ptr constructor
+        cFactory_ptr factory
         cWorld_ptr world
         int_t identifier, parent_identifier, generation
         cAttractors attractors
@@ -119,10 +119,12 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
         cTarget(cWorld_ptr &w, string name, int_t ident)
         double assess(cNetwork &net)
         void assess_networks(cNetworkVector &networks)
+        void set_weighting(const cRates &w);
         cWorld *factory
         int_t identifier
         string name
         cRatesVector optimal_rates
+        cRates weighting
 
     cdef cppclass cSelectionModel:
         cSelectionModel(cWorld_ptr &factory)
@@ -132,13 +134,13 @@ cdef extern from "<src/core.hpp>" namespace "pubsub2":
             const cNetworkVector &networks, size_t number, cIndexes &selected)
 
     cdef cppclass cPopulation:
-        cPopulation(const cConstructor_ptr &c, size_t n)
+        cPopulation(const cFactory_ptr &c, size_t n)
         size_t mutate(double site_rate, int_t generation)
         void assess(const cTarget &target)
         bint select(const cSelectionModel &sm, size_t size)
         pair[double, double] worst_and_best()
         void best_indexes(cIndexes &best)
-        cConstructor_ptr constructor
+        cFactory_ptr factory
         cWorld_ptr world
 
         sequence_t next_id
