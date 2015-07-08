@@ -413,22 +413,7 @@ class Experiment(object):
 
     @verbose
     @add_argument('--every', type=int, default=25)
-    def calc_fitness(self, args):
-        self.database.create(args.verbose)
-        for rep, lin in self.iter_lineages():
-            rep.clean_stats('FIT_M FIT_V'.split())
-            fits = np.zeros(lin.params.population_size)
-            for n, gen in lin.all_generations(every=args.every):
-                gen.get_fitnesses(fits)
-                rep.write_stats(n, (
-                    ('FIT_M', fits.mean()),
-                    ('FIT_V', fits.var())
-                ))
-            self.database.session.commit()
-
-    @verbose
-    @add_argument('--every', type=int, default=25)
-    def calc_info(self, args):
+    def calc_stats(self, args):
         self.database.create(args.verbose)
         for rep, lin in self.iter_lineages():
             targ = lin.targets[-1]
