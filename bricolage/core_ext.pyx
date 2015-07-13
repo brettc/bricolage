@@ -547,6 +547,27 @@ cdef class CollectionBase:
         for i in range(self._collection.size()):
             fits[i] = deref(self._collection)[i].get().fitness
 
+    def extend(self, CollectionBase other):
+        for i in range(other._collection.size()):
+            self._collection.push_back(deref(other._collection)[i])
+
+    property fitnesses:
+        def __get__(self):
+            fits = numpy.zeros(self.size)
+            self.get_fitnesses(fits)
+            return fits
+
+    property generations:
+        def __get__(self):
+            gens = numpy.zeros(self.size, dtype=int)
+            cdef:
+                size_t i
+                np.int_t[:] c_gens = gens
+            for i in range(self._collection.size()):
+                c_gens[i] = deref(self._collection)[i].get().generation
+            return gens
+
+
 
 cdef class Collection(CollectionBase):
     def __cinit__(self, Factory c, size_t size=0):
