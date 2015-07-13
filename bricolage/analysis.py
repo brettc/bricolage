@@ -55,7 +55,30 @@ class InfoSummarizer(object):
             ('F_MAX', self._fits.max()),
         ])
         return vals
-        
+
+class NeighbourhoodSummarizer(object):
+    def __init__(self, lin, target):
+        assert isinstance(lin, FullLineage)
+        self._lineage = lin
+        self.params = lin.params
+        self.target = target
+
+    def get_names(self):
+        return 'N_PERC N_MEAN N_MED N_VAR'.split()
+
+    def get_values(self, g, n=20, prop=.1):
+        nayb = PopulationNeighbourhood(g, n, prop)
+        self.target.assess_collection(nayb.neighbours)
+        fits = nayb.neighbours.fitnesses
+        n1 = sum(fits == 1.0)
+        perc = float(n1) / float(len(fits))
+        return [
+            ('N_PERC', perc),
+            ('N_MEAN', fits.mean()),
+            ('N_VAR', fits.var()),
+            ('N_MED', np.median(fits)),
+        ]
+
 
 def make_population_frames(pop, target, flow, do_cuts=True):
     # Assumption -- fitness is calculated!
