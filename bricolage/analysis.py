@@ -7,7 +7,7 @@ import pandas as pd
 from analysis_ext import MutualInfoAnalyzer, CausalFlowAnalyzer, Information, NetworkAnalysis
 from lineage import FullLineage
 from graph import SignalFlowGraph
-from neighbourhood import NeighbourhoodSample
+from neighbourhood import NetworkNeighbourhood
 
 class LineageSummarizer(object):
     def __init__(self, lin, target, flow):
@@ -217,7 +217,7 @@ def get_population_neighbourhood_fitness(pop, target, sample_per_network=1000):
     means = []
 
     for n in pop:
-        nayb = NeighbourhoodSample(n, sample_per_network)
+        nayb = NetworkNeighbourhood(n, sample_per_network)
         target.assess_collection(nayb.neighbours)
         nayb.neighbours.get_fitnesses(fits)
         means.append(fits.mean())
@@ -236,7 +236,7 @@ def make_ancestry_robustness_frame(anc, target, sample_size=1000):
     means = np.zeros(anc.size)
     top_count = np.zeros(anc.size)
     for i, n in enumerate(anc):
-        nayb = NeighbourhoodSample(n, sample_size)
+        nayb = NetworkNeighbourhood(n, sample_size)
         target.assess_collection(nayb.neighbours)
         nayb.neighbours.get_fitnesses(sample_fits)
         how_many_are_1 = (sample_fits == 1.0).sum()
