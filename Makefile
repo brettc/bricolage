@@ -25,9 +25,10 @@ CCFLAGS = \
 
 INCLUDES = \
 		-I. \
+		-I /usr/local/include \
 		-I$(PYTHONDIR)/include \
 		-I$(PYTHONDIR)/lib/python2.7/site-packages/numpy/core/include \
-		-I$(PYTHONDIR)/include/python2.7 
+		-I$(PYTHONDIR)/include/python2.7
 
 # NOT the same thing
 PYEXT_FLAGS=-bundle -undefined dynamic_lookup -arch x86_64

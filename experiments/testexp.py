@@ -48,7 +48,7 @@ class MyExperiment(Experiment):
             self.database.session.commit()
 
 
-the_exp = MyExperiment('/Users/brett/Desktop', 'bob', seed=5).add_all(
+the_exp = MyExperiment('/Users/brett/Desktop', seed=5).add_all(
     TestTreatment('one', p, 3),
     TestTreatment('two', p, 3),
 )

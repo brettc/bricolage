@@ -7,89 +7,7 @@ import pandas as pd
 from analysis_ext import MutualInfoAnalyzer, CausalFlowAnalyzer, Information, NetworkAnalysis
 from lineage import FullLineage
 from graph import SignalFlowGraph
-from neighbourhood import NeighbourhoodSample
-
-class LineageSummarizer(object):
-    def __init__(self, lin, target, flow):
-        assert isinstance(lin, FullLineage)
-        self._lineage = lin
-        self._cf = CausalFlowAnalyzer(lin.world, flow)
-        self._mf = MutualInfoAnalyzer(lin.world, target.calc_categories())
-        self.params = lin.params
-        self.target = target
-        self.size = lin.generation + 1
-        self.fitnesses = np.zeros(self.params.population_size)
-
-        self.data = np.zeros(self.size, self.dtype())
-
-        # Allocate the stuff
-    def dtype(self):
-        regs = self.params.reg_channels
-
-        desc = [
-            # Fitnesses
-            ('F_25', np.double),
-            ('F_50', np.double),
-            ('F_75', np.double),
-
-            # Flow Totals
-            ('CT_25', np.double),
-            ('CT_50', np.double),
-            ('CT_75', np.double),
-
-            # Flow Totals per gene
-            ('C_25', (np.double, regs)),
-            ('C_50', (np.double, regs)),
-            ('C_75', (np.double, regs)),
-        ]
-
-        return np.dtype(desc)
-
-    def calc_generations(self):
-        # Yielding allows control from caller
-        for i, g in self._lineage.all_generations():
-            self._calc(i, g)
-            yield i, g
-
-    def _calc(self, i, g):
-        fits = self.fitnesses
-        g.get_fitnesses(fits)
-        self.data['F_25'][i] = np.percentile(fits, 25)
-        self.data['F_50'][i] = np.percentile(fits, 50)
-        self.data['F_75'][i] = np.percentile(fits, 75)
-        
-        cj = self._cf.analyse_collection(g)
-        ci = np.asarray(Information(cj))
-
-        # Sum the information across the multiple outputs
-        csummed = ci.sum(axis=2)
-        self.data['C_25'][i] = np.percentile(csummed, 25, axis=0)
-        self.data['C_50'][i] = np.percentile(csummed, 50, axis=0)
-        self.data['C_75'][i] = np.percentile(csummed, 75, axis=0)
-
-        # Now get the whole sum
-        ctot = csummed.sum(axis=1)
-        self.data['CT_25'][i] = np.percentile(ctot, 25)
-        self.data['CT_50'][i] = np.percentile(ctot, 50)
-        self.data['CT_75'][i] = np.percentile(ctot, 75)
-        
-    def get_frame(self):
-        # Spread the frames out...
-        d = {}
-        for i in 25, 50, 75:
-            f = 'F_' + str(i)
-            ct = 'CT_' + str(i)
-            d[f] = self.data[f]
-            d[ct] = self.data[ct]
-
-        # We have to flatten this out for pandas
-        regs = self.params.reg_channels
-        for c in range(regs):
-            for i in 25, 50, 75:
-                fr = 'C_{}'.format(i)
-                to = 'C{}_{}'.format(c + 1, i)
-                d[to] = self.data[fr][:, c]
-        return pd.DataFrame(d)
+from neighbourhood import NetworkNeighbourhood, PopulationNeighbourhood
 
 
 class InfoSummarizer(object):
@@ -137,7 +55,30 @@ class InfoSummarizer(object):
             ('F_MAX', self._fits.max()),
         ])
         return vals
-        
+
+class NeighbourhoodSummarizer(object):
+    def __init__(self, lin, target):
+        assert isinstance(lin, FullLineage)
+        self._lineage = lin
+        self.params = lin.params
+        self.target = target
+
+    def get_names(self):
+        return 'N_PERC N_MEAN N_MED N_VAR'.split()
+
+    def get_values(self, g, n=20, prop=.1):
+        nayb = PopulationNeighbourhood(g, n, prop)
+        self.target.assess_collection(nayb.neighbours)
+        fits = nayb.neighbours.fitnesses
+        n1 = sum(fits == 1.0)
+        perc = float(n1) / float(len(fits))
+        return [
+            ('N_PERC', perc),
+            ('N_MEAN', fits.mean()),
+            ('N_VAR', fits.var()),
+            ('N_MED', np.median(fits)),
+        ]
+
 
 def make_population_frames(pop, target, flow, do_cuts=True):
     # Assumption -- fitness is calculated!
@@ -217,7 +158,7 @@ def get_population_neighbourhood_fitness(pop, target, sample_per_network=1000):
     means = []
 
     for n in pop:
-        nayb = NeighbourhoodSample(n, sample_per_network)
+        nayb = NetworkNeighbourhood(n, sample_per_network)
         target.assess_collection(nayb.neighbours)
         nayb.neighbours.get_fitnesses(fits)
         means.append(fits.mean())
@@ -236,7 +177,7 @@ def make_ancestry_robustness_frame(anc, target, sample_size=1000):
     means = np.zeros(anc.size)
     top_count = np.zeros(anc.size)
     for i, n in enumerate(anc):
-        nayb = NeighbourhoodSample(n, sample_size)
+        nayb = NetworkNeighbourhood(n, sample_size)
         target.assess_collection(nayb.neighbours)
         nayb.neighbours.get_fitnesses(sample_fits)
         how_many_are_1 = (sample_fits == 1.0).sum()

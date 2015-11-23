@@ -21,7 +21,7 @@ from pathlib import Path
 from lineage import FullLineage, SnapshotLineage
 from experimentdb import Database, TreatmentRecord, ReplicateRecord, StatsRecord
 from sqlalchemy.sql import and_, delete
-from analysis import InfoSummarizer
+from analysis import InfoSummarizer, NeighbourhoodSummarizer
 
 class ExperimentError(RuntimeError):
     pass
@@ -423,6 +423,19 @@ class Experiment(object):
             for n, gen in lin.all_generations(every=args.every):
                 rep.write_stats(n, infosum.get_values(gen))
                 print rep.treatment.seq, rep.seq, n
+            self.database.session.commit()
+
+    @verbose
+    # @add_argument('--every', type=int, default=25)
+    def calc_neighbours(self, args):
+        self.database.create(args.verbose)
+        for rep, lin in self.iter_lineages():
+            targ = lin.targets[-1]
+            naysum = NeighbourhoodSummarizer(lin, targ)
+            rep.clean_stats(naysum.get_names())
+            vals = naysum.get_values(lin.population)
+            rep.write_stats(lin.generation, vals)
+            print rep.treatment.seq, rep.seq, vals
             self.database.session.commit()
 
 

@@ -1,4 +1,4 @@
-from bricolage.neighbourhood import NeighbourhoodSample, Collection
+from bricolage.neighbourhood import NetworkNeighbourhood, Collection
 from bricolage.threshold3 import World, Parameters, Factory, MutateType
 import numpy as np
 np.set_printoptions(linewidth=150)
