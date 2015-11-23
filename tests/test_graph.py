@@ -4,7 +4,7 @@ from generate import get_database
 import pathlib
 
 def test_graph_creation(tmpdir):
-    db = get_database('bowtie')
+    db = get_database('bowtie', readonly=True)
     interesting_network = db.population.get_best()[0]
 
     output_path = pathlib.Path(str(tmpdir))
@@ -21,6 +21,7 @@ def test_graph_creation(tmpdir):
     g = graph.FullGraph(ana)
     d = graph.DotMaker(g)
     d.save_picture(str(output_path / 'full.png'))
+    db.close()
 
 def test_boolean_binding():
     params = threshold3.Parameters(

@@ -31,10 +31,10 @@ _commands = {}
 _data = {}
 
 # For external use
-def get_database(name):
+def get_database(name, readonly=False):
     dbpath = _data[name]
     assert dbpath.exists()
-    return SnapshotLineage(dbpath)
+    return SnapshotLineage(dbpath, readonly=readonly)
 
 def command(func):
     nm = func.__name__

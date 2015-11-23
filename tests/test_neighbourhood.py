@@ -9,7 +9,7 @@ np.set_printoptions(linewidth=150)
 
 @pytest.yield_fixture
 def bowtie_database():
-    db = get_database('bowtie')
+    db = get_database('bowtie', readonly=True)
     yield db
     db.close()
 
