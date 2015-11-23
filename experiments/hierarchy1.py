@@ -47,8 +47,8 @@ class MyTreatment(Treatment):
         replicate.draw_winners(lineage)
 
 
-the_exp = Experiment('/Volumes/Simulations/', seed=1)
-# the_exp = Experiment('/Users/Brett/Desktop', analysis_path='/Users/Brett/Dropbox/SimulationOutput/', seed=1)
+# the_exp = Experiment('/Volumes/Simulations/', seed=1)
+the_exp = Experiment('/Users/Brett/Desktop', analysis_path='/Users/Brett/Dropbox/SimulationOutput/', seed=1)
 the_exp.add(MyTreatment('reg_4', make_params(reg_channels=4), 50))
 the_exp.add(MyTreatment('reg_6', make_params(reg_channels=6), 50))
 the_exp.add(MyTreatment('reg_8', make_params(reg_channels=8), 50))
