@@ -4,9 +4,9 @@
 import numpy as np
 import pandas as pd
 
-from analysis_ext import MutualInfoAnalyzer, CausalFlowAnalyzer, Information, NetworkAnalysis
-from lineage import FullLineage
-from graph import SignalFlowGraph
+from .analysis_ext import MutualInfoAnalyzer, CausalFlowAnalyzer, Information, NetworkAnalysis
+from .lineage import FullLineage
+from .graph import SignalFlowGraph
 from neighbourhood import NetworkNeighbourhood, PopulationNeighbourhood
 
 
@@ -33,7 +33,7 @@ class InfoSummarizer(object):
         ci = self._cf.numpy_info_from_collection(g)
         g.get_fitnesses(self._fits)
 
-        # Sum the information across the outputs 
+        # Sum the information across the outputs
         csummed = ci.sum(axis=2)
 
         # Get means across the population
@@ -183,7 +183,7 @@ def make_ancestry_robustness_frame(anc, target, sample_size=1000):
         how_many_are_1 = (sample_fits == 1.0).sum()
         means[i] = sample_fits.mean()
         top_count[i] = float(how_many_are_1) / sample_size
-    
+
     df = pd.DataFrame({ 'fitness': fits, 'n_mean': means, 'max_count': top_count})
     gens = np.asarray([n.generation for n in anc], dtype=np.int64)
     df.index = gens
