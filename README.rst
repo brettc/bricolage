@@ -59,17 +59,4 @@ GPL3 licensed. See the bundled LICENSE_ file for more details.
 
 .. _`Causal Foundations of Biological Information`: http://sydney.edu.au/foundations_of_science/research/causal_foundations_biological_information.shtml 
 
-
-References
-----------
-
-.. [AyPolani2008] Ay, N., & Polani, D. (2008). Information flows in causal
-    networks. Advances in Complex Systems, 11(01), 17–41.
-
-.. [GriffithsEtAl2015] Griffiths, P. E., Pocheville, A., Calcott, B., Stotz, K., 
-    Kim, H., & Knight, R. (2015). Measuring Causal Specificity. Philosophy of Science, 82(October), 529–555.
-
-.. [Pearl2000] Pearl, J. (2000). Causality. Cambridge University Press. 
-
-
 .. vim: fo=tcroqn tw=78

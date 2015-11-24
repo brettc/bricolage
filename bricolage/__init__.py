@@ -2,7 +2,7 @@
 __version__ = "0.4.0"
 
 __title__ = "bricolage"
-__description__ = "Experimental Modeling of Gene Regulatory Evolution"
+__description__ = "Experimental Models of Gene Regulatory Evolution"
 __uri__ = "https://github/brettc/bricolage/"
 
 __author__ = "Brett Calcott"
