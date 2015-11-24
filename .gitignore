@@ -14,3 +14,4 @@ cruft-*
 experiments/.ipynb_checkpoints
 .idea
 notebooks/.ipynb_checkpoints
+bricolage.egg-info
