@@ -1,0 +1,4 @@
+include *.rst LICENSE
+recursive-include tests *.py
+recursive-include bricolage *.pyx *.pxd
+recursive-include src *.cpp *.pxd *.hpp

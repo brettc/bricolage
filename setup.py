@@ -1,169 +1,87 @@
-from distutils.core import setup
-import distutils.ccompiler as cc
-from distutils.cmd import Command
-from distutils.extension import Extension
-from Cython.Build import cythonize
-import numpy
-import os, os.path
-import platform
-import ctypes
-import sys
+"""
+Cribbed and changed from this article and github site:
 
-# HACK for now
-sys.argv = ['setup.py', 'build_ext', '--inplace']
+https://github.com/hynek/attrs/blob/master/setup.py
+https://hynek.me/articles/sharing-your-labor-of-love-pypi-quick-and-dirty/#fn4
+"""
+import codecs
+import os
+import re
 
-class build_pubsub(Command):
-    description = """build chipmunk to a shared library"""
-    
-    user_options = [('compiler=', 'c', 'specify the compiler type. It must understand GCC arguments')
-                    ,('release', 'r', 'build chipmunk without debug asserts')
-                    ]
-    
-    boolean_options = ['release']
-    
-    help_options = [
-        ('help-compiler', None, "list available compilers", cc.show_compilers)
-        ]
+from setuptools import setup, find_packages
 
-    compiler = None  
-        
-    def initialize_options (self):
-        self.compiler = None
-        self.release = True
-        
-    def finalize_options (self):
-        pass
-    
-    def compile_chipmunk(self):
-        if self.release:
-            print("compiling chipmunk in Release mode (No debug output or asserts)" )
-        else:
-            print("compiling chipmunk in Debug mode (Defualt, prints debug output and asserts)")
-        
-        compiler = cc.new_compiler(compiler=self.compiler)
 
-        # source_folders = ['bricolage', os.path.join('chipmunk_src','constraints')]
-        sources = ['bricolage/pubsub2_c.cpp']
-        # for folder in source_folders:
-        #     for fn in os.listdir(folder):
-        #         fn_path = os.path.join(folder, fn)
-        #         if fn_path[-1] == 'c':
-        #             sources.append(fn_path)
-        #         elif fn_path[-1] == 'o':
-        #             os.remove(fn_path)
-                    
-        include_folders = [
-            './bricolage',
-            '/Users/Brett/anaconda/include',
-            '/Users/Brett/anaconda/lib/python2.7/site-packages/numpy/core/include',
-            '/Users/Brett/anaconda/include/python2.7'
-        ]
-        
-        compiler_preargs = ['-Wno-unknown-pragmas', '-fPIC', '-Wno-unused-function', '-stdlib=libc++', '-std=c++11', '-mmacosx-version-min=10.8']
+###############################################################################
 
-        # cc -bundle -undefined dynamic_lookup -L/Users/Brett/anaconda/lib -arch x86_64
-        # -arch x86_64 build/temp.macosx-10.5-x86_64-2.7/bricolage/pubsub2_ext.o
-        # build/temp.macosx-10.5-x86_64-2.7/bricolage/pubsub2_c.o
-        # -L/Users/Brett/anaconda/lib -o
-        # /Users/Brett/Dropbox/Code/bricolage/bricolage/pubsub2_ext.so
-        
-        if self.release:
-            compiler_preargs.append('-DNDEBUG')
-        
-        # check if we are on a 64bit python
-        arch = ctypes.sizeof(ctypes.c_voidp) * 8
-        
-        if arch == 64 and platform.system() == 'Linux':
-            compiler_preargs += ['-m64', '-O3']
-        elif arch == 32 and platform.system() == 'Linux':
-            compiler_preargs += ['-m32', '-O3']
-        elif platform.system() == 'Darwin':
-            #No -O3 on OSX. There's a bug in the clang compiler when using O3.
-            # compiler_preargs += ['-arch', 'i386', '-arch', 'x86_64']
-            compiler_preargs += ['-O3', '-arch', 'x86_64']
-        
-        if platform.system() in ('Windows', 'Microsoft'):
-            # Compile with stddecl instead of cdecl (-mrtd). 
-            # Using cdecl cause a missing bytes issue in some cases
-            # Because -mrtd and -fomit-frame-pointer (which is included in -O)
-            # gives problem with function pointer to the sdtlib free function
-            # we also have to use -fno-omit-frame-pointer
-            compiler_preargs += ['-mrtd', '-O3', '-shared', '-fno-omit-frame-pointer'] 
-        if arch == 64 and platform.system() in ('Windows', 'Microsoft'):
-            compiler_preargs += ['-m64']
-        if arch == 32 and platform.system() in ('Windows', 'Microsoft'):
-            compiler_preargs += ['-m32']
-            
-        for x in compiler.executables:
-            args = getattr(compiler, x)
-            try:
-                args.remove('-mno-cygwin') #Not available on newer versions of gcc 
-                args.remove('-mdll')
-            except:
-                pass
-        
-        objs = compiler.compile(sources, include_dirs=include_folders, extra_preargs=compiler_preargs)
-        
-        libname = 'bricolage'
-        if arch == 64 and platform.system() != 'Darwin':
-            libname += '64'
-        if platform.system() == 'Darwin':
-            libname = compiler.library_filename(libname, lib_type='dylib')
-            # compiler.set_executable('linker_so', ['cc', '-dynamiclib', '-arch', 'i386', '-arch', 'x86_64'])
-            # compiler.set_executable('linker_so', ['cc', '-dynamiclib', '-arch', 'x86_64', '-mmacosx-version-min=10.8', '-stdlib=libc++', '-L/Users/brett/anaconda/lib', '-lpython2.7', '-lstdc++'])
-            compiler.set_executable('linker_so', ['cc', '-dynamiclib',
-                                                  '-arch', 'x86_64',
-                                                  '-mmacosx-version-min=10.8',
-                                                  '-std=c++11',
-                                                  '-stdlib=libc++',
-                                                  '-L/Users/brett/anaconda/lib',
-                                                  '-lpython2.7', '-lstdc++'])
-        else:
-            libname = compiler.library_filename(libname, lib_type='shared')
-        linker_preargs = []
-        if platform.system() == 'Linux' and platform.machine() == 'x86_64':
-            linker_preargs += ['-fPIC']
-        if platform.system() in ('Windows', 'Microsoft'):
-            # link with stddecl instead of cdecl
-            linker_preargs += ['-mrtd'] 
-            # remove link against msvcr*. this is a bit ugly maybe.. :)
-            compiler.dll_libraries = [lib for lib in compiler.dll_libraries if not lib.startswith("msvcr")]
-        compiler.link(cc.CCompiler.SHARED_LIBRARY, objs, libname, output_dir = './bricolage', extra_preargs=linker_preargs)
-        
-    def run(self):
-        self.compile_chipmunk()
 
-# export LDFLAGS=-lc++
-
-# CFLAGS
-# -Wno-unused-function
-extensions = [
-    Extension(
-        "bricolage/pubsub2_ext", 
-        # ["bricolage/pubsub2_ext.pyx"],
-        # ["bricolage/pubsub2_ext.pyx", "bricolage/pubsub2_c.cpp"],
-        ["bricolage/pubsub2_ext.pyx", "bricolage/pubsub2_c.cpp", "bricolage/scheme_cooperative.cpp"],
-        extra_compile_args = [
-            # '-ffast-math',
-            '-Wno-unused-function', 
-            '-stdlib=libc++',
-            '-std=c++11', 
-            '-mmacosx-version-min=10.8',
-        ],
-        depends = ['bricolage/pubsub2_c.h'],
-        language = 'c++',
-        # include_path = [numpy.get_include()],
-        # include_dirs = ['./bricolage'],
-        # libraries = ['bricolage'],
-        # library_dirs = ['./bricolage'],
-    )
+NAME = "bricolage"
+PACKAGES = find_packages(where=".")
+META_PATH = os.path.join("bricolage", "__init__.py")
+KEYWORDS = ["genetic", "evolution", "regulation"]
+CLASSIFIERS = [
+    "Development Status :: 4 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Natural Language :: English",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+    "Programming Language :: C++", 
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 2.7",
+    "Topic :: Scientific/Engineering",
 ]
-setup(
-    name='bricolage',
-    ext_modules=cythonize(
-        extensions,
-        aliases={ 'NUMPY_PATH': numpy.get_include() },
-        nthreads=4,
-    ),
-    cmdclass={'xxx' : build_pubsub}
-)
+
+
+INSTALL_REQUIRES = [
+    "pathlib",
+    "pandas",
+    "networkx"
+]
+
+###############################################################################
+
+HERE = os.path.abspath(os.path.dirname(__file__))
+
+
+def read(*parts):
+    """
+    Build an absolute path from *parts* and and return the contents of the
+    resulting file.  Assume UTF-8 encoding.
+    """
+    with codecs.open(os.path.join(HERE, *parts), "rb", "utf-8") as f:
+        return f.read()
+
+
+META_FILE = read(META_PATH)
+
+
+def find_meta(meta):
+    """
+    Extract __*meta*__ from META_FILE.
+    """
+    meta_match = re.search(
+        r"^__{meta}__ = ['\"]([^'\"]*)['\"]".format(meta=meta),
+        META_FILE, re.M
+    )
+    if meta_match:
+        return meta_match.group(1)
+    raise RuntimeError("Unable to find __{meta}__ string.".format(meta=meta))
+
+
+if __name__ == "__main__":
+    setup(
+        name=NAME,
+        description=find_meta("description"),
+        license=find_meta("license"),
+        url=find_meta("uri"),
+        version=find_meta("version"),
+        author=find_meta("author"),
+        author_email=find_meta("email"),
+        maintainer=find_meta("author"),
+        maintainer_email=find_meta("email"),
+        keywords=KEYWORDS,
+        long_description=read("README.rst"),
+        packages=PACKAGES,
+        zip_safe=False,
+        classifiers=CLASSIFIERS,
+        install_requires=INSTALL_REQUIRES,
+    )
