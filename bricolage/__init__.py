@@ -8,5 +8,5 @@ __uri__ = "https://github/brettc/bricolage/"
 __author__ = "Brett Calcott"
 __email__ = "brett.calcott@gmail.com"
 
-__license__ = "MIT"
+__license__ = "GPL3"
 __copyright__ = "Copyright (c) 2015 Brett Calcott"
