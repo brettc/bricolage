@@ -191,6 +191,13 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         cJointProbabilities *analyse_network(cNetwork &net)
         cJointProbabilities *analyse_collection(const cNetworkVector &networks)
 
+    cdef cppclass cAverageControlAnalyzer:
+        cAverageControlAnalyzer(const cWorld_ptr& world, const cRates &rates);
+        cRates rates
+        cRates natural_probabilities
+        cInformation *analyse_network(cNetwork &net)
+        cInformation *analyse_collection(const cNetworkVector &networks)
+
     cdef cppclass cMutualInfoAnalyzer:
         cMutualInfoAnalyzer(const cWorld_ptr& world, const cIndexes categories);
         cIndexes categories

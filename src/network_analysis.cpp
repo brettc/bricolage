@@ -127,6 +127,16 @@ cInformation::cInformation(const cJointProbabilities &jp)
     jp.calc_information(*this);
 }
 
+cInformation::cInformation(const cWorld_ptr &w, size_t network_size)
+    : world(w)
+    , _array(boost::extents
+             [network_size]
+             [w->reg_channels]
+             [w->out_channels])
+{
+    std::fill(_array.origin(), _array.origin() + _array.num_elements(), 0.0);
+}
+
 cJointProbabilities::cJointProbabilities(const cWorld_ptr &w, size_t network_size,
                                          size_t per_network, size_t per_channel)
     : world(w)
@@ -188,37 +198,16 @@ void cJointProbabilities::calc_information(cInformation &info) const
     }
 }
 
-cCausalFlowAnalyzer::cCausalFlowAnalyzer(cWorld_ptr &w, const cRates &rates)
+cBaseCausalAnalyzer::cBaseCausalAnalyzer(cWorld_ptr &w, const cRates &rates)
     : world(w)
     , rates(rates)
     , natural_probabilities(w->reg_channels, 0.0)
 {
-
-}
-
-cJointProbabilities *cCausalFlowAnalyzer::analyse_network(cNetwork &net)
-{
-    cJointProbabilities *joint = 
-        new cJointProbabilities(world, 1, world->out_channels, 2);
-
-    _analyse(net, joint->_array[0]);
-
-    return joint;
-}
-
-cJointProbabilities *cCausalFlowAnalyzer::analyse_collection(const cNetworkVector &networks)
-{
-    cJointProbabilities *joint = 
-        new cJointProbabilities(world, networks.size(), world->out_channels, 2);
-
-    for (size_t i = 0; i < networks.size(); ++i)
-        _analyse(*networks[i], joint->_array[i]);
-    return joint;
 }
 
 // Calculate the probability of any particular signal being on when the
 // attractor network is not being intervened upon
-void cCausalFlowAnalyzer::_calc_natural(cNetwork &net)
+void cBaseCausalAnalyzer::_calc_natural(cNetwork &net)
 {
     for (size_t i = 0; i < world->reg_channels; ++i)
         natural_probabilities[i] = 0.0;
@@ -243,6 +232,32 @@ void cCausalFlowAnalyzer::_calc_natural(cNetwork &net)
         }
     }
 }
+
+cCausalFlowAnalyzer::cCausalFlowAnalyzer(cWorld_ptr &w, const cRates &rates)
+    : cBaseCausalAnalyzer(w, rates)
+{
+}
+
+cJointProbabilities *cCausalFlowAnalyzer::analyse_network(cNetwork &net)
+{
+    cJointProbabilities *joint = 
+        new cJointProbabilities(world, 1, world->out_channels, 2);
+
+    _analyse(net, joint->_array[0]);
+
+    return joint;
+}
+
+cJointProbabilities *cCausalFlowAnalyzer::analyse_collection(const cNetworkVector &networks)
+{
+    cJointProbabilities *joint = 
+        new cJointProbabilities(world, networks.size(), world->out_channels, 2);
+
+    for (size_t i = 0; i < networks.size(); ++i)
+        _analyse(*networks[i], joint->_array[i]);
+    return joint;
+}
+
 
 void cCausalFlowAnalyzer::_analyse(cNetwork &net, joint_array_type::reference sub)
 {
@@ -295,6 +310,110 @@ void cCausalFlowAnalyzer::_analyse(cNetwork &net, joint_array_type::reference su
 }
 
 
+// --------------------------------------------------------------------------
+cAverageControlAnalyzer::cAverageControlAnalyzer(
+    cWorld_ptr &world, const cRates &rates)
+    : cBaseCausalAnalyzer(world, rates)
+{
+}
+
+// Note you need to delete the return values from these!
+cInformation *cAverageControlAnalyzer::analyse_network(cNetwork &net)
+{
+    cInformation *info = 
+        new cInformation(world, 1);
+
+    _analyse(net, info->_array[0]);
+
+    return info;
+}
+
+cInformation *cAverageControlAnalyzer::analyse_collection(const cNetworkVector &networks)
+{
+    cInformation *info = new cInformation(world, networks.size());
+    for (size_t i = 0; i < networks.size(); ++i)
+        _analyse(*networks[i], info->_array[i]);
+    return info;
+}
+
+void cAverageControlAnalyzer::_analyse(
+    cNetwork &net, 
+    info_array_type::reference sub
+)
+{
+    // We need a vector of probability distributions. Note that we use this
+    // differently than above, as each of the major axis entries represents an
+    // environment for a particular network, rather than the summed dist_n for
+    // a network in population.
+    auto &world = net.factory->world;
+    auto env_count = world->environments.size();
+
+    cJointProbabilities joint_over_envs(world, env_count, world->out_channels, 2);
+
+    // Effectively the same as above
+    _calc_natural(net);
+
+    size_t close = 0;
+
+    // for each environment (there are rates for each) 
+    for (size_t i = 0; i < net.rates.size(); ++i)
+    {
+        // For each channel
+        for (size_t j = 0; j < world->reg_channels; ++j)
+        {
+            cGene *gene = net.get_gene(j);
+            gene->intervene = INTERVENE_OFF;
+            net.calc_attractors_with_intervention();
+            double p_gene_off = (1.0 - natural_probabilities[j]);
+
+            // for each output channel
+            for (size_t k = 0; k < world->out_channels; ++k)
+            {
+                if (isclose(rates[k], net.rates[i][k]))
+                    close = 1;
+                else
+                    close = 0;
+                    
+                joint_over_envs._array[i][j][k][0][close] += p_gene_off;
+            }
+
+            gene->intervene = INTERVENE_ON;
+            net.calc_attractors_with_intervention();
+            double p_gene_on = natural_probabilities[j];
+
+            // for each output channel
+            for (size_t k = 0; k < world->out_channels; ++k)
+            {
+                if (isclose(rates[k], net.rates[i][k]))
+                    close = 1;
+                else
+                    close = 0;
+                    
+                joint_over_envs._array[i][j][k][1][close] += p_gene_on;
+            }
+
+            // Reset
+            gene->intervene = INTERVENE_NONE;
+            net.calc_attractors();
+        }
+    }
+
+    // Now calculate the information in each of these environments. Simply
+    // using the constructor does this.
+    cInformation info(joint_over_envs);
+
+    // Now take the env weighted average of all of these. Currently all
+    // environments have the same probability.
+    double p_env = 1.0 / net.rates.size();
+    for (size_t i = 0; i < net.rates.size(); ++i)
+        for (size_t j = 0; j < world->reg_channels; ++j)
+            for (size_t k = 0; k < world->out_channels; ++k)
+                sub[j][k] += info._array[i][j][k] * p_env;
+
+}
+
+
+// --------------------------------------------------------------------------
 // Pass in the maximum numbers of categories
 cMutualInfoAnalyzer::cMutualInfoAnalyzer(cWorld_ptr &w, const cIndexes &cats)
     : world(w)
