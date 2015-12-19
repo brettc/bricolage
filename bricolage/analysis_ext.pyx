@@ -78,8 +78,15 @@ cdef class JointProbabilities:
 
 
 cdef class Information:
-    def __cinit__(self, JointProbabilities joint):
-        self._this = new cInformation(deref(joint._this))
+    def __cinit__(self, JointProbabilities joint=None):
+        if joint is None:
+            # Should be bound later!
+            self._this = NULL
+        else:
+            self._this = new cInformation(deref(joint._this))
+
+    cdef bind(self, cInformation *i):
+        self._this = i
 
     def __dealloc__(self):
         if self._this != NULL:
@@ -136,6 +143,38 @@ cdef class CausalFlowAnalyzer:
         c_joint = self._this.analyse_collection(deref(coll._collection))
         j.bind(c_joint)
         return j
+
+    def numpy_info_from_collection(self, CollectionBase coll):
+        i = Information(self.analyse_collection(coll))
+        return numpy.asarray(i)
+
+    def numpy_info_from_network(self, Network n):
+        i = Information(self.analyse_network(n))
+        return numpy.asarray(i)
+
+cdef class AverageControlInfoAnalyzer:
+    def __cinit__(self, World w, cRates rates):
+        assert len(rates) == w.out_channels
+        self.world = w
+        self._this = new cAverageControlAnalyzer(w._shared, rates)
+
+    def __dealloc__(self):
+        if self._this != NULL:
+            del self._this
+
+    def analyse_network(self, Network n):
+        info = Information()
+        cdef cInformation *c_info= NULL 
+        c_info = self._this.analyse_network(deref(n._this))
+        info.bind(c_info)
+        return info
+
+    def analyse_collection(self, CollectionBase coll):
+        info = Information()
+        cdef cInformation *c_info= NULL 
+        c_info = self._this.analyse_collection(deref(coll._collection))
+        info.bind(c_info)
+        return info
 
     def numpy_info_from_collection(self, CollectionBase coll):
         i = Information(self.analyse_collection(coll))

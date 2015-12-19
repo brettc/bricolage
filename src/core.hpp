@@ -322,6 +322,8 @@ typedef boost::multi_array<double, 3> info_array_type;
 struct cInformation
 {
     cInformation(const cJointProbabilities &jp);
+    cInformation(const cWorld_ptr &w, size_t network_size);
+
     cWorld_ptr world;
     info_array_type _array;
 
@@ -355,19 +357,36 @@ struct cJointProbabilities
     void *data() { return _array.data(); }
 };
 
-struct cCausalFlowAnalyzer
+struct cBaseCausalAnalyzer
 {
-    cCausalFlowAnalyzer(cWorld_ptr &world, const cRates &rates);
+    cBaseCausalAnalyzer(cWorld_ptr &world, const cRates &rates);
     cWorld_ptr world;
     cRates rates;
     cRates natural_probabilities;
+
+    void _calc_natural(cNetwork &net);
+};
+
+struct cCausalFlowAnalyzer : public cBaseCausalAnalyzer
+{
+    cCausalFlowAnalyzer(cWorld_ptr &world, const cRates &rates);
 
     // Note you need to delete the return values from these!
     cJointProbabilities *analyse_network(cNetwork &net);
     cJointProbabilities *analyse_collection(const cNetworkVector &networks);
 
-    void _calc_natural(cNetwork &net);
     void _analyse(cNetwork &net, joint_array_type::reference sub); 
+};
+
+struct cAverageControlAnalyzer : public cBaseCausalAnalyzer
+{
+    cAverageControlAnalyzer(cWorld_ptr &world, const cRates &rates);
+
+    // Note you need to delete the return values from these!
+    cInformation *analyse_network(cNetwork &net);
+    cInformation *analyse_collection(const cNetworkVector &networks);
+
+    void _analyse(cNetwork &net, info_array_type::reference sub); 
 };
 
 struct cMutualInfoAnalyzer

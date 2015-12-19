@@ -26,10 +26,16 @@ cdef class Information:
         vector[Py_ssize_t] shape
         vector[Py_ssize_t] strides
         World world
+    cdef bind(self, cInformation *i)
 
 cdef class CausalFlowAnalyzer:
     cdef:
         cCausalFlowAnalyzer *_this;
+        World world
+
+cdef class AverageControlInfoAnalyzer:
+    cdef:
+        cAverageControlAnalyzer *_this;
         World world
 
 cdef class MutualInfoAnalyzer:
