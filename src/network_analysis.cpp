@@ -116,6 +116,8 @@ void cNetworkAnalysis::make_active_edges(cEdgeList &edges)
     }
 }
 
+
+//-----------------------------------------------------------------------------
 cInformation::cInformation(const cJointProbabilities &jp)
     : world(jp.world)
     , _array(boost::extents
@@ -134,17 +136,21 @@ cInformation::cInformation(const cWorld_ptr &w, size_t network_size)
              [w->reg_channels]
              [w->out_channels])
 {
-    std::fill(_array.origin(), _array.origin() + _array.num_elements(), 0.0);
+    // Create an empty array
+    std::fill(_array.origin(), 
+              _array.origin() + _array.num_elements(), 0.0);
 }
 
-cJointProbabilities::cJointProbabilities(const cWorld_ptr &w, size_t network_size,
-                                         size_t per_network, size_t per_channel)
+cJointProbabilities::cJointProbabilities(
+    const cWorld_ptr &w, size_t network_size, size_t per_network, 
+    size_t per_channel)
     : world(w)
     , _array(boost::extents
              [network_size]
              [w->reg_channels]
              [per_network]
-             [2][per_channel])
+             [2] // This always Binary, ON/OFF
+             [per_channel])
 {
 }
 
@@ -248,7 +254,8 @@ cJointProbabilities *cCausalFlowAnalyzer::analyse_network(cNetwork &net)
     return joint;
 }
 
-cJointProbabilities *cCausalFlowAnalyzer::analyse_collection(const cNetworkVector &networks)
+cJointProbabilities *cCausalFlowAnalyzer::analyse_collection(
+    const cNetworkVector &networks)
 {
     cJointProbabilities *joint = 
         new cJointProbabilities(world, networks.size(), world->out_channels, 2);
@@ -422,7 +429,8 @@ cMutualInfoAnalyzer::cMutualInfoAnalyzer(cWorld_ptr &w, const cIndexes &cats)
 {
 }
 
-cJointProbabilities *cMutualInfoAnalyzer::analyse_network(cNetwork &net)
+cJointProbabilities *cMutualInfoAnalyzer::analyse_network(
+    cNetwork &net)
 {
     cJointProbabilities *joint = 
         new cJointProbabilities(world, 1, 1, max_category);
@@ -432,7 +440,8 @@ cJointProbabilities *cMutualInfoAnalyzer::analyse_network(cNetwork &net)
     return joint;
 }
 
-cJointProbabilities *cMutualInfoAnalyzer::analyse_collection(const cNetworkVector &networks)
+cJointProbabilities *cMutualInfoAnalyzer::analyse_collection(
+    const cNetworkVector &networks)
 {
     cJointProbabilities *joint = 
         new cJointProbabilities(world, networks.size(), 1, max_category);
@@ -442,7 +451,8 @@ cJointProbabilities *cMutualInfoAnalyzer::analyse_collection(const cNetworkVecto
     return joint;
 }
 
-void cMutualInfoAnalyzer::_analyse(cNetwork &net, joint_array_type::reference sub)
+void cMutualInfoAnalyzer::_analyse(
+    cNetwork &net, joint_array_type::reference sub)
 {
     size_t reg_base = world->reg_range.first;
     double normal_p_event = 1.0 / double(world->environments.size());
@@ -451,6 +461,9 @@ void cMutualInfoAnalyzer::_analyse(cNetwork &net, joint_array_type::reference su
     for (size_t ei = 0; ei < net.attractors.size(); ++ei)
     {
         auto attrs = net.attractors[ei];
+
+        // Each environment is given a category. We then analyse the
+        // information it has about that category.
         size_t cat = categories[ei];
         double p_event = normal_p_event / double(attrs.size());
         for (auto &att : attrs)

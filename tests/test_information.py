@@ -1,7 +1,7 @@
 import pytest
 from math import log as logarithm
 from bricolage.analysis_ext import (
-    MutualInfoAnalyzer, AverageControlInfoAnalyzer, CausalFlowAnalyzer,
+    MutualInfoAnalyzer, AverageControlAnalyzer, CausalFlowAnalyzer,
     Information)
 # from bricolage import threshold3, lineage, graph
 from bricolage.core import InterventionState
@@ -318,7 +318,7 @@ def test_average_control_net(bowtie_network):
     matches = [1, .5, .25]
 
     py_info = get_average_control(net, matches)
-    anz = AverageControlInfoAnalyzer(net.factory.world, matches)
+    anz = AverageControlAnalyzer(net.factory.world, matches)
     cy_info = numpy.asarray(anz.analyse_network(net))
 
     numpy.testing.assert_allclose(py_info, cy_info[0])
@@ -327,7 +327,7 @@ def test_average_control_net(bowtie_network):
 def test_average_control_pop(bowtie_database):
     matches = [1, .5, .25]
     pop = bowtie_database.population
-    anz = AverageControlInfoAnalyzer(pop.factory.world, matches)
+    anz = AverageControlAnalyzer(pop.factory.world, matches)
     cy_info = numpy.asarray(anz.analyse_collection(pop))
 
     for i, net in enumerate(pop):

@@ -33,7 +33,7 @@ cdef class CausalFlowAnalyzer:
         cCausalFlowAnalyzer *_this;
         World world
 
-cdef class AverageControlInfoAnalyzer:
+cdef class AverageControlAnalyzer:
     cdef:
         cAverageControlAnalyzer *_this;
         World world

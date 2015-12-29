@@ -152,7 +152,8 @@ cdef class CausalFlowAnalyzer:
         i = Information(self.analyse_network(n))
         return numpy.asarray(i)
 
-cdef class AverageControlInfoAnalyzer:
+
+cdef class AverageControlAnalyzer:
     def __cinit__(self, World w, cRates rates):
         assert len(rates) == w.out_channels
         self.world = w
