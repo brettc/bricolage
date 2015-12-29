@@ -9,7 +9,6 @@ import inspect
 
 from .analysis_ext import NetworkAnalysis
 import graph
-import numpy as np
 
 try:
     from send2trash import send2trash
@@ -426,7 +425,6 @@ class Experiment(object):
             self.database.session.commit()
 
     @verbose
-    # @add_argument('--every', type=int, default=25)
     def calc_neighbours(self, args):
         self.database.create(args.verbose)
         for rep, lin in self.iter_lineages():
@@ -437,5 +435,24 @@ class Experiment(object):
             rep.write_stats(lin.generation, vals)
             print rep.treatment.seq, rep.seq, vals
             self.database.session.commit()
+
+    @verbose
+    @add_argument('--every', type=int, default=25)
+    def calc_attractor_len(self, args):
+        self.database.create(args.verbose)
+
+        maxlen = 0
+        for rep, lin in self.iter_lineages():
+            print rep, lin
+            for gnum, gen in lin.all_generations(every=args.every):
+                for net in gen:
+                    l = net.attractors_size.max()
+                    if l > maxlen:
+                        print "Max", l
+                        for a in net.attractors:
+                            print a
+                        print net.rates
+                        maxlen = l
+
 
 

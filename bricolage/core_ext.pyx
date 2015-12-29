@@ -313,6 +313,22 @@ cdef class Network:
                 self._genes = tuple(self.factory.gene_class(self, i) for i in range(self.gene_count))
             return self._genes
 
+    property attractors_size:
+        def __get__(self):
+            r = numpy.zeros(self._this.attractors.size())
+            cdef:
+                vector[cChannelStateVector].iterator cattr_iter
+                np.npy_double[:] c_r = r
+                size_t i = 0
+
+            cattr_iter = self._this.attractors.begin()
+            while cattr_iter != self._this.attractors.end():
+                c_r[i] = deref(cattr_iter).size()
+                i += 1
+                preinc(cattr_iter)
+
+            return r
+
     def cycle(self, ChannelState c):
         self._this.cycle(c._this)
 

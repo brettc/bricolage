@@ -10,15 +10,15 @@ def xor_func(a, b):
 def fitness_func1(a, b):
     return xor_func(a, b)
 
-def test_network():
+def test_attractors():
     params = Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
                         cue_channels=3,)
     world = World(params)
     factory = Factory(world)
     net = factory.create_network()
-    print net.attractors
-    print world.pub_signals
-    # net.genes[0].pub = 3
+    alens = [len(a) for a in net.attractors]
+    print alens
+    print net.attractors_size
 
 def test_network_pickle():
     params = Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
