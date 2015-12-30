@@ -2,6 +2,8 @@
 #include <cmath>
 #include <stdexcept>
 #include <algorithm>
+#include <map>
+#include <exception>
 
 
 using namespace bricolage;
@@ -129,6 +131,7 @@ cInformation::cInformation(const cJointProbabilities &jp)
     jp.calc_information(*this);
 }
 
+// This is used for information about output channels
 cInformation::cInformation(const cWorld_ptr &w, size_t network_size)
     : world(w)
     , _array(boost::extents
@@ -343,24 +346,59 @@ cInformation *cAverageControlAnalyzer::analyse_collection(const cNetworkVector &
     return info;
 }
 
+// Keep a map of the unique rates that are output and assign them to persistent
+// categories within a network. We'll use these categories to calculate the
+// information.
+struct RateCategorizer
+{
+    // We only allocate this many categories. More than this and we're screwed.
+    const static size_t max_category = 16;
+    size_t next_category;
+    std::map<double, int> rate_categories;
+
+    RateCategorizer() : next_category(2) {}
+    size_t get_category(double rate) 
+    {
+        if (rate == 0.0)
+            return 0;
+        if (rate == 1.0)
+            return 1.0;
+
+        auto result = rate_categories.insert(
+            std::make_pair(rate, next_category));
+        if (result.second)
+        {
+            // Successful insert. We have a new category. Update the category.
+            if (++next_category > max_category)
+                throw std::range_error("More than 16 categories used");
+        }
+
+        // In either case, return the value in the pair the insert points to.
+        // (It will either be the new pair, or the one found).
+        auto the_pair = *result.first;
+        return the_pair.second;
+    }
+};
+
 void cAverageControlAnalyzer::_analyse(
     cNetwork &net, 
     info_array_type::reference sub
 )
 {
-    // We need a vector of probability distributions. Note that we use this
+    // We need several probability distributions. Note that we use this
     // differently than above, as each of the major axis entries represents an
     // environment for a particular network, rather than the summed dist_n for
     // a network in population.
     auto &world = net.factory->world;
     auto env_count = world->environments.size();
 
-    cJointProbabilities joint_over_envs(world, env_count, world->out_channels, 2);
+    // We keep a set of category assignments for the rates
+    RateCategorizer categorizer;
+    cJointProbabilities joint_over_envs(
+        world, env_count, world->out_channels, RateCategorizer::max_category);
 
     // Effectively the same as above
     _calc_natural(net);
-
-    size_t close = 0;
 
     // for each environment (there are rates for each) 
     for (size_t i = 0; i < net.rates.size(); ++i)
@@ -376,12 +414,8 @@ void cAverageControlAnalyzer::_analyse(
             // for each output channel
             for (size_t k = 0; k < world->out_channels; ++k)
             {
-                if (isclose(rates[k], net.rates[i][k]))
-                    close = 1;
-                else
-                    close = 0;
-                    
-                joint_over_envs._array[i][j][k][0][close] += p_gene_off;
+                size_t cat = categorizer.get_category(net.rates[i][k]);
+                joint_over_envs._array[i][j][k][0][cat] += p_gene_off;
             }
 
             gene->intervene = INTERVENE_ON;
@@ -391,12 +425,8 @@ void cAverageControlAnalyzer::_analyse(
             // for each output channel
             for (size_t k = 0; k < world->out_channels; ++k)
             {
-                if (isclose(rates[k], net.rates[i][k]))
-                    close = 1;
-                else
-                    close = 0;
-                    
-                joint_over_envs._array[i][j][k][1][close] += p_gene_on;
+                size_t cat = categorizer.get_category(net.rates[i][k]);
+                joint_over_envs._array[i][j][k][1][cat] += p_gene_on;
             }
 
             // Reset
@@ -421,7 +451,8 @@ void cAverageControlAnalyzer::_analyse(
 
 
 // --------------------------------------------------------------------------
-// Pass in the maximum numbers of categories
+// The categories define how each of the possible enviroments is mapped to a
+// category.
 cMutualInfoAnalyzer::cMutualInfoAnalyzer(cWorld_ptr &w, const cIndexes &cats)
     : world(w)
     , categories(cats)
