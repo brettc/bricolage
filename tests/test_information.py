@@ -39,6 +39,23 @@ def xor_network(xor_database):
     return xor_database.population.get_best()[0]
 
 
+def _mutual_info(joint):
+    assert numpy.isclose(joint.sum(), 1.0)
+
+    info = 0.0
+    rownum, colnum = joint.shape
+    colsum = joint.sum(axis=0)
+    rowsum = joint.sum(axis=1)
+    for row in range(rownum):
+        for col in range(colnum):
+            p_xy = joint[row, col]
+            p_x = rowsum[row]
+            p_y = colsum[col]
+            if p_xy != 0:
+                info += p_xy * logarithm(p_xy / (p_x * p_y), 2)
+    return info
+
+
 def calc_mutual_info(n, categories):
     w = n.factory.world
     assert len(categories) == len(w.environments)
@@ -70,18 +87,7 @@ def calc_mutual_info(n, categories):
 
     info = numpy.zeros(channel_dim)
     for i, channel in enumerate(range(*w.reg_range)):
-        c_prob = probs[i]
-        I = 0.0
-        colsum = c_prob.sum(axis=0)
-        rowsum = c_prob.sum(axis=1)
-        for row in range(feat_dim):
-            for col in 0, 1:
-                p_xy = c_prob[row, col]
-                p_x = rowsum[row]
-                p_y = colsum[col]
-                if p_xy != 0:
-                    I += p_xy * logarithm(p_xy / (p_x * p_y), 2)
-        info[i] = I
+        info[i] = _mutual_info(probs[i])
 
     return probs, info
 
@@ -162,7 +168,7 @@ def get_causal_specs(net):
 
     # All probabilities of co-occurences. A joint prob distn under
     # intervention for each channel, about each output channel. We create one
-    # for each environment (we'll merge them into one measurement later).
+    # for each environment.
     #
     # 1. We need 2 rows for FALSE / TRUE.
     # 2. And we guess(!) a maximum number of columns for all possible rates in this
@@ -249,20 +255,7 @@ def calc_info_from_probs(probs):
     info = numpy.zeros((d1, d2))
     for i in range(d1):
         for j in range(d2):
-            c_prob = probs[i, j]
-            assert numpy.isclose(c_prob.sum(), 1.0)
-
-            I = 0.0
-            colsum = c_prob.sum(axis=0)
-            rowsum = c_prob.sum(axis=1)
-            for row in range(row_num):
-                for col in range(col_num):
-                    p_xy = c_prob[row, col]
-                    p_x = rowsum[row]
-                    p_y = colsum[col]
-                    if p_xy != 0:
-                        I += p_xy * logarithm(p_xy / (p_x * p_y), 2)
-            info[i, j] = I
+            info[i, j] = _mutual_info(probs[i, j])
 
     return info
 
