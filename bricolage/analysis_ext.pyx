@@ -121,10 +121,9 @@ cdef class Information:
 
 
 cdef class CausalFlowAnalyzer:
-    def __cinit__(self, World w, cRates rates):
-        assert len(rates) == w.out_channels
+    def __cinit__(self, World w):
         self.world = w
-        self._this = new cCausalFlowAnalyzer(w._shared, rates)
+        self._this = new cCausalFlowAnalyzer(w._shared)
 
     def __dealloc__(self):
         if self._this != NULL:
@@ -154,10 +153,9 @@ cdef class CausalFlowAnalyzer:
 
 
 cdef class AverageControlAnalyzer:
-    def __cinit__(self, World w, cRates rates):
-        assert len(rates) == w.out_channels
+    def __cinit__(self, World w):
         self.world = w
-        self._this = new cAverageControlAnalyzer(w._shared, rates)
+        self._this = new cAverageControlAnalyzer(w._shared)
 
     def __dealloc__(self):
         if self._this != NULL:
@@ -223,3 +221,9 @@ cdef class MutualInfoAnalyzer:
     def numpy_info_from_collection(self, CollectionBase coll):
         i = Information(self.analyse_collection(coll))
         return numpy.asarray(i)
+
+def _get_max_category_size():
+    return get_max_category_size()
+
+def _set_max_category_size(size_t m):
+    set_max_category_size(m)

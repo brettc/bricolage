@@ -2,8 +2,7 @@ import pytest
 from math import log as logarithm
 from bricolage.analysis_ext import (
     MutualInfoAnalyzer, AverageControlAnalyzer, CausalFlowAnalyzer,
-    Information)
-# from bricolage import threshold3, lineage, graph
+    Information, _set_max_category_size, _get_max_category_size)
 from bricolage.core import InterventionState
 from generate import get_database
 import numpy
@@ -40,6 +39,23 @@ def xor_network(xor_database):
     return xor_database.population.get_best()[0]
 
 
+def _mutual_info(joint):
+    assert numpy.isclose(joint.sum(), 1.0)
+
+    info = 0.0
+    rownum, colnum = joint.shape
+    colsum = joint.sum(axis=0)
+    rowsum = joint.sum(axis=1)
+    for row in range(rownum):
+        for col in range(colnum):
+            p_xy = joint[row, col]
+            p_x = rowsum[row]
+            p_y = colsum[col]
+            if p_xy != 0:
+                info += p_xy * logarithm(p_xy / (p_x * p_y), 2)
+    return info
+
+
 def calc_mutual_info(n, categories):
     w = n.factory.world
     assert len(categories) == len(w.environments)
@@ -71,18 +87,7 @@ def calc_mutual_info(n, categories):
 
     info = numpy.zeros(channel_dim)
     for i, channel in enumerate(range(*w.reg_range)):
-        c_prob = probs[i]
-        I = 0.0
-        colsum = c_prob.sum(axis=0)
-        rowsum = c_prob.sum(axis=1)
-        for row in range(feat_dim):
-            for col in 0, 1:
-                p_xy = c_prob[row, col]
-                p_x = rowsum[row]
-                p_y = colsum[col]
-                if p_xy != 0:
-                    I += p_xy * logarithm(p_xy / (p_x * p_y), 2)
-        info[i] = I
+        info[i] = _mutual_info(probs[i])
 
     return probs, info
 
@@ -123,9 +128,36 @@ def test_mutual_info_cython(bowtie_network, bowtie_env_categories):
     # Need to account for different shape
     numpy.testing.assert_allclose(c_info[:, 0], p_info)
 
+class RateCategorizer(object):
+    max_categories = 16
 
-def get_causal_specs(net, matches):
-    """Calculate the causal specificity in each environment"""
+    def __init__(self):
+        self.allocated_cats = {}
+        self.next_cat = 2
+
+    def categorize(self, rates):
+        cats = []
+        for r in rates:
+            if r == 0.0 or r == 1.0:
+                cat = int(r)
+            else:
+                # r is our rate. What category is it?
+                cat = self.allocated_cats.setdefault(r, self.next_cat)
+                # Did we insert?
+                if cat == self.next_cat:
+                    self.next_cat += 1
+                    if self.next_cat > self.max_categories:
+                        raise RuntimeError(
+                            "Category explosion: {}".format(self.next_cat))
+
+            cats.append(cat)
+
+        return cats
+
+
+def get_causal_specs(net):
+    """Calculate the causal specificity for the entire output in each
+    environment"""
     wrld = net.factory.world
 
     # For now, states are equiprobable
@@ -136,8 +168,17 @@ def get_causal_specs(net, matches):
 
     # All probabilities of co-occurences. A joint prob distn under
     # intervention for each channel, about each output channel. We create one
-    # for each environment (we'll merge them into one measurement later).
-    probs = [numpy.zeros((wrld.reg_channels, wrld.out_channels, 2, 2)) 
+    # for each environment.
+    #
+    # 1. We need 2 rows for FALSE / TRUE.
+    # 2. And we guess(!) a maximum number of columns for all possible rates in this
+    # network. This dedicate the first two to 0 / 1 and allocate the others as
+    # needed.
+    categorizer = RateCategorizer()
+    probs = [numpy.zeros((wrld.reg_channels, 
+                          wrld.out_channels, 
+                          2,
+                          categorizer.max_categories))
              for _ in range(env_count)]
 
     # Now, do the interventions for each regulatory gene
@@ -146,48 +187,37 @@ def get_causal_specs(net, matches):
     for i in range(wrld.reg_channels):
         gene = net.genes[i]
         # ----- GENE IS MANIPULATED OFF
-        # (this automatically updates everything)
+        # NOTE: This automatically updates everything (changing the rates!).
         gene.intervene = InterventionState.INTERVENE_OFF
-        # Record everything the state of this genes output against each of the
-        # outputs. Go through each environments, comparing output...
-        for j, r in enumerate(net.rates):
-            cats = bowtie_categorize_output(r, matches)
+        for j, rates in enumerate(net.rates):
+            cats = categorizer.categorize(rates)
             for k, c in enumerate(cats):
-                # What is the probability here? ith Gene is off in jth
-                # environment
-                # p_state = env_probs[j] * (1.0 - pdist_regs[i])
                 p_state = (1.0 - pdist_regs[i])
-                # Gene is OFF. Output is category c. Add it to the
-                # probabilities in environment j
                 probs[j][i, k, 0, c] += p_state
 
         # ----- GENE IS MANIPULATED ON
-        # Manipulate the gene ON
         gene.intervene = InterventionState.INTERVENE_ON
-        for j, r in enumerate(net.rates):
-            cats = bowtie_categorize_output(r, matches)
+        for j, rates in enumerate(net.rates):
+            cats = categorizer.categorize(rates)
             for k, c in enumerate(cats):
-                # What is the probability here? ith Gene is ON in jth
-                # environment
-                # p_state = env_probs[j] * pdist_regs[i]
                 p_state = pdist_regs[i]
-                # Gene is ON. Output is category c. Add it to the
-                # probabilities in environment j
                 probs[j][i, k, 1, c] += p_state
 
         # Reset this gene
         gene.intervene = InterventionState.INTERVENE_NONE
+
     return probs
 
-
-def get_causal_flow(net, matches):
-    # graph.save_network_as_fullgraph(net, name='bob')
+def get_causal_flow(net):
     wrld = net.factory.world
 
-    summed_probs = numpy.zeros((wrld.reg_channels, wrld.out_channels, 2, 2))
+    summed_probs = numpy.zeros((wrld.reg_channels, 
+                                wrld.out_channels, 
+                                2, 
+                                RateCategorizer.max_categories))
 
     # Just sum up those from causal spec, weighted
-    prob_list = get_causal_specs(net, matches)
+    prob_list = get_causal_specs(net)
     penv = 1.0 / float(len(prob_list))
 
     for prob in prob_list:
@@ -215,27 +245,17 @@ def calc_natural(env_probs, net, w):
 
 
 # Slow python calculation of information
-def calc_info_from_probs(net, probs):
-    w = net.factory.world
+def calc_info_from_probs(probs):
+    """Assumption: 4 dimension array. We summarise information in the final 2
+    dimensions"""
+
+    d1, d2, row_num, col_num = probs.shape
 
     # Now calculate the information
-    info = numpy.zeros((w.reg_channels, w.out_channels))
-    for i in range(w.reg_channels):
-        for j in range(w.out_channels):
-            c_prob = probs[i, j]
-            assert numpy.isclose(c_prob.sum(), 1.0)
-
-            I = 0.0
-            colsum = c_prob.sum(axis=0)
-            rowsum = c_prob.sum(axis=1)
-            for row in 0, 1:
-                for col in 0, 1:
-                    p_xy = c_prob[row, col]
-                    p_x = rowsum[row]
-                    p_y = colsum[col]
-                    if p_xy != 0:
-                        I += p_xy * logarithm(p_xy / (p_x * p_y), 2)
-            info[i, j] = I
+    info = numpy.zeros((d1, d2))
+    for i in range(d1):
+        for j in range(d2):
+            info[i, j] = _mutual_info(probs[i, j])
 
     return info
 
@@ -243,10 +263,7 @@ def calc_info_from_probs(net, probs):
 def test_causal_flow_net(bowtie_network):
     """Compare the clunky python version with our C++ version"""
 
-    # This what it was evolved to do (see the generate.py file)
-    matches = [1, .5, .25]
-
-    f = CausalFlowAnalyzer(bowtie_network.factory.world, matches)
+    f = CausalFlowAnalyzer(bowtie_network.factory.world)
     j = f.analyse_network(bowtie_network)
 
     # We just access the 0th element, as we only sent one network for analysis
@@ -256,11 +273,10 @@ def test_causal_flow_net(bowtie_network):
     # should sum to 1.0
     for per_reg in c_joint:
         for per_output in per_reg:
-            assert per_output.shape == (2, 2)
             assert per_output.sum() == 1.0
 
     # Get the slow version from python.
-    p_joint = get_causal_flow(bowtie_network, matches)
+    p_joint = get_causal_flow(bowtie_network)
 
     # They should be the same.
     numpy.testing.assert_allclose(p_joint, c_joint)
@@ -268,15 +284,14 @@ def test_causal_flow_net(bowtie_network):
     # So should the information.
     info = Information(j)
     c_info = numpy.asarray(info)[0]
-    p_info = calc_info_from_probs(bowtie_network, p_joint)
+    p_info = calc_info_from_probs(p_joint)
     numpy.testing.assert_allclose(c_info, p_info)
 
 
 def test_causal_flow_pop(bowtie_database, bowtie_env_categories):
     # This what it was evolved to do (see the generate.py file)
-    matches = [1, .5, .25]
     pop = bowtie_database.population
-    f_flow = CausalFlowAnalyzer(bowtie_database.world, matches)
+    f_flow = CausalFlowAnalyzer(bowtie_database.world)
     j_flow = f_flow.analyse_collection(pop)
     flow = Information(j_flow)
     c_flow = numpy.asarray(flow)
@@ -288,52 +303,68 @@ def test_causal_flow_pop(bowtie_database, bowtie_env_categories):
 
     # Let's just try the first few
     for i, n in enumerate(pop):
-        p_joint = get_causal_flow(n, matches)
-        p_flow = calc_info_from_probs(n, p_joint)
+        p_joint = get_causal_flow(n)
+        p_flow = calc_info_from_probs(p_joint)
         numpy.testing.assert_allclose(c_flow[i], p_flow)
 
         _, p_mut = calc_mutual_info(n, bowtie_env_categories)
         numpy.testing.assert_allclose(c_mut[i, :, 0], p_mut)
 
         # It takes too long....
-        if i == 10:
+        if i == 50:
             break
 
 
-def get_average_control(net, matches):
+def get_average_control(net):
     w = net.factory.world
-    prob_list = get_causal_specs(net, matches)
+    prob_list = get_causal_specs(net)
 
     # To calculate this, we need to get the causal spec of each env, then
     # average the information over each env.
     summed_info = numpy.zeros((w.reg_channels, w.out_channels))
     penv = 1.0 / float(len(prob_list))
     for prob in prob_list:
-        summed_info += penv * calc_info_from_probs(net, prob)
+        summed_info += penv * calc_info_from_probs(prob)
     return summed_info
 
 
 def test_average_control_net(bowtie_network):
     net = bowtie_network
-    matches = [1, .5, .25]
+    py_info = get_average_control(net)
 
-    py_info = get_average_control(net, matches)
-    anz = AverageControlAnalyzer(net.factory.world, matches)
+    anz = AverageControlAnalyzer(net.factory.world)
     cy_info = numpy.asarray(anz.analyse_network(net))
-
+    
     numpy.testing.assert_allclose(py_info, cy_info[0])
 
 
 def test_average_control_pop(bowtie_database):
-    matches = [1, .5, .25]
     pop = bowtie_database.population
-    anz = AverageControlAnalyzer(pop.factory.world, matches)
+    anz = AverageControlAnalyzer(pop.factory.world)
     cy_info = numpy.asarray(anz.analyse_collection(pop))
 
     for i, net in enumerate(pop):
-        py_info = get_average_control(net, matches)
+        py_info = get_average_control(net)
         numpy.testing.assert_allclose(py_info, cy_info[i])
 
-        # Too slow..
-        if i > 10:
+        # # Let's just do 50.
+        if i > 50:
             break
+
+
+def test_category_size_control(bowtie_network):
+    """Make sure that we can catch the exception when we run out of categories"""
+    net = bowtie_network
+    assert _get_max_category_size() == 16
+
+    _set_max_category_size(2)
+
+    anz = AverageControlAnalyzer(net.factory.world)
+
+    with pytest.raises(IndexError):
+        anz.analyse_network(net)
+
+    _set_max_category_size(16)
+        
+
+
