@@ -185,15 +185,13 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         void *data()
 
     cdef cppclass cCausalFlowAnalyzer:
-        cCausalFlowAnalyzer(const cWorld_ptr& world, const cRates &rates);
-        cRates rates
+        cCausalFlowAnalyzer(const cWorld_ptr& world)
         cRates natural_probabilities
         cJointProbabilities *analyse_network(cNetwork &net)
         cJointProbabilities *analyse_collection(const cNetworkVector &networks)
 
     cdef cppclass cAverageControlAnalyzer:
-        cAverageControlAnalyzer(const cWorld_ptr& world, const cRates &rates);
-        cRates rates
+        cAverageControlAnalyzer(const cWorld_ptr& world)
         cRates natural_probabilities
         cInformation *analyse_network(cNetwork &net)
         cInformation *analyse_collection(const cNetworkVector &networks)

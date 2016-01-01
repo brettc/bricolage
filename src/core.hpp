@@ -359,9 +359,8 @@ struct cJointProbabilities
 
 struct cBaseCausalAnalyzer
 {
-    cBaseCausalAnalyzer(cWorld_ptr &world, const cRates &rates);
+    cBaseCausalAnalyzer(cWorld_ptr &world);
     cWorld_ptr world;
-    cRates rates;
     cRates natural_probabilities;
 
     void _calc_natural(cNetwork &net);
@@ -369,7 +368,7 @@ struct cBaseCausalAnalyzer
 
 struct cCausalFlowAnalyzer : public cBaseCausalAnalyzer
 {
-    cCausalFlowAnalyzer(cWorld_ptr &world, const cRates &rates);
+    cCausalFlowAnalyzer(cWorld_ptr &world);
 
     // Note you need to delete the return values from these!
     cJointProbabilities *analyse_network(cNetwork &net);
@@ -380,7 +379,7 @@ struct cCausalFlowAnalyzer : public cBaseCausalAnalyzer
 
 struct cAverageControlAnalyzer : public cBaseCausalAnalyzer
 {
-    cAverageControlAnalyzer(cWorld_ptr &world, const cRates &rates);
+    cAverageControlAnalyzer(cWorld_ptr &world);
 
     // Note you need to delete the return values from these!
     cInformation *analyse_network(cNetwork &net);
