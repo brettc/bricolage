@@ -221,3 +221,9 @@ cdef class MutualInfoAnalyzer:
     def numpy_info_from_collection(self, CollectionBase coll):
         i = Information(self.analyse_collection(coll))
         return numpy.asarray(i)
+
+def _get_max_category_size():
+    return get_max_category_size()
+
+def _set_max_category_size(size_t m):
+    set_max_category_size(m)

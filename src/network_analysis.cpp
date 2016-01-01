@@ -255,7 +255,7 @@ void cBaseCausalAnalyzer::_calc_natural(cNetwork &net)
 struct RateCategorizer
 {
     // We only allocate this many categories. More than this and we're screwed.
-    const static size_t max_category = 16;
+    static size_t max_category;
     size_t next_category;
     std::map<double, int> rate_categories;
 
@@ -273,7 +273,7 @@ struct RateCategorizer
         {
             // Successful insert. We have a new category. Update the category.
             if (++next_category > max_category)
-                throw std::range_error("Maximum categories reached!!");
+                throw std::out_of_range("Maximum categories reached!!");
         }
 
         // In either case, return the value in the pair the insert points to.
@@ -282,6 +282,19 @@ struct RateCategorizer
         return the_pair.second;
     }
 };
+
+size_t RateCategorizer::max_category = 16;
+
+size_t cBaseCausalAnalyzer::get_max_category_size()
+{
+    return RateCategorizer::max_category;
+}
+
+void cBaseCausalAnalyzer::set_max_category_size(size_t m)
+{
+    RateCategorizer::max_category = m;
+}
+
 
 
 cCausalFlowAnalyzer::cCausalFlowAnalyzer(cWorld_ptr &w)

@@ -2,7 +2,7 @@ import pytest
 from math import log as logarithm
 from bricolage.analysis_ext import (
     MutualInfoAnalyzer, AverageControlAnalyzer, CausalFlowAnalyzer,
-    Information)
+    Information, _set_max_category_size, _get_max_category_size)
 from bricolage.core import InterventionState
 from generate import get_database
 import numpy
@@ -350,3 +350,21 @@ def test_average_control_pop(bowtie_database):
         # # Let's just do 50.
         if i > 50:
             break
+
+
+def test_category_size_control(bowtie_network):
+    """Make sure that we can catch the exception when we run out of categories"""
+    net = bowtie_network
+    assert _get_max_category_size() == 16
+
+    _set_max_category_size(2)
+
+    anz = AverageControlAnalyzer(net.factory.world)
+
+    with pytest.raises(IndexError):
+        anz.analyse_network(net)
+
+    _set_max_category_size(16)
+        
+
+

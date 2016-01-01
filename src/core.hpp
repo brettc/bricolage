@@ -363,6 +363,8 @@ struct cBaseCausalAnalyzer
     cWorld_ptr world;
     cRates natural_probabilities;
 
+    static size_t get_max_category_size();
+    static void set_max_category_size(size_t);
     void _calc_natural(cNetwork &net);
 };
 

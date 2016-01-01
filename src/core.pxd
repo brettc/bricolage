@@ -187,17 +187,23 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
     cdef cppclass cCausalFlowAnalyzer:
         cCausalFlowAnalyzer(const cWorld_ptr& world)
         cRates natural_probabilities
-        cJointProbabilities *analyse_network(cNetwork &net)
-        cJointProbabilities *analyse_collection(const cNetworkVector &networks)
+        cJointProbabilities *analyse_network(cNetwork &net) except +
+        cJointProbabilities *analyse_collection(const cNetworkVector &networks) except +
 
     cdef cppclass cAverageControlAnalyzer:
         cAverageControlAnalyzer(const cWorld_ptr& world)
         cRates natural_probabilities
-        cInformation *analyse_network(cNetwork &net)
-        cInformation *analyse_collection(const cNetworkVector &networks)
+        cInformation *analyse_network(cNetwork &net) except +
+        cInformation *analyse_collection(const cNetworkVector &networks) except +
 
     cdef cppclass cMutualInfoAnalyzer:
         cMutualInfoAnalyzer(const cWorld_ptr& world, const cIndexes categories);
         cIndexes categories
-        cJointProbabilities *analyse_network(cNetwork &net)
-        cJointProbabilities *analyse_collection(const cNetworkVector &networks)
+        cJointProbabilities *analyse_network(cNetwork &net) except +
+        cJointProbabilities *analyse_collection(const cNetworkVector &networks) except +
+
+cdef extern from "<src/core.hpp>" namespace "bricolage::cBaseCausalAnalyzer":
+    # Hack for allowing access to static class functions
+    size_t get_max_category_size()
+    void set_max_category_size(size_t)
+
