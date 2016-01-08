@@ -176,11 +176,11 @@ cdef class AverageControlAnalyzer:
         return info
 
     def numpy_info_from_collection(self, CollectionBase coll):
-        i = Information(self.analyse_collection(coll))
+        i = self.analyse_collection(coll)
         return numpy.asarray(i)
 
     def numpy_info_from_network(self, Network n):
-        i = Information(self.analyse_network(n))
+        i = self.analyse_network(n)
         return numpy.asarray(i)
 
 
