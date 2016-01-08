@@ -13,11 +13,11 @@ from neighbourhood import NetworkNeighbourhood, PopulationNeighbourhood
 
 
 class InfoSummarizer(object):
-    def __init__(self, lin, target, flow):
+    def __init__(self, lin, target):
         assert isinstance(lin, FullLineage)
         self._lineage = lin
-        self._cf = CausalFlowAnalyzer(lin.world, flow)
-        self._af = AverageControlAnalyzer(lin.world, flow)
+        # self._cf = CausalFlowAnalyzer(lin.world)
+        self._af = AverageControlAnalyzer(lin.world)
         self._mf = MutualInfoAnalyzer(lin.world, target.calc_categories())
         self._fits = np.zeros(lin.params.population_size)
         self.params = lin.params
@@ -27,39 +27,39 @@ class InfoSummarizer(object):
         regs = self.params.reg_channels
         names = []
         for c in range(regs):
-            names.append('C_{}'.format(c+1))
+            # names.append('C_{}'.format(c+1))
             names.append('A_{}'.format(c+1))
-        names.extend('C_MEAN C_MAX C_MXMN'.split())
+        # names.extend('C_MEAN C_MAX C_MXMN'.split())
         names.extend('F_MEAN F_VAR F_MAX'.split())
         names.extend('A_MEAN A_MAX A_MXMN'.split())
         return names
 
     def get_values(self, g):
-        ci = self._cf.numpy_info_from_collection(g)
+        # ci = self._cf.numpy_info_from_collection(g)
         ai = np.asarray(self._af.analyse_collection(g))
         g.get_fitnesses(self._fits)
 
         # Sum the information across the outputs
-        csummed = ci.sum(axis=2)
+        # csummed = ci.sum(axis=2)
         asummed = ai.sum(axis=2)
 
         # Get means across the population
-        cmeans = np.mean(csummed, axis=0)
+        # cmeans = np.mean(csummed, axis=0)
         ameans = np.mean(asummed, axis=0)
 
         vals = []
         regs = self.params.reg_channels
         for i, c in enumerate(range(regs)):
-            vals.append(('C_{}'.format(c+1), cmeans[i]))
+            # vals.append(('C_{}'.format(c+1), cmeans[i]))
             vals.append(('A_{}'.format(c+1), ameans[i]))
 
         # Now get the whole sum?
-        ctot = csummed.sum(axis=1)
+        # ctot = csummed.sum(axis=1)
         atot = asummed.sum(axis=1)
         vals.extend([
-            ('C_MEAN', ctot.mean()),
-            ('C_MAX', csummed.max()),
-            ('C_MXMN', cmeans.max()),
+            # ('C_MEAN', ctot.mean()),
+            # ('C_MAX', csummed.max()),
+            # ('C_MXMN', cmeans.max()),
             ('A_MEAN', atot.mean()),
             ('A_MAX', asummed.max()),
             ('A_MXMN', ameans.max()),
