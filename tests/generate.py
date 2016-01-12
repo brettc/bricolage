@@ -1,7 +1,6 @@
 #!env python
 import click
 
-# This will initialise the folders.
 from folders import data_dir
 from bricolage import threshold3
 from bricolage.lineage import SnapshotLineage

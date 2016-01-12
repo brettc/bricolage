@@ -1,5 +1,8 @@
 import pytest
 from generate import get_database
+from bricolage.experiment import Experiment, Treatment
+from bricolage.threshold3 import Parameters
+import pathlib
 
 
 @pytest.yield_fixture
@@ -31,3 +34,51 @@ def xor_database():
 @pytest.fixture
 def xor_network(xor_database):
     return xor_database.population.get_best()[0]
+
+
+class TestTreatment(Treatment):
+    def __init__(self, name, params, count, target):
+        super(TestTreatment, self).__init__(name, params, count)
+        self.target = target
+
+    def run_replicate(self, replicate, lineage):
+        if len(lineage.targets) == 0:
+            lineage.add_target(self.target)
+        while lineage.generation < 100:
+            lineage.next_generation()
+
+
+# A Makeshift class until we clean up the experiment class
+class Args(object):
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
+
+@pytest.fixture(scope='session')
+def simple_experiment(tmpdir_factory):
+    tmpdir = tmpdir_factory.mktemp('experiments').strpath
+
+    p = Parameters(
+        cis_count=2,
+        reg_channels=4,
+        out_channels=2,
+        cue_channels=2,
+        population_size=100,
+        mutation_rate=.001,
+    )
+
+    def target_and_or(a, b):
+        return [a and b, a or b]
+
+    def target_or_not(a, b):
+        return [a or b, a and not b]
+
+    tmp_path = pathlib.Path(tmpdir)
+    exp_name = 'simple'
+
+    e = Experiment(tmp_path, exp_name, seed=1)
+    e.add(TestTreatment('and_', p, 3, target_and_or))
+    e.add(TestTreatment('or_', p, 3, target_or_not))
+    e.run(Args(overwrite=True, dry=False))
+
+    return e

@@ -1,11 +1,10 @@
-import logging
-
-log = logging.getLogger('lineage')
-
+import logtools
 import numpy
 import pathlib
 import tables
 from . import core_ext
+
+log = logtools.get_logger()
 
 
 class LineageError(Exception):
@@ -41,9 +40,11 @@ class BaseLineage(object):
         self.target_index = -1
 
     def __enter__(self):
+        log.debug("Opening lineage {} in __enter__".format(self))
         return self
 
     def __exit__(self, type, value, traceback):
+        log.debug("Closing lineage {} in __exit__".format(self))
         self.close()
 
     def add_target(self, func, name="", target_class=None, weighting=None):
@@ -197,7 +198,14 @@ class BaseLineage(object):
             self.generation = rec['generation']
             indexes = rec['indexes']
 
-            arr = self._networks.read_coordinates(indexes)
+            try:
+                arr = self._networks.read_coordinates(indexes)
+            except IndexError:
+                # FIXME:
+                print rec['generation']
+                print max(indexes)
+                raise
+
             self.factory.from_numpy(arr, self.population)
             target_index = rec['target']
             if target_index >= 0:
@@ -242,7 +250,7 @@ class SnapshotLineage(BaseLineage):
 
     def __repr__(self):
         return "<SnapShotLineage: '{}', {}S, {}N>".format(
-            str(self.path.name),
+            str(self.path),
             len(self._generations),
             len(self._networks),
         )
@@ -272,7 +280,7 @@ class SnapshotLineage(BaseLineage):
         gen_pop = core_ext.Population(self.factory, 0)
         self.factory.from_numpy(arr, gen_pop)
 
-        # Assess the population by the same target 
+        # Assess the population by the same target
         gen_pop.assess(self.targets[t_index])
         return gen, gen_pop
 
@@ -349,11 +357,16 @@ class FullLineage(BaseLineage):
         assert gen == wanted_g
         t_index = rec['target']
         indexes = rec['indexes']
-        arr = self._networks.read_coordinates(indexes)
+        try:
+            arr = self._networks.read_coordinates(indexes)
+        except IndexError:
+            print indexes
+            raise
+
         gen_pop = core_ext.Population(self.factory, 0)
         self.factory.from_numpy(arr, gen_pop)
 
-        # Assess the population by the same target 
+        # Assess the population by the same target
         gen_pop.assess(self.targets[t_index])
         return gen_pop
 
@@ -387,5 +400,3 @@ class FullLineage(BaseLineage):
         if not self.readonly:
             self._save()
         self._h5.close()
-
-
