@@ -1,225 +1,192 @@
 """High level analysis tools
 """
-
+import logtools
 import numpy as np
-import pandas as pd
-
-from .analysis_ext import (
-    MutualInfoAnalyzer, CausalFlowAnalyzer, AverageControlAnalyzer,
-    Information, NetworkAnalysis)
+from .analysis_ext import (MutualInfoAnalyzer, AverageControlAnalyzer)
 from .lineage import FullLineage
-from .graph import SignalFlowGraph
-from neighbourhood import NetworkNeighbourhood, PopulationNeighbourhood
+from .experimentdb import StatsGroupRecord, StatsRecord
+from .neighbourhood import PopulationNeighbourhood
+from bricolage.experiment import Experiment
+
+log = logtools.get_logger()
 
 
-class InfoSummarizer(object):
-    def __init__(self, lin, target):
-        assert isinstance(lin, FullLineage)
-        self._lineage = lin
-        # self._cf = CausalFlowAnalyzer(lin.world)
-        self._af = AverageControlAnalyzer(lin.world)
-        self._mf = MutualInfoAnalyzer(lin.world, target.calc_categories())
-        self._fits = np.zeros(lin.params.population_size)
-        self.params = lin.params
-        self.target = target
+class StatsVisitor(object):
+    def __init__(self, experiment, stats_classes):
+        assert isinstance(experiment, Experiment)
+        self.experiment = experiment
+        self.session = experiment.database.session
+        self.replicate = None
 
-    def get_names(self):
-        regs = self.params.reg_channels
-        names = []
-        for c in range(regs):
-            # names.append('C_{}'.format(c+1))
-            names.append('A_{}'.format(c+1))
-        # names.extend('C_MEAN C_MAX C_MXMN'.split())
-        names.extend('F_MEAN F_VAR F_MAX'.split())
-        names.extend('A_MEAN A_MAX A_MXMN'.split())
-        return names
+        self.todo = set()
+        # Make sure there are not repeats
+        for kls in set(stats_classes):
+            k = kls()
+            # We need a tag attribute.
+            assert hasattr(k, 'tag')
+            self.todo.add(k)
 
-    def get_values(self, g):
-        # ci = self._cf.numpy_info_from_collection(g)
-        ai = np.asarray(self._af.analyse_collection(g))
-        g.get_fitnesses(self._fits)
+        # Load all stats groups already done.
+        # NOTE: Not sure this is the best way to do it yet...
+        self.done = {}
 
-        # Sum the information across the outputs
-        # csummed = ci.sum(axis=2)
-        asummed = ai.sum(axis=2)
+        log.info("Loading all stats groups...")
+        for grp in self.session.query(StatsGroupRecord).all():
+            self.done[(grp.treatment_id, grp.replicate_id, grp.generation, grp.tag)] = grp
+        log.info("... finished loading.")
 
-        # Get means across the population
-        # cmeans = np.mean(csummed, axis=0)
-        ameans = np.mean(asummed, axis=0)
+    def is_done(self, rep, gen_num, tag):
+        return (rep.treatment.seq, rep.seq, gen_num, tag) in self.done
+
+    def add_stats_group(self, rep, gen_num, tag):
+        self.session.add(StatsGroupRecord(rep, gen_num, tag))
+
+    def visit_lineage(self, rep, lin):
+        self.replicate = rep
+        for stats in self.todo:
+            stats.init_lineage(rep, lin)
+
+    def wants_generation(self, gen_num):
+        for stats in self.todo:
+            if not self.is_done(self.replicate, gen_num, stats.tag):
+                # Ok -- at least one thing is missing
+                return True
+        return False
+
+    def visit_generation(self, gen_num, pop):
+        log.info("Doing stats for generation {}, {}".format(self.replicate.path, gen_num))
+        for stats in self.todo:
+            if self.is_done(self.replicate, gen_num, stats.tag):
+                log.info("Skipping already created group for %s, %s", gen_num, stats.tag)
+                continue
+
+            self.add_stats_group(self.replicate, gen_num, stats.tag)
+            named_values = stats.calc_stats(pop)
+            self.session.add_all([
+                StatsRecord(
+                    self.replicate,
+                    gen_num,
+                    "{}_{}".format(stats.tag, n), v, stats.tag)
+                for n, v in named_values
+            ])
+
+        self.session.commit()
+
+
+class StatsAverageControl(object):
+    tag = "AC"
+
+    def __init__(self):
+        self.analyzer = None
+        self.regs = None
+
+    def init_lineage(self, rep, lin):
+        self.analyzer = AverageControlAnalyzer(lin.world)
+        self.regs = lin.params.reg_channels
+        self.out = lin.params.out_channels
+
+    def calc_stats(self, pop):
+        ai = np.asarray(self.analyzer.analyse_collection(pop))
+
+        # Summarize across the population
+        ameans = np.mean(ai, axis=0)
 
         vals = []
-        regs = self.params.reg_channels
-        for i, c in enumerate(range(regs)):
-            # vals.append(('C_{}'.format(c+1), cmeans[i]))
-            vals.append(('A_{}'.format(c+1), ameans[i]))
 
-        # Now get the whole sum?
-        # ctot = csummed.sum(axis=1)
-        atot = asummed.sum(axis=1)
+        # Record the mean of all information measures
+        regs = self.regs
+        out = self.out
+        for i, c in enumerate(range(regs)):
+            for j in range(out):
+                vals.append(('{}_{}'.format(c + 1, j + 1), ameans[i, j]))
+
+        atot = ameans.sum(axis=1)
         vals.extend([
-            # ('C_MEAN', ctot.mean()),
-            # ('C_MAX', csummed.max()),
-            # ('C_MXMN', cmeans.max()),
-            ('A_MEAN', atot.mean()),
-            ('A_MAX', asummed.max()),
-            ('A_MXMN', ameans.max()),
-            ('F_MEAN', self._fits.mean()),
-            ('F_VAR', self._fits.var()),
-            ('F_MAX', self._fits.max()),
+            ('MEAN', atot.mean()),
+            ('MAX', ameans.max()),
+            ('MXMN', atot.max()),
         ])
         return vals
 
 
-class NeighbourhoodSummarizer(object):
-    def __init__(self, lin, target):
+class StatsFitness(object):
+    tag = "F"
+
+    def __init__(self):
+        self.fits = None
+
+    def init_lineage(self, rep, lin):
+        self.fits = np.zeros(lin.params.population_size)
+
+    def calc_stats(self, pop):
+        pop.get_fitnesses(self.fits)
+        return [
+            ('MEAN', self.fits.mean()),
+            ('VAR', self.fits.var()),
+            ('MAX', self.fits.max()),
+        ]
+
+
+class StatsMutualInformation(object):
+    tag = "MI"
+
+    def __init__(self):
+        self.analyzer = None
+        self.regs = None
+
+    def init_lineage(self, rep, lin):
         assert isinstance(lin, FullLineage)
-        self._lineage = lin
-        self.params = lin.params
-        self.target = target
+        # TODO: This should be configurable
+        self.target = lin.targets[0]
+        self.regs = lin.params.reg_channels
+        self.analyzer = MutualInfoAnalyzer(lin.world, self.target.calc_categories())
 
-    def get_names(self):
-        return 'N_PERC N_MEAN N_MED N_VAR'.split()
+    def calc_stats(self, pop):
+        mi = self.analyzer.numpy_info_from_collection(pop)
 
-    def get_values(self, g, n=20, prop=.1):
-        nayb = PopulationNeighbourhood(g, n, prop)
+        # Reshape to remove the extra layer (there is only ONE environment)
+        mi.shape = pop.size, self.regs
+
+        # Summarize across the population
+        ameans = mi.mean(axis=0)
+
+        vals = []
+
+        # Record the mean of all information measures
+        regs = self.regs
+        for i, c in enumerate(range(regs)):
+            vals.append(('{}'.format(c + 1), ameans[i]))
+
+        vals.extend([
+            ('MEAN', ameans.mean()),
+            ('MAX', ameans.max()),
+        ])
+        return vals
+
+
+class StatsNeighbourhood(object):
+    tag = "NB"
+
+    def __init__(self, sample_per_net=20, one_step_proportion=.1):
+        self.fits = None
+        self.sample_per_net = sample_per_net
+        self.one_step_proportion = one_step_proportion
+
+    def init_lineage(self, rep, lin):
+        assert isinstance(lin, FullLineage)
+        self.target = lin.targets[0]
+
+    def calc_stats(self, pop):
+        nayb = PopulationNeighbourhood(pop,
+                                       self.sample_per_net,
+                                       self.one_step_proportion)
         self.target.assess_collection(nayb.neighbours)
         fits = nayb.neighbours.fitnesses
         n1 = sum(fits == 1.0)
         perc = float(n1) / float(len(fits))
         return [
-            ('N_PERC', perc),
-            ('N_MEAN', fits.mean()),
-            ('N_VAR', fits.var()),
-            ('N_MED', np.median(fits)),
+            ('PERC', perc),
+            ('MEAN', fits.mean()),
+            ('VAR', fits.var()),
+            ('MED', np.median(fits)),
         ]
-
-
-def make_population_frames(pop, target, flow, do_cuts=True):
-    # Assumption -- fitness is calculated!
-    # Create the fitnesses
-    fits = np.zeros(pop.size)
-    pop.get_fitnesses(fits)
-    fits_frame = pd.DataFrame({'fitness': fits})
-
-    # The causal flow analysis
-    cf = CausalFlowAnalyzer(pop.factory.world, flow)
-    ci = cf.numpy_info_from_collection(pop)
-    csummed = ci.sum(axis=2)
-    cframe = pd.DataFrame(csummed)
-    cframe.columns = ["C{}".format(i) for i in range(1, len(cframe.columns) + 1)]
-
-    # Control analysis
-    af = AverageControlAnalyzer(pop.factory.world, flow)
-    ai = np.asarray(af.analyse_collection(pop))
-    asummed = ai.sum(axis=2)
-    aframe = pd.DataFrame(asummed)
-    aframe.columns = ["A{}".format(i) for i in range(1, len(aframe.columns) + 1)]
-
-    mf = MutualInfoAnalyzer(pop.factory.world, target.calc_categories())
-    mi = mf.numpy_info_from_collection(pop)
-    msummed = mi.sum(axis=2)
-    mframe = pd.DataFrame(msummed)
-    mframe.columns = ["M{}".format(i) for i in range(1, len(mframe.columns) + 1)]
-
-    # Cuts are time-consuming...
-    if not do_cuts:
-        return fits_frame, mframe, cframe, aframe
-
-    cuts = []
-    for n in pop:
-        ana = NetworkAnalysis(n)
-        fg = SignalFlowGraph(ana)
-        cuts.append(len(fg.minimum_cut()))
-    cuts_frame = pd.DataFrame({'cuts': cuts})
-
-    return fits_frame, cuts_frame, mframe, cframe, aframe
-
-
-def make_population_frame(pop, target, flow, do_cuts=True):
-    return pd.concat(make_population_frames(pop, target, flow, do_cuts), axis=1)
-
-
-def make_ancestry_frames(anc, target, flow):
-    target.assess_collection(anc)
-
-    # Create a generations dataframe for indexing
-    # gens = pd.DataFrame({'generation': [n.generation for n in anc]})
-    gens = np.asarray([n.generation for n in anc], dtype=np.int64)
-
-    # Create the fitnesses
-    fits_frame = pd.DataFrame({'fitness': [n.fitness for n in anc]})
-    fits_frame.index = gens
-
-    # The causal flow analysis
-    cf = CausalFlowAnalyzer(anc.factory.world, flow)
-    cj = cf.analyse_collection(anc)
-    ci = np.asarray(Information(cj))
-    csummed = ci.sum(axis=2)
-    cframe = pd.DataFrame(csummed)
-    cframe.index = gens
-    cframe.columns = ["C{}".format(i) for i in range(1, len(cframe.columns) + 1)]
-
-    # The mutual flow analysis
-    mf = MutualInfoAnalyzer(anc.factory.world, target.calc_categories())
-    mj = mf.analyse_collection(anc)
-    mi = np.asarray(Information(mj))
-    msummed = mi.sum(axis=2)
-    mframe = pd.DataFrame(msummed)
-    mframe.index = gens
-    mframe.columns = ["M{}".format(i) for i in range(1, len(mframe.columns) + 1)]
-
-    return fits_frame, mframe, cframe
-
-def get_population_neighbourhood_fitness(pop, target, sample_per_network=1000):
-    fits = np.zeros(sample_per_network)
-
-    means = []
-
-    for n in pop:
-        nayb = NetworkNeighbourhood(n, sample_per_network)
-        target.assess_collection(nayb.neighbours)
-        nayb.neighbours.get_fitnesses(fits)
-        means.append(fits.mean())
-
-    npmeans = np.array(means)
-    return npmeans.mean()
-
-def make_ancestry_robustness_frame(anc, target, sample_size=1000):
-    # Get the fits of the ancestry
-    target.assess_collection(anc)
-    fits = np.zeros(anc.size)
-    anc.get_fitnesses(fits)
-
-    # Now sample the region around each individual and get the mean fitness
-    sample_fits = np.zeros(sample_size)
-    means = np.zeros(anc.size)
-    top_count = np.zeros(anc.size)
-    for i, n in enumerate(anc):
-        nayb = NetworkNeighbourhood(n, sample_size)
-        target.assess_collection(nayb.neighbours)
-        nayb.neighbours.get_fitnesses(sample_fits)
-        how_many_are_1 = (sample_fits == 1.0).sum()
-        means[i] = sample_fits.mean()
-        top_count[i] = float(how_many_are_1) / sample_size
-
-    df = pd.DataFrame({ 'fitness': fits, 'n_mean': means, 'max_count': top_count})
-    gens = np.asarray([n.generation for n in anc], dtype=np.int64)
-    df.index = gens
-
-    return df
-
-
-def make_cut_frame(anc):
-    gens = []
-    cuts = []
-
-    for n in anc:
-        gens.append(n.generation)
-        ana = NetworkAnalysis(n)
-        fg = SignalFlowGraph(ana)
-        cuts.append(len(fg.minimum_cut()))
-
-    df = pd.DataFrame({'cuts': cuts})
-    df.index = gens
-    return df
-
