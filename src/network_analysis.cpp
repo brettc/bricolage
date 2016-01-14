@@ -611,8 +611,8 @@ void cOutputControlAnalyzer::_analyse(
 )
 {
     auto &world = net.factory->world;
-    auto env_count = world->environments.size();
 
+    _clear();
     _calc_natural(net);
 
     // Note the reversed order here (j, i). I've exchanged the loops because

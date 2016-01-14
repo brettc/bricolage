@@ -426,12 +426,28 @@ def test_average_control_phenotype_net(bowtie_network):
     net = bowtie_network
     probs, ents = get_average_control_phenotype(net)
     for p, e in zip(probs, ents):
-        # We should never have more information than there is!!
+        # We should never have more information than there is to explain!
         assert p <= e
-        print p, e
-    onz = OutputControlAnalyzer(net.factory.world)
-    print onz.numpy_info_from_network(net)
 
+    onz = OutputControlAnalyzer(net.factory.world)
+    cy_info = onz.numpy_info_from_network(net)[0]
+    py_info = numpy.asarray([[p, e] for (p, e) in zip(probs, ents)])
+    numpy.testing.assert_allclose(cy_info, py_info)
+
+
+def test_average_control_phenotype_pop(bowtie_database):
+    pop = bowtie_database.population
+    anz = OutputControlAnalyzer(pop.factory.world)
+    cy_info = numpy.asarray(anz.analyse_collection(pop))
+
+    for i, net in enumerate(pop):
+        probs, ents = get_average_control_phenotype(net)
+        py_info = numpy.asarray([[p, e] for (p, e) in zip(probs, ents)])
+        numpy.testing.assert_allclose(py_info, cy_info[i])
+
+        # # Let's just do 50.
+        if i > 50:
+            break
 
 
 def test_average_control_net(bowtie_network):
