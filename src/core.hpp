@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <vector>
 #include <set>
+#include <map>
 #include <memory>
 
 // #include <tr1/memory> Another shared_ptr?
@@ -37,12 +38,12 @@ namespace bricolage
 
 // http://stackoverflow.com/questions/1903954/
 // is-there-a-standard-sign-function-signum-sgn-in-c-c
-template <typename T> inline int c_sgn(T val) 
+template <typename T> inline int c_sgn(T val)
 {
     return (T(0) < val) - (val < T(0));
 }
 
-template <typename T> inline int c_cmp(T a, T b) 
+template <typename T> inline int c_cmp(T a, T b)
 {
     return c_sgn(a - b);
 }
@@ -90,10 +91,10 @@ public:
     cCisModule() : intervene(INTERVENE_NONE) {}
     virtual ~cCisModule() {}
     bricolage::signal_t get_site(size_t i) const { return channels[i]; }
-    bricolage::signal_t set_site(size_t i, bricolage::signal_t c) 
-    { 
+    bricolage::signal_t set_site(size_t i, bricolage::signal_t c)
+    {
         bricolage::signal_t old = channels[i];
-        channels[i] = c; 
+        channels[i] = c;
         return old;
     }
     // Defines how many channels you'll actually use.
@@ -213,7 +214,7 @@ public:
     void _calc_attractors(bool intervention);
     void calc_attractors() { _calc_attractors(false); }
     void calc_attractors_with_intervention() { _calc_attractors(true); }
-    
+
     cFactory_ptr factory;
     cWorld_ptr world;
     int_t identifier, parent_identifier;
@@ -225,7 +226,7 @@ public:
     cAttractors attractors;
     cRatesVector rates;
 
-    // Record the fitness and the target against which it was calculated. 
+    // Record the fitness and the target against which it was calculated.
     // This means we don't need to recalc the fitness if the target has not
     // changed.
     mutable int_t target;
@@ -262,7 +263,7 @@ struct cSelectionModel
     cWorld_ptr world;
 
     // TODO: Make this virtual -- come up with different selection models
-    bool select(const cNetworkVector &networks, 
+    bool select(const cNetworkVector &networks,
                 size_t number, cIndexes &selected) const;
 };
 
@@ -322,7 +323,7 @@ typedef boost::multi_array<double, 3> info_array_type;
 struct cInformation
 {
     cInformation(const cJointProbabilities &jp);
-    cInformation(const cWorld_ptr &w, size_t network_size);
+    cInformation(const cWorld_ptr &w, size_t network_size, size_t per_channel_size);
 
     cWorld_ptr world;
     info_array_type _array;
@@ -338,9 +339,9 @@ struct cInformation
 };
 
 typedef boost::multi_array<double, 5> joint_array_type;
-struct cJointProbabilities 
+struct cJointProbabilities
 {
-    cJointProbabilities(const cWorld_ptr &w, size_t network_size, 
+    cJointProbabilities(const cWorld_ptr &w, size_t network_size,
                         size_t per_network, size_t per_channel);
     cWorld_ptr world;
     joint_array_type _array;
@@ -363,8 +364,11 @@ struct cBaseCausalAnalyzer
     cWorld_ptr world;
     cRates natural_probabilities;
 
+    // We only allocate this many categories. More than this and we're screwed.
+    static size_t max_category;
     static size_t get_max_category_size();
     static void set_max_category_size(size_t);
+
     void _calc_natural(cNetwork &net);
 };
 
@@ -376,7 +380,7 @@ struct cCausalFlowAnalyzer : public cBaseCausalAnalyzer
     cJointProbabilities *analyse_network(cNetwork &net);
     cJointProbabilities *analyse_collection(const cNetworkVector &networks);
 
-    void _analyse(cNetwork &net, joint_array_type::reference sub); 
+    void _analyse(cNetwork &net, joint_array_type::reference sub);
 };
 
 struct cAverageControlAnalyzer : public cBaseCausalAnalyzer
@@ -387,7 +391,7 @@ struct cAverageControlAnalyzer : public cBaseCausalAnalyzer
     cInformation *analyse_network(cNetwork &net);
     cInformation *analyse_collection(const cNetworkVector &networks);
 
-    void _analyse(cNetwork &net, info_array_type::reference sub); 
+    void _analyse(cNetwork &net, info_array_type::reference sub);
 };
 
 struct cMutualInfoAnalyzer
@@ -401,7 +405,38 @@ struct cMutualInfoAnalyzer
     cJointProbabilities *analyse_network(cNetwork &net);
     cJointProbabilities *analyse_collection(const cNetworkVector &networks);
 
-    void _analyse(cNetwork &net, joint_array_type::reference sub); 
+    void _analyse(cNetwork &net, joint_array_type::reference sub);
+};
+
+//-----------------------------------------------------------------------------
+// Keep a map of the unique OUTPUTS (all rates) and assign them to persistent
+// categories within a network. We'll use these categories to calculate the
+// information. We also keep the total probabilities of all of these outputs,
+// as this then allows us to calculate the per-regulatory ENTROPY of the
+// outputs.
+struct cOutputCategorizer
+{
+    size_t next_category;
+    std::map<std::vector<double>, size_t> rate_categories;
+    std::vector<double> category_probabilities;
+
+    cOutputCategorizer() : next_category(0) {}
+    size_t get_category(const cRates &rates, double prob);
+    void clear();
+};
+
+struct cOutputControlAnalyzer : public cBaseCausalAnalyzer
+{
+    cOutputControlAnalyzer(cWorld_ptr &world);
+    std::vector<cOutputCategorizer> categorizers;
+    cJointProbabilities joint_over_envs;
+
+    // Note you need to delete the return values from these!
+    cInformation *analyse_network(cNetwork &net);
+    cInformation *analyse_collection(const cNetworkVector &networks);
+
+    void _clear();
+    void _analyse(cNetwork &net, info_array_type::reference sub);
 };
 
 } // end namespace bricolage
