@@ -33,11 +33,24 @@ def run(overwrite):
 
 @bricolage.command()
 @click.option('--every', default=100)
-def stats(every):
+@click.option('--treatment', default="", help="Filter treatments by name.")
+@click.option('--replicate', default=-1, help="Filter replicates by number.")
+def stats(every, treatment, replicate):
     """Gather statistics about the simulation"""
+
+    the_t = None
+    if treatment != "":
+        the_t = NS.experiment.find_matching_treatment(treatment)
+        if the_t is None:
+                raise click.BadParameter(
+                    "Can't find unique treatment name starting: '{}".format(treatment))
+
     visitor = StatsVisitor(NS.experiment,
                            [StatsAverageControl, StatsFitness, StatsMutualInformation])
-    NS.experiment.visit_generations(visitor, every=every)
+    NS.experiment.visit_generations(visitor,
+                                    only_treatment=the_t,
+                                    only_replicate=replicate,
+                                    every=every)
 
 # VERBOSITY
 # logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)

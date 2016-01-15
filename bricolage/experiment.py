@@ -18,7 +18,6 @@ from lineage import FullLineage, SnapshotLineage
 from experimentdb import (Database, TreatmentRecord, ReplicateRecord,
                           StatsRecord)
 from sqlalchemy.sql import and_, delete
-# from analysis import InfoSummarizer, NeighbourhoodSummarizer
 
 log = logtools.get_logger()
 
@@ -92,11 +91,10 @@ class Replicate(object):
             except (KeyboardInterrupt, SystemExit):
                 # Try and exit gracefully with a keyboard interrupt
                 self.treatment.experiment.user_interrupt = True
-            finally:
-                self.generations = lin.generation
-                lin.close()
-                self.session.merge(ReplicateRecord(self))
-                self.session.commit()
+
+            self.generations = lin.generation
+            self.session.merge(ReplicateRecord(self))
+            self.session.commit()
 
     @property
     def dirname(self):
@@ -334,9 +332,14 @@ class Experiment(object):
             log.info("User interrupted --- quitting")
 
     def visit_generations(self, visitor, every=1,
-                          filter_treatments=None,
-                          filter_replicates=None):
+                          only_treatment=None,
+                          only_replicate=None):
         for rep, lin in self.iter_lineages(readonly=True):
+            if only_treatment is not None and rep.treatment != only_treatment:
+                continue
+            if only_replicate is not None and rep.seq != only_replicate:
+                continue
+
             visitor.visit_lineage(rep, lin)
 
             # Now iterate through the generations
@@ -349,6 +352,28 @@ class Experiment(object):
                     visitor.visit_generation(gen_num, pop)
                 gen_num += every
 
+    def find_matching_treatment(self, text):
+        matches = []
+        look = text.lower()
+        len_look = len(text)
+        for t in self.treatments:
+            current = t.name.lower()
+            if len_look <= len(current):
+                if look == current[:len_look]:
+                    matches.append(t)
+
+        if not matches:
+            log.info("No match for {}".format(text))
+            return None
+
+        if len(matches) > 1:
+            log.info("More than noe match for {}".format(text))
+            return None
+
+        return matches[0]
+
+
+
     # def visit_replicates(self, visitor,
     #                      filter_treatments=None,
     #                      filter_replicates=None):
@@ -358,4 +383,3 @@ class Experiment(object):
     #     except (KeyboardInterrupt, SystemExit):
     #         log.info("User interrupted --- quitting")
     #         self.user_interrupt = True
-
