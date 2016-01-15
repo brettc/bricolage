@@ -1,7 +1,8 @@
 #!env python
 import click
-from bricolage.analysis import (StatsAverageControl, StatsFitness,
-                                StatsVisitor, StatsMutualInformation)
+import logging
+from bricolage.stats import (StatsFitness, StatsVisitor,
+                             StatsMutualInformation, StatsOutputControl)
 
 
 class NS(object):
@@ -19,6 +20,9 @@ def run_from_commandline(exp):
 def bricolage():
     pass
 
+verbose = click.option('--verbose', is_flag=True, default=False,
+                       help="Show debug output.")
+
 
 @bricolage.command()
 @click.option('--overwrite', is_flag=True, default=False,
@@ -33,11 +37,29 @@ def run(overwrite):
 
 @bricolage.command()
 @click.option('--every', default=100)
-def stats(every):
+@click.option('--treatment', default="", help="Filter treatments by name.")
+@click.option('--replicate', default=-1, help="Filter replicates by number.")
+@verbose
+def stats(every, treatment, replicate, verbose):
     """Gather statistics about the simulation"""
+    if verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+
+    the_t = None
+    if treatment != "":
+        the_t = NS.experiment.find_matching_treatment(treatment)
+        if the_t is None:
+                raise click.BadParameter(
+                    "Can't find unique treatment name starting: '{}".format(treatment))
+    if replicate < 1:
+        replicate = None
+
     visitor = StatsVisitor(NS.experiment,
-                           [StatsAverageControl, StatsFitness, StatsMutualInformation])
-    NS.experiment.visit_generations(visitor, every=every)
+                           [StatsOutputControl, StatsFitness, StatsMutualInformation])
+    NS.experiment.visit_generations(visitor,
+                                    only_treatment=the_t,
+                                    only_replicate=replicate,
+                                    every=every)
 
 # VERBOSITY
 # logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)

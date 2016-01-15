@@ -42,3 +42,8 @@ cdef class MutualInfoAnalyzer:
     cdef:
         cMutualInfoAnalyzer *_this;
         World world
+
+cdef class OutputControlAnalyzer:
+    cdef:
+        cOutputControlAnalyzer *_this;
+        World world

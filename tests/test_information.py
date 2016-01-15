@@ -2,12 +2,10 @@ import pytest
 from math import log as logarithm
 from bricolage.analysis_ext import (
     MutualInfoAnalyzer, AverageControlAnalyzer, CausalFlowAnalyzer,
-    Information, _set_max_category_size, _get_max_category_size)
+    OutputControlAnalyzer, Information, _set_max_category_size,
+    _get_max_category_size)
 from bricolage.core import InterventionState
-from generate import get_database
 import numpy
-
-
 
 
 def _mutual_info(joint):
@@ -99,11 +97,12 @@ def test_mutual_info_cython(bowtie_network, bowtie_env_categories):
     # Need to account for different shape
     numpy.testing.assert_allclose(c_info[:, 0], p_info)
 
+
 class RateCategorizer(object):
     max_categories = 16
 
     def __init__(self):
-        self.allocated_cats = {}
+        self.categories = {}
         self.next_cat = 2
 
     def categorize(self, rates):
@@ -113,7 +112,7 @@ class RateCategorizer(object):
                 cat = int(r)
             else:
                 # r is our rate. What category is it?
-                cat = self.allocated_cats.setdefault(r, self.next_cat)
+                cat = self.categories.setdefault(r, self.next_cat)
                 # Did we insert?
                 if cat == self.next_cat:
                     self.next_cat += 1
@@ -146,8 +145,8 @@ def get_causal_specs(net):
     # network. This dedicate the first two to 0 / 1 and allocate the others as
     # needed.
     categorizer = RateCategorizer()
-    probs = [numpy.zeros((wrld.reg_channels, 
-                          wrld.out_channels, 
+    probs = [numpy.zeros((wrld.reg_channels,
+                          wrld.out_channels,
                           2,
                           categorizer.max_categories))
              for _ in range(env_count)]
@@ -179,12 +178,94 @@ def get_causal_specs(net):
 
     return probs
 
+
+class PhenotypeCategorizer(object):
+    max_categories = 64
+
+    def __init__(self):
+        self.categories = {}
+        self.next_cat = 0
+        self.probabilities = []
+
+    def categorize(self, rates, pr):
+        if float(pr) == 0.0:
+            print "FUCK"
+
+        rates = tuple(rates)
+        # What category is it?
+        cat = self.categories.setdefault(rates, self.next_cat)
+        # Did we insert?
+        if cat == self.next_cat:
+            self.probabilities.append(pr)
+            self.next_cat += 1
+            if self.next_cat > self.max_categories:
+                raise RuntimeError(
+                    "Category explosion: {}".format(self.next_cat))
+        else:
+            self.probabilities[cat] += pr
+
+        return cat
+
+
+def get_causal_specs_phenotype(net):
+    """Calculate the causal specificity for the entire output in each
+    environment"""
+    wrld = net.factory.world
+
+    # For now, states are equiprobable
+    env_count = len(wrld.environments)
+    env_probs = numpy.ones(env_count) / env_count
+
+    pdist_regs = calc_natural(env_probs, net, wrld)
+
+    # All probabilities of co-occurences. A joint prob distn under
+    # intervention for each channel, about each output channel. We create one
+    # for each environment.
+    #
+    # 1. We need 2 rows for FALSE / TRUE.
+    # 2. And we guess(!) a maximum number of columns for all possible rates in this
+    # network. This dedicate the first two to 0 / 1 and allocate the others as
+    # needed.
+    categorizers = [PhenotypeCategorizer() for _ in range(wrld.reg_channels)]
+    probs = [numpy.zeros((wrld.reg_channels,
+                          2,
+                          PhenotypeCategorizer.max_categories))
+             for _ in range(env_count)]
+
+    # Now, do the interventions for each regulatory gene
+    # The genes are organised so that they begin with regulatory genes, so we
+    # can simply grab those
+    for i in range(wrld.reg_channels):
+        gene = net.genes[i]
+        p_on = pdist_regs[i]
+        p_off = 1.0 - p_on
+        # ----- GENE IS MANIPULATED OFF
+        # NOTE: This automatically updates everything (changing the rates!).
+        gene.intervene = InterventionState.INTERVENE_OFF
+        for j, rates in enumerate(net.rates):
+            if p_off != 0.0:
+                cat = categorizers[i].categorize(rates, p_off)
+                probs[j][i, 0, cat] += p_off
+
+        # ----- GENE IS MANIPULATED ON
+        gene.intervene = InterventionState.INTERVENE_ON
+        for j, rates in enumerate(net.rates):
+            if p_on != 0.0:
+                cat = categorizers[i].categorize(rates, p_on)
+                probs[j][i, 1, cat] += p_on
+
+        # Reset this gene
+        gene.intervene = InterventionState.INTERVENE_NONE
+
+    return probs, categorizers
+
+
 def get_causal_flow(net):
     wrld = net.factory.world
 
-    summed_probs = numpy.zeros((wrld.reg_channels, 
-                                wrld.out_channels, 
-                                2, 
+    summed_probs = numpy.zeros((wrld.reg_channels,
+                                wrld.out_channels,
+                                2,
                                 RateCategorizer.max_categories))
 
     # Just sum up those from causal spec, weighted
@@ -217,16 +298,30 @@ def calc_natural(env_probs, net, w):
 
 # Slow python calculation of information
 def calc_info_from_probs(probs):
-    """Assumption: 4 dimension array. We summarise information in the final 2
+    """Assumption: 3 or 4 dimension array. We summarise information in the final 2
     dimensions"""
 
-    d1, d2, row_num, col_num = probs.shape
+    # We handle 3 dimensions by expanding and then collapsing it.
+    is_4 = len(probs.shape) == 4
+
+    if is_4:
+        d1, d2, row_num, col_num = probs.shape
+    else:
+        d1, row_num, col_num = probs.shape
+        d2 = 1
 
     # Now calculate the information
     info = numpy.zeros((d1, d2))
     for i in range(d1):
         for j in range(d2):
-            info[i, j] = _mutual_info(probs[i, j])
+            if is_4:
+                info[i, j] = _mutual_info(probs[i, j])
+            else:
+                info[i, j] = _mutual_info(probs[i])
+
+    # Collapse other dimension if it didn't exist
+    if not is_4:
+        info.shape = d1,
 
     return info
 
@@ -299,13 +394,69 @@ def get_average_control(net):
     return summed_info
 
 
+def _entropy(probs):
+    numpy.testing.assert_allclose(probs.sum(), 1.0)
+    assert (probs > 0.0).all()
+    return (probs * -numpy.log2(probs)).sum()
+
+
+def get_average_control_phenotype(net):
+    w = net.factory.world
+    prob_list, cats = get_causal_specs_phenotype(net)
+
+    # To calculate this, we need to get the causal spec of each env, then
+    # average the information over each env.
+    summed_info = numpy.zeros((w.reg_channels))
+    penv = 1.0 / float(len(prob_list))
+    for prob in prob_list:
+        summed_info += penv * calc_info_from_probs(prob)
+
+    # We also want the entropy of the phenotype generated by particular
+    # natural variation of the regulatory signal.
+    entropies = numpy.zeros((w.reg_channels))
+    for i, c in enumerate(cats):
+        # Need to make them conditional
+        probs = numpy.asarray(c.probabilities) * penv
+        entropies[i] = _entropy(probs)
+
+    return summed_info, entropies
+
+
+def test_average_control_phenotype_net(bowtie_network):
+    net = bowtie_network
+    probs, ents = get_average_control_phenotype(net)
+    for p, e in zip(probs, ents):
+        # We should never have more information than there is to explain!
+        assert p <= e
+
+    onz = OutputControlAnalyzer(net.factory.world)
+    cy_info = onz.numpy_info_from_network(net)[0]
+    py_info = numpy.asarray([[p, e] for (p, e) in zip(probs, ents)])
+    numpy.testing.assert_allclose(cy_info, py_info)
+
+
+def test_average_control_phenotype_pop(bowtie_database):
+    pop = bowtie_database.population
+    anz = OutputControlAnalyzer(pop.factory.world)
+    cy_info = numpy.asarray(anz.analyse_collection(pop))
+
+    for i, net in enumerate(pop):
+        probs, ents = get_average_control_phenotype(net)
+        py_info = numpy.asarray([[p, e] for (p, e) in zip(probs, ents)])
+        numpy.testing.assert_allclose(py_info, cy_info[i])
+
+        # # Let's just do 50.
+        if i > 50:
+            break
+
+
 def test_average_control_net(bowtie_network):
     net = bowtie_network
     py_info = get_average_control(net)
 
     anz = AverageControlAnalyzer(net.factory.world)
     cy_info = numpy.asarray(anz.analyse_network(net))
-    
+
     numpy.testing.assert_allclose(py_info, cy_info[0])
 
 
@@ -336,6 +487,3 @@ def test_category_size_control(bowtie_network):
         anz.analyse_network(net)
 
     _set_max_category_size(16)
-        
-
-

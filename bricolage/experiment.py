@@ -14,11 +14,10 @@ except ImportError:
     send2trash = None
 
 from pathlib import Path
-from lineage import FullLineage, SnapshotLineage
+from lineage import FullLineage, SnapshotLineage, LineageError
 from experimentdb import (Database, TreatmentRecord, ReplicateRecord,
                           StatsRecord)
 from sqlalchemy.sql import and_, delete
-# from analysis import InfoSummarizer, NeighbourhoodSummarizer
 
 log = logtools.get_logger()
 
@@ -92,11 +91,10 @@ class Replicate(object):
             except (KeyboardInterrupt, SystemExit):
                 # Try and exit gracefully with a keyboard interrupt
                 self.treatment.experiment.user_interrupt = True
-            finally:
-                self.generations = lin.generation
-                lin.close()
-                self.session.merge(ReplicateRecord(self))
-                self.session.commit()
+
+            self.generations = lin.generation
+            self.session.merge(ReplicateRecord(self))
+            self.session.commit()
 
     @property
     def dirname(self):
@@ -121,7 +119,7 @@ class Replicate(object):
         p = self.path
         if not p.exists():
             if readonly:
-                log.error("Replicate doesn't exist, {}".format(self.name))
+                log.error("Replicate doesn't exist, {}".format(self.path.name))
                 raise ExperimentError
 
             p.mkdir()
@@ -308,11 +306,12 @@ class Experiment(object):
         # TODO: we should really update the status of this stuff too?
         self.database.session.commit()
 
-    def iter_lineages(self, readonly=False):
+    def iter_lineages(self, readonly=False, skip_errors=True):
         for t in self.treatments:
             for r in t.replicates:
                 with r.get_lineage(readonly=readonly) as lin:
-                    yield r, lin
+                    if not lin.corrupt:
+                        yield r, lin
 
     def run(self, overwrite=False, verbose=False, dry=False):
         """Run the experiment."""
@@ -334,20 +333,52 @@ class Experiment(object):
             log.info("User interrupted --- quitting")
 
     def visit_generations(self, visitor, every=1,
-                          filter_treatments=None,
-                          filter_replicates=None):
-        for rep, lin in self.iter_lineages(readonly=True):
-            visitor.visit_lineage(rep, lin)
+                          only_treatment=None,
+                          only_replicate=None):
+        """Try and visit everything with the least amount of loading"""
 
-            # Now iterate through the generations
-            gen_num = 0
-            while gen_num <= lin.generation:
-                # Check if the visitor wants this generation (as loading is
-                # expensive)
-                if visitor.wants_generation(gen_num):
-                    pop = lin.get_generation(gen_num)
-                    visitor.visit_generation(gen_num, pop)
-                gen_num += every
+        for treat in self.treatments:
+            if only_treatment is not None and treat != only_treatment:
+                continue
+
+            for rep in treat.replicates:
+                if only_replicate is not None and rep.seq != only_replicate:
+                    continue
+
+                with rep.get_lineage() as lin:
+                    visitor.visit_lineage(rep, lin)
+
+                    # Now iterate through the generations
+                    gen_num = 0
+                    while gen_num <= lin.generation:
+                        # Check if the visitor wants this generation (as loading is
+                        # expensive)
+                        if visitor.wants_generation(gen_num):
+                            pop = lin.get_generation(gen_num)
+                            visitor.visit_generation(gen_num, pop)
+                        gen_num += every
+
+    def find_matching_treatment(self, text):
+        matches = []
+        look = text.lower()
+        len_look = len(text)
+        for t in self.treatments:
+            current = t.name.lower()
+            if len_look <= len(current):
+                if look == current[:len_look]:
+                    matches.append(t)
+
+        if not matches:
+            log.info("No match for {}".format(text))
+            return None
+
+        if len(matches) > 1:
+            log.info("More than noe match for {}".format(text))
+            return None
+
+        return matches[0]
+
+
 
     # def visit_replicates(self, visitor,
     #                      filter_treatments=None,
@@ -358,4 +389,3 @@ class Experiment(object):
     #     except (KeyboardInterrupt, SystemExit):
     #         log.info("User interrupted --- quitting")
     #         self.user_interrupt = True
-

@@ -2,7 +2,8 @@
 """
 import logtools
 import numpy as np
-from .analysis_ext import (MutualInfoAnalyzer, AverageControlAnalyzer)
+from .analysis_ext import (MutualInfoAnalyzer, AverageControlAnalyzer,
+                           OutputControlAnalyzer)
 from .lineage import FullLineage
 from .experimentdb import StatsGroupRecord, StatsRecord
 from .neighbourhood import PopulationNeighbourhood
@@ -105,6 +106,40 @@ class StatsAverageControl(object):
             ('MEAN', atot.mean()),
             ('MAX', ameans.max()),
             ('MXMN', atot.max()),
+        ])
+        return vals
+
+
+class StatsOutputControl(object):
+    tag = "OC"
+
+    def __init__(self):
+        self.analyzer = None
+
+    def init_lineage(self, rep, lin):
+        self.analyzer = OutputControlAnalyzer(lin.world)
+        self.regs = lin.params.reg_channels
+
+    def calc_stats(self, pop):
+        ai = np.asarray(self.analyzer.analyse_collection(pop))
+
+        # Summarize across the population
+        ameans = np.mean(ai, axis=0)
+
+        vals = []
+
+        # Record the mean of all information measures
+        regs = self.regs
+        for i, c in enumerate(range(regs)):
+            vals.append(('C_{}'.format(c + 1), ameans[i, 0]))
+            vals.append(('E_{}'.format(c + 1), ameans[i, 1]))
+
+        reg_mean = ameans.mean(axis=0)
+        vals.extend([
+            ('C_MEAN', reg_mean[0]),
+            ('E_MEAN', reg_mean[1]),
+            ('C_MAX', ameans[:, 0].max()),
+            ('E_MIN', ameans[:, 1].min()),
         ])
         return vals
 
