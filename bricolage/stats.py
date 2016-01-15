@@ -131,13 +131,13 @@ class StatsOutputControl(object):
         # Record the mean of all information measures
         regs = self.regs
         for i, c in enumerate(range(regs)):
-            vals.append(('C_{}'.format(c), ameans[i, 0]))
-            vals.append(('E_{}'.format(c), ameans[i, 1]))
+            vals.append(('C_{}'.format(c + 1), ameans[i, 0]))
+            vals.append(('E_{}'.format(c + 1), ameans[i, 1]))
 
-        atot = ameans.sum(axis=0)
+        reg_mean = ameans.mean(axis=0)
         vals.extend([
-            ('C_MEAN', atot[0]),
-            ('E_MEAN', atot[1]),
+            ('C_MEAN', reg_mean[0]),
+            ('E_MEAN', reg_mean[1]),
             ('C_MAX', ameans[:, 0].max()),
             ('E_MIN', ameans[:, 1].min()),
         ])
