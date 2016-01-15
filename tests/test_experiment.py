@@ -17,18 +17,17 @@ class TestTreatment(Treatment):
 
 def test_exp1(tmpdir):
     p = Parameters(
-        cis_count=2, 
+        cis_count=2,
         reg_channels=1,
-        out_channels=1, 
-        cue_channels=2, 
+        out_channels=1,
+        cue_channels=2,
         population_size=100,
         mutation_rate=.001,
     )
     # tmpdir = pathlib.Path(str(tmpdir))
     pth = Path('.')
-    name = 'exp1'
-    e = Experiment(pth, name, seed=1, analysis_path="/Users/brett/Desktop")
-    e.add(TestTreatment('bob', p, 10))
+    treats = [TestTreatment('bob', p, 10)]
+    e = Experiment(pth, treats, seed=1, analysis_path="/Users/brett/Desktop")
 
     # with e.treatments[0].replicates[5].get_lineage(True) as l:
     #     print l.generation
@@ -54,7 +53,7 @@ def test_exp1(tmpdir):
 #
 #     with treat.replicates[5].get_lineage() as l5:
 #         assert l5.population
-#     
+#
 #     # Kill this
 #     del treat
 #

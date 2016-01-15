@@ -74,11 +74,12 @@ def simple_experiment(tmpdir_factory):
         return [a or b, a and not b]
 
     tmp_path = pathlib.Path(tmpdir)
-    exp_name = 'simple'
 
-    e = Experiment(tmp_path, exp_name, seed=1)
-    e.add(TestTreatment('and_', p, 3, target_and_or))
-    e.add(TestTreatment('or_', p, 3, target_or_not))
+    treats = [
+        TestTreatment('and_', p, 3, target_and_or),
+        TestTreatment('or_', p, 3, target_or_not),
+    ]
+    e = Experiment(tmp_path, treats, seed=1)
     e.run(Args(overwrite=True, dry=False))
 
     return e
