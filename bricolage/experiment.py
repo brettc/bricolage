@@ -14,7 +14,7 @@ except ImportError:
     send2trash = None
 
 from pathlib import Path
-from lineage import FullLineage, SnapshotLineage
+from lineage import FullLineage, SnapshotLineage, LineageError
 from experimentdb import (Database, TreatmentRecord, ReplicateRecord,
                           StatsRecord)
 from sqlalchemy.sql import and_, delete
@@ -119,7 +119,7 @@ class Replicate(object):
         p = self.path
         if not p.exists():
             if readonly:
-                log.error("Replicate doesn't exist, {}".format(self.name))
+                log.error("Replicate doesn't exist, {}".format(self.path.name))
                 raise ExperimentError
 
             p.mkdir()
@@ -306,11 +306,12 @@ class Experiment(object):
         # TODO: we should really update the status of this stuff too?
         self.database.session.commit()
 
-    def iter_lineages(self, readonly=False):
+    def iter_lineages(self, readonly=False, skip_errors=True):
         for t in self.treatments:
             for r in t.replicates:
                 with r.get_lineage(readonly=readonly) as lin:
-                    yield r, lin
+                    if not lin.corrupt:
+                        yield r, lin
 
     def run(self, overwrite=False, verbose=False, dry=False):
         """Run the experiment."""
@@ -334,23 +335,28 @@ class Experiment(object):
     def visit_generations(self, visitor, every=1,
                           only_treatment=None,
                           only_replicate=None):
-        for rep, lin in self.iter_lineages(readonly=True):
-            if only_treatment is not None and rep.treatment != only_treatment:
-                continue
-            if only_replicate is not None and rep.seq != only_replicate:
+        """Try and visit everything with the least amount of loading"""
+
+        for treat in self.treatments:
+            if only_treatment is not None and treat != only_treatment:
                 continue
 
-            visitor.visit_lineage(rep, lin)
+            for rep in treat.replicates:
+                if only_replicate is not None and rep.seq != only_replicate:
+                    continue
 
-            # Now iterate through the generations
-            gen_num = 0
-            while gen_num <= lin.generation:
-                # Check if the visitor wants this generation (as loading is
-                # expensive)
-                if visitor.wants_generation(gen_num):
-                    pop = lin.get_generation(gen_num)
-                    visitor.visit_generation(gen_num, pop)
-                gen_num += every
+                with rep.get_lineage() as lin:
+                    visitor.visit_lineage(rep, lin)
+
+                    # Now iterate through the generations
+                    gen_num = 0
+                    while gen_num <= lin.generation:
+                        # Check if the visitor wants this generation (as loading is
+                        # expensive)
+                        if visitor.wants_generation(gen_num):
+                            pop = lin.get_generation(gen_num)
+                            visitor.visit_generation(gen_num, pop)
+                        gen_num += every
 
     def find_matching_treatment(self, text):
         matches = []
