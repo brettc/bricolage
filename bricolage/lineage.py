@@ -26,6 +26,7 @@ class BaseLineage(object):
         if readonly:
             assert params is None
 
+        self.corrupt = False
         self.params = params
         self.readonly = readonly
         self.world = None
@@ -158,6 +159,7 @@ class BaseLineage(object):
         else:
             mode = 'r+'
 
+        log.debug("Opening {} in mode {}".format(self.path.name, mode))
         h5 = tables.open_file(str(self.path), mode=mode)
         attrs = h5.root._v_attrs
 
@@ -198,21 +200,26 @@ class BaseLineage(object):
             self.generation = rec['generation']
             indexes = rec['indexes']
 
-            try:
-                arr = self._networks.read_coordinates(indexes)
-            except IndexError:
-                # FIXME:
-                print rec['generation']
-                print max(indexes)
-                raise
-
-            self.factory.from_numpy(arr, self.population)
             target_index = rec['target']
             if target_index >= 0:
                 self.set_target(target_index)
 
             if hasattr(self._attrs, 'extra'):
                 self.extra = self._attrs.extra
+
+            log.debug("Loading population details ...")
+            log.debug("Highest index from generation record is at gen {} with {}".format(
+                self.generation, indexes.max()))
+            log.debug("Number of networks is {}".format(len(self._h5.root.networks)))
+
+            try:
+                arr = self._networks.read_coordinates(indexes)
+                self.factory.from_numpy(arr, self.population)
+            except IndexError:
+                log.error("Network indexes are corrupted in {}".format(self.path.absolute()))
+                self.corrupt = True
+                raise LineageError
+
         except:
             self._h5.close()
             raise
@@ -220,7 +227,6 @@ class BaseLineage(object):
     def _save(self):
         if self.readonly:
             return
-            # raise LineageError("Network is readonly")
 
         # Only things that can be pickled go in here
         data = Attributes(
@@ -250,7 +256,7 @@ class SnapshotLineage(BaseLineage):
 
     def __repr__(self):
         return "<SnapShotLineage: '{}', {}S, {}N>".format(
-            str(self.path),
+            str(self.path.normpath()),
             len(self._generations),
             len(self._networks),
         )
@@ -325,8 +331,8 @@ class FullLineage(BaseLineage):
             self.save_generation(initial=True)
 
     def __repr__(self):
-        return "<FullLineage: '{}', {}I x {}G, {}N>".format(
-            str(self.path.name),
+        return "<FullLineage: {} | {}I x {}G | {}N>".format(
+            '/'.join(self.path.parts[-3:]),
             self._size,
             len(self._generations),
             len(self._networks),
@@ -337,7 +343,6 @@ class FullLineage(BaseLineage):
         arr = self.factory.pop_to_numpy(self.population, not initial)
         self._networks.append(arr)
 
-        # TODO: make this more efficient?
         idents = numpy.zeros(self._size, int)
         self.population._get_identifiers(idents)
 
