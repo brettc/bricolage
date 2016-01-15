@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 
 from .analysis_ext import (
-    MutualInfoAnalyzer, CausalFlowAnalyzer, AverageControlAnalyzer,
-    Information, NetworkAnalysis)
+    MutualInfoAnalyzer, AverageControlAnalyzer,
+    Information, NetworkAnalysis, OutputControlAnalyzer)
 from .graph import SignalFlowGraph
 from neighbourhood import NetworkNeighbourhood
 
@@ -18,19 +18,19 @@ def make_population_frames(pop, target, flow, do_cuts=True):
     pop.get_fitnesses(fits)
     fits_frame = pd.DataFrame({'fitness': fits})
 
-    # The causal flow analysis
-    cf = CausalFlowAnalyzer(pop.factory.world, flow)
-    ci = cf.numpy_info_from_collection(pop)
-    csummed = ci.sum(axis=2)
-    cframe = pd.DataFrame(csummed)
-    cframe.columns = ["C{}".format(i) for i in range(1, len(cframe.columns) + 1)]
-
     # Control analysis
     af = AverageControlAnalyzer(pop.factory.world, flow)
     ai = np.asarray(af.analyse_collection(pop))
     asummed = ai.sum(axis=2)
     aframe = pd.DataFrame(asummed)
     aframe.columns = ["A{}".format(i) for i in range(1, len(aframe.columns) + 1)]
+
+    # # Control analysis
+    # af = OutputControlAnalyzer(pop.factory.world)
+    # ai = af.numpy_info_from_collection(pop)
+    # asummed = ai.sum(axis=2)
+    # aframe = pd.DataFrame(asummed)
+    # aframe.columns = ["A{}".format(i) for i in range(1, len(aframe.columns) + 1)]
 
     mf = MutualInfoAnalyzer(pop.factory.world, target.calc_categories())
     mi = mf.numpy_info_from_collection(pop)
@@ -40,7 +40,7 @@ def make_population_frames(pop, target, flow, do_cuts=True):
 
     # Cuts are time-consuming...
     if not do_cuts:
-        return fits_frame, mframe, cframe, aframe
+        return fits_frame, mframe, aframe
 
     cuts = []
     for n in pop:
@@ -49,14 +49,14 @@ def make_population_frames(pop, target, flow, do_cuts=True):
         cuts.append(len(fg.minimum_cut()))
     cuts_frame = pd.DataFrame({'cuts': cuts})
 
-    return fits_frame, cuts_frame, mframe, cframe, aframe
+    return fits_frame, cuts_frame, mframe, aframe
 
 
 def make_population_frame(pop, target, flow, do_cuts=True):
     return pd.concat(make_population_frames(pop, target, flow, do_cuts), axis=1)
 
 
-def make_ancestry_frames(anc, target, flow):
+def make_ancestry_frames(anc, target):
     target.assess_collection(anc)
 
     # Create a generations dataframe for indexing
@@ -67,14 +67,17 @@ def make_ancestry_frames(anc, target, flow):
     fits_frame = pd.DataFrame({'fitness': [n.fitness for n in anc]})
     fits_frame.index = gens
 
-    # The causal flow analysis
-    cf = CausalFlowAnalyzer(anc.factory.world, flow)
-    cj = cf.analyse_collection(anc)
-    ci = np.asarray(Information(cj))
-    csummed = ci.sum(axis=2)
-    cframe = pd.DataFrame(csummed)
+    # The output analysis
+    cf = OutputControlAnalyzer(anc.factory.world)
+    ci = cf.numpy_info_from_collection(anc)
+    cframe = pd.DataFrame(ci[:, :, 0])
     cframe.index = gens
     cframe.columns = ["C{}".format(i) for i in range(1, len(cframe.columns) + 1)]
+
+    # Including entropies
+    eframe = pd.DataFrame(ci[:, :, 1])
+    eframe.index = gens
+    eframe.columns = ["E{}".format(i) for i in range(1, len(cframe.columns) + 1)]
 
     # The mutual flow analysis
     mf = MutualInfoAnalyzer(anc.factory.world, target.calc_categories())
@@ -85,7 +88,7 @@ def make_ancestry_frames(anc, target, flow):
     mframe.index = gens
     mframe.columns = ["M{}".format(i) for i in range(1, len(mframe.columns) + 1)]
 
-    return fits_frame, mframe, cframe
+    return fits_frame, mframe, cframe, eframe
 
 
 def get_population_neighbourhood_fitness(pop, target, sample_per_network=1000):
