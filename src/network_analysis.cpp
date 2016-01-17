@@ -4,16 +4,22 @@
 #include <algorithm>
 #include <map>
 #include <exception>
+#include <sstream>
 
 
 using namespace bricolage;
 
-// Taken from the numpy docs on isclose
+// Taken from the numpy docs on is_close
 const double RELATIVE_TOL = 1e-05;
 const double ABSOLUTE_TOL = 1e-08;
-inline bool isclose(double a, double b)
+inline bool is_close(double a, double b)
 {
     return fabs(a - b) <= (ABSOLUTE_TOL + RELATIVE_TOL * fabs(b));
+}
+
+inline bool not_zeroish(double a)
+{
+    return fabs(a) > ABSOLUTE_TOL;
 }
 
 cNetworkAnalysis::cNetworkAnalysis(cNetwork_ptr &n)
@@ -206,7 +212,7 @@ void cJointProbabilities::calc_information(cInformation &info) const
                     {
                         double val = _array[i][j][k][ri][ci];
                         double denom = rows[ri] * cols[ci];
-                        if (val != 0.0 && denom != 0.0)
+                        if (not_zeroish(0.0) && not_zeroish(denom))
                             I += val * log2(val / denom);
                     }
                 info._array[i][j][k] = I;
@@ -677,7 +683,17 @@ void cOutputControlAnalyzer::_analyse(
             {
                 // We need to normalize this; it's not done above.
                 double cond_pr = p_env * pr;
-                entropy += cond_pr * -log2(cond_pr);
+                if (not_zeroish(cond_pr))
+                {
+                    double result = cond_pr * -log2(cond_pr);
+                    // if (result != result)
+                    // {
+                    //     std::ostringstream o;
+                    //     o << "Nan:" << cond_pr;
+                    //     throw std::out_of_range(o.str());
+                    // }
+                    entropy += result;
+                }
             }
             sub[j][1] = entropy;
         }
