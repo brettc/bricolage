@@ -26,7 +26,6 @@ class BaseLineage(object):
         if readonly:
             assert params is None
 
-        self.corrupt = False
         self.params = params
         self.readonly = readonly
         self.world = None
@@ -181,6 +180,7 @@ class BaseLineage(object):
         self.selection_model = self.params.selection_class(self.world)
 
     def _load(self):
+        log.debug("Beginning load of {}".format(self)).push().add()
         # Recover the python objects that we need to reconstruct everything
         try:
             data = self._attrs.data
@@ -200,29 +200,27 @@ class BaseLineage(object):
             self.generation = rec['generation']
             indexes = rec['indexes']
 
+            try:
+                arr = self._networks.read_coordinates(indexes)
+            except IndexError:
+                # FIXME:
+                print rec['generation']
+                print max(indexes)
+                raise
+
+            self.factory.from_numpy(arr, self.population)
             target_index = rec['target']
             if target_index >= 0:
                 self.set_target(target_index)
 
             if hasattr(self._attrs, 'extra'):
                 self.extra = self._attrs.extra
-
-            log.debug("Loading population details ...")
-            log.debug("Highest index from generation record is at gen {} with {}".format(
-                self.generation, indexes.max()))
-            log.debug("Number of networks is {}".format(len(self._h5.root.networks)))
-
-            try:
-                arr = self._networks.read_coordinates(indexes)
-                self.factory.from_numpy(arr, self.population)
-            except IndexError:
-                log.error("Network indexes are corrupted in {}".format(self.path.absolute()))
-                self.corrupt = True
-                raise LineageError
-
         except:
             self._h5.close()
             raise
+
+        finally:
+            log.pop()
 
     def _save(self):
         if self.readonly:
@@ -255,11 +253,7 @@ class SnapshotLineage(BaseLineage):
             self._new_database()
 
     def __repr__(self):
-        return "<SnapShotLineage: '{}', {}S, {}N>".format(
-            str(self.path.normpath()),
-            len(self._generations),
-            len(self._networks),
-        )
+        return "<SnapShotLineage: {}".format(str(self.path.as_posix()))
 
     def save_snapshot(self):
         # TODO: is this needed
@@ -331,12 +325,7 @@ class FullLineage(BaseLineage):
             self.save_generation(initial=True)
 
     def __repr__(self):
-        return "<FullLineage: {} | {}I x {}G | {}N>".format(
-            '/'.join(self.path.parts[-3:]),
-            self._size,
-            len(self._generations),
-            len(self._networks),
-        )
+        return "<FullLineage: {}>".format(str(self.path.as_posix()))
 
     def save_generation(self, initial=False):
         # If it is not the initial save, then just save the mutations only
