@@ -445,6 +445,8 @@ def test_average_control_phenotype_pop(bowtie_database):
         py_info = numpy.asarray([[p, e] for (p, e) in zip(probs, ents)])
         numpy.testing.assert_allclose(py_info, cy_info[i])
 
+        assert not numpy.any(numpy.isnan(cy_info[1]))
+
         # # Let's just do 50.
         if i > 50:
             break
