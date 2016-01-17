@@ -25,13 +25,21 @@ verbose = click.option('--verbose', is_flag=True, default=False,
 
 
 @bricolage.command()
+@verbose
 @click.option('--overwrite', is_flag=True, default=False,
               help="Trash the experiment and start again.")
-def run(overwrite):
+def run(overwrite, verbose):
     """Run the simulation.
 
     This will create a new simulation or complete an existing one (if unfinished).
     """
+    if verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+
+        # We need to do this separately. This is equivalent to setting "echo"
+        # on the database creation.
+        logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+
     NS.experiment.run(overwrite=overwrite)
 
 
