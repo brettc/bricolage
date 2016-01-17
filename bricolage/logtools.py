@@ -1,15 +1,20 @@
+from python_log_indenter import IndentedLoggerAdapter
 import logging
 import os
 import re
 import textwrap
 import inspect
 
+# import coloredlogs
+# coloredlogs.install(level='DEBUG',
+#                     fmt="%(levelname)-8s | %(asctime)s | %(message)s")
+
 _log_depth = 0
 _max_width = 80
 _tab_width = 2
 
 # These should be the same size as the _tab_width
-_bullet       = ""
+_bullet = ""
 _continuation = "..."
 
 
@@ -31,10 +36,17 @@ def get_logger(fname=None):
     log_name = log_name[:10]
 
     # Now wrap it and return it
-    return logging.getLogger(log_name)
+    return IndentedLoggerAdapter(logging.getLogger(log_name))
 
-    # return DumbLogger(logging.getLogger(log_name))
-    # return SmartLogger(logging.getLogger(log_name))
+
+# def log_indent(fn, text, level=logging.DEBUG):
+#     def decorator(fn):
+#         log.message(fn(
+#         ret = f()
+#     return decorator
+#
+#
+# coloredlogs.install(level='DEBUG')
 
 def init_logging():
     logging.basicConfig(
