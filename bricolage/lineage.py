@@ -26,7 +26,6 @@ class BaseLineage(object):
         if readonly:
             assert params is None
 
-        self.corrupt = False
         self.params = params
         self.readonly = readonly
         self.world = None
@@ -68,7 +67,7 @@ class BaseLineage(object):
 
         # By default, set the target to the latest
         self.set_target(len(self.targets) - 1)
-        self._save()
+        self._save_header()
 
     # TODO: add by name?
     def set_target(self, index):
@@ -109,16 +108,26 @@ class BaseLineage(object):
             ('indexes', int, self._size),
         ])
 
-    def _add_generation(self, indexes):
+    def _commit_generation(self, networks, indexes):
+        log.debug("Committing generation in {}".format(self))
         # Add a generations row
         row = self._generations.row
-
         w, b = self.population.worst_and_best()
         row['best'] = b
         row['generation'] = self.generation
         row['target'] = self.target_index
         row['indexes'] = indexes
-        row.append()
+
+        try:
+            pass
+        except:
+            raise
+        finally:
+            # Force this to always happen together
+            self._networks.append(networks)
+            row.append()
+            self._h5.flush()
+
 
     def _new_database(self):
         # Create H5 table with high compression using blosc
@@ -147,7 +156,7 @@ class BaseLineage(object):
         self._attrs = attrs
 
         # Save the current set of attributes
-        self._save()
+        self._save_header()
 
     def _open_database(self):
         test = tables.is_pytables_file(str(self.path))
@@ -200,31 +209,29 @@ class BaseLineage(object):
             self.generation = rec['generation']
             indexes = rec['indexes']
 
+            try:
+                arr = self._networks.read_coordinates(indexes)
+            except IndexError:
+                # FIXME:
+                print rec['generation']
+                print max(indexes)
+                raise
+
+            self.factory.from_numpy(arr, self.population)
             target_index = rec['target']
             if target_index >= 0:
                 self.set_target(target_index)
 
             if hasattr(self._attrs, 'extra'):
                 self.extra = self._attrs.extra
-
-            log.debug("Loading population details ...")
-            log.debug("Highest index from generation record is at gen {} with {}".format(
-                self.generation, indexes.max()))
-            log.debug("Number of networks is {}".format(len(self._h5.root.networks)))
-
-            try:
-                arr = self._networks.read_coordinates(indexes)
-                self.factory.from_numpy(arr, self.population)
-            except IndexError:
-                log.error("Network indexes are corrupted in {}".format(self.path.absolute()))
-                self.corrupt = True
-                raise LineageError
-
         except:
             self._h5.close()
             raise
 
-    def _save(self):
+        finally:
+            log.pop()
+
+    def _save_header(self):
         if self.readonly:
             return
 
@@ -255,28 +262,23 @@ class SnapshotLineage(BaseLineage):
             self._new_database()
 
     def __repr__(self):
-        return "<SnapShotLineage: '{}', {}S, {}N>".format(
-            str(self.path.normpath()),
-            len(self._generations),
-            len(self._networks),
-        )
+        return "<SnapShotLineage: {}".format(str(self.path.as_posix()))
 
     def save_snapshot(self):
         # TODO: is this needed
-        self._save()
+        self._save_header()
 
         # Check how big networks is now...
         start = len(self._networks)
 
         # Add all networks in the population
         arr = self.factory.pop_to_numpy(self.population)
-        self._networks.append(arr)
 
-        # Add a generations row
+        # Calculate the indexes for the population
         indexes = numpy.arange(start, start + self._size, dtype=int)
-        self._add_generation(indexes)
 
-        self._h5.flush()
+        self._commit_generation(arr, indexes)
+
 
     def _load_generation(self, rec):
         gen = rec['generation']
@@ -315,7 +317,7 @@ class SnapshotLineage(BaseLineage):
             if g < self.generation:
                 self.save_snapshot()
 
-            self._save()
+            self._save_header()
         self._h5.close()
 
 
@@ -331,24 +333,16 @@ class FullLineage(BaseLineage):
             self.save_generation(initial=True)
 
     def __repr__(self):
-        return "<FullLineage: {} | {}I x {}G | {}N>".format(
-            '/'.join(self.path.parts[-3:]),
-            self._size,
-            len(self._generations),
-            len(self._networks),
-        )
+        return "<FullLineage: {}>".format(str(self.path.as_posix()))
 
     def save_generation(self, initial=False):
         # If it is not the initial save, then just save the mutations only
         arr = self.factory.pop_to_numpy(self.population, not initial)
-        self._networks.append(arr)
-
+        # Add a generations row
         idents = numpy.zeros(self._size, int)
         self.population._get_identifiers(idents)
-
-        # Add a generations row
-        self._add_generation(idents)
-        self._h5.flush()
+        self._commit_generation(arr, idents)
+        self._check()
 
     def next_generation(self):
         """Make a new generation"""
@@ -400,8 +394,16 @@ class FullLineage(BaseLineage):
         self.factory.from_numpy(arr, anc)
         return anc
 
+    def _check(self):
+        rec = self._generations[-1]
+        max_index = max(rec['indexes'])
+        num_networks = len(self._networks)
+        if max_index >= num_networks:
+            log.error("Indexes exceed the number of generations!!")
+
     def close(self):
+        self._check()
         # Avoid messages from tables
         if not self.readonly:
-            self._save()
+            self._save_header()
         self._h5.close()

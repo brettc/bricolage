@@ -212,7 +212,7 @@ void cJointProbabilities::calc_information(cInformation &info) const
                     {
                         double val = _array[i][j][k][ri][ci];
                         double denom = rows[ri] * cols[ci];
-                        if (not_zeroish(0.0) && not_zeroish(denom))
+                        if (not_zeroish(val) && not_zeroish(denom))
                             I += val * log2(val / denom);
                     }
                 info._array[i][j][k] = I;

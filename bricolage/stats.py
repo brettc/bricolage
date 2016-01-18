@@ -122,6 +122,7 @@ class StatsOutputControl(object):
 
     def calc_stats(self, pop):
         ai = np.asarray(self.analyzer.analyse_collection(pop))
+        assert not np.any(np.isnan(ai.ravel()))
 
         # Summarize across the population
         ameans = np.mean(ai, axis=0)

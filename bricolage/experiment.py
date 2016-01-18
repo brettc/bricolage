@@ -16,7 +16,7 @@ except ImportError:
 from pathlib import Path
 from lineage import FullLineage, SnapshotLineage, LineageError
 from experimentdb import (Database, TreatmentRecord, ReplicateRecord,
-                          StatsRecord)
+                          StatsRecord, StatsGroupRecord)
 from sqlalchemy.sql import and_, delete
 
 log = logtools.get_logger()
@@ -153,12 +153,20 @@ class Replicate(object):
 
         return lin
 
-    def clean_stats(self, names):
-        statement = delete(StatsRecord).where(and_(
-            StatsRecord.kind.in_(names),
+    def clean_stats(self, tags=None):
+        eng = self.treatment.experiment.database.engine
+        se = delete(StatsRecord).where(and_(
+            # StatsRecord.kind.in_(names),
             StatsRecord.replicate_id == self.seq,
             StatsRecord.treatment_id == self.treatment.seq))
-        self.treatment.experiment.database.engine.execute(statement)
+        eng.execute(se)
+
+        ge = delete(StatsRecord).where(and_(
+            # StatsRecord.kind.in_(names),
+            StatsRecord.replicate_id == self.seq,
+            StatsRecord.treatment_id == self.treatment.seq))
+        eng.execute(ge)
+        eng.commit()
 
     def write_stats(self, gen, namevalues):
         stats = [StatsRecord(self, gen, n, v) for n, v in namevalues]

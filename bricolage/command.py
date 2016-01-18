@@ -25,13 +25,21 @@ verbose = click.option('--verbose', is_flag=True, default=False,
 
 
 @bricolage.command()
+@verbose
 @click.option('--overwrite', is_flag=True, default=False,
               help="Trash the experiment and start again.")
-def run(overwrite):
+def run(overwrite, verbose):
     """Run the simulation.
 
     This will create a new simulation or complete an existing one (if unfinished).
     """
+    if verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+
+        # We need to do this separately. This is equivalent to setting "echo"
+        # on the database creation.
+        logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+
     NS.experiment.run(overwrite=overwrite)
 
 
@@ -45,6 +53,11 @@ def stats(every, treatment, replicate, verbose):
     if verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
+        # We need to do this separately. This is equivalent to setting "echo"
+        # on the database creation.
+        logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+
+    # Find the treatment.
     the_t = None
     if treatment != "":
         the_t = NS.experiment.find_matching_treatment(treatment)
@@ -61,8 +74,15 @@ def stats(every, treatment, replicate, verbose):
                                     only_replicate=replicate,
                                     every=every)
 
-# VERBOSITY
-# logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+
+@bricolage.command()
+def trash():
+    """Trash the experiment.
+
+    If you have move2trash installed you can recover it from the trash.
+    """
+    if click.confirm("Are you sure?"):
+        NS.experiment._remove_paths()
 
 # @bricolage.command()
 # @click.option('--verbose', is_flag=True)
@@ -86,13 +106,6 @@ def stats(every, treatment, replicate, verbose):
 #     for rep, lin in self.iter_lineages():
 #         rep.draw_winners(lin)
 #
-# @add_command()
-# def trash(self, args):
-#     """Trash the experiment.
-#     NOTE: If you have move2trash installed you can recover it from the
-#     trash.
-#     """
-#     self._remove_paths()
 #
 # @verbose
 # @add_argument('--every', type=int, default=25)
