@@ -14,9 +14,9 @@ except ImportError:
     send2trash = None
 
 from pathlib import Path
-from lineage import FullLineage, SnapshotLineage, LineageError
+from lineage import FullLineage, SnapshotLineage
 from experimentdb import (Database, TreatmentRecord, ReplicateRecord,
-                          StatsRecord, StatsGroupRecord)
+                          StatsRecord)
 from sqlalchemy.sql import and_, delete
 
 log = logtools.get_logger()
@@ -119,8 +119,7 @@ class Replicate(object):
         p = self.path
         if not p.exists():
             if readonly:
-                log.error("Replicate doesn't exist, {}".format(self.path.name))
-                raise ExperimentError
+                raise ExperimentError("Replicate doesn't exist, {}".format(self.path.name))
 
             p.mkdir()
 
@@ -166,7 +165,6 @@ class Replicate(object):
             StatsRecord.replicate_id == self.seq,
             StatsRecord.treatment_id == self.treatment.seq))
         eng.execute(ge)
-        eng.commit()
 
     def write_stats(self, gen, namevalues):
         stats = [StatsRecord(self, gen, n, v) for n, v in namevalues]
@@ -175,16 +173,19 @@ class Replicate(object):
         # self.session.bulk_save_objects(stats)
 
     def draw_winners(self, lin, maxw=3):
-        winners = [(n.fitness, n) for n in lin.population]
+        winners = [(n.fitness, n.identifier, n) for n in lin.population]
         winners.sort(reverse=True)
-        for i, (fit, net) in enumerate(winners):
-            if i == maxw:  # args.maxn:
+        for i, (fit, ident, net) in enumerate(winners):
+            if i == maxw:
                 break
             self.draw_net('winner', net, lin.generation)
 
-    def draw_net(self, prefix, net, gen):
+    def draw_net(self, prefix, net, gen, signals=True):
         ana = NetworkAnalysis(net)
-        g = graph.FullGraph(ana)  # , knockouts=False)
+        if signals:
+            g = graph.FullGraph(ana)
+        else:
+            g = graph.GeneSignalGraph(ana)
         d = graph.DotMaker(g)
         p = self.analysis_path / '{}-G{:07d}-N{:02d}-F{}.png'.format(
             prefix, gen, net.identifier, net.fitness)
@@ -227,6 +228,15 @@ class Treatment(object):
     def analysis_path(self):
         return self.experiment.analysis_path / self.dirname
 
+    def with_replicate_id(self, rep_id):
+        if rep_id > len(self.replicates):
+            log.error("{} has no replicate with id {}".format(self, rep_id))
+            raise ExperimentError
+
+        rep = self.replicates[rep_id - 1]
+        assert rep.seq == rep_id
+        return rep
+
     def run(self):
         # Check paths...
         if not self.path.exists():
@@ -241,7 +251,7 @@ class Treatment(object):
 
 class Experiment(object):
     def __init__(self, path, treatments, name=None, seed=1, analysis_path=None, full=True):
-        logtools.init_logging()
+        logtools.set_logging()
 
         if name is None:
             name = _make_name_from_program()
@@ -318,8 +328,7 @@ class Experiment(object):
         for t in self.treatments:
             for r in t.replicates:
                 with r.get_lineage(readonly=readonly) as lin:
-                    if not lin.corrupt:
-                        yield r, lin
+                    yield r, lin
 
     def run(self, overwrite=False, verbose=False, dry=False):
         """Run the experiment."""
@@ -350,7 +359,7 @@ class Experiment(object):
                 continue
 
             for rep in treat.replicates:
-                if only_replicate is not None and rep.seq != only_replicate:
+                if only_replicate is not None and rep != only_replicate:
                     continue
 
                 with rep.get_lineage() as lin:
@@ -366,27 +375,42 @@ class Experiment(object):
                             visitor.visit_generation(gen_num, pop)
                         gen_num += every
 
-    def find_matching_treatment(self, text):
+    def find_matching(self, text, repnum):
         matches = []
-        look = text.lower()
-        len_look = len(text)
-        for t in self.treatments:
-            current = t.name.lower()
-            if len_look <= len(current):
-                if look == current[:len_look]:
-                    matches.append(t)
 
-        if not matches:
-            log.info("No match for {}".format(text))
-            return None
+        if text == "":
+            # If they've selected a replicate too, then we need a treatment.
+            if repnum >= 1:
+                if len(self.treatments) > 1:
+                    raise ExperimentError("No unique Treatment found.")
+                else:
+                    matches.append(self.treatments[0])
+            else:
+                # ALL treatments
+                matching_treatment = None
+        else:
+            look = text.lower()
+            len_look = len(text)
+            for t in self.treatments:
+                current = t.name.lower()
+                if len_look <= len(current):
+                    if look == current[:len_look]:
+                        matches.append(t)
 
-        if len(matches) > 1:
-            log.info("More than noe match for {}".format(text))
-            return None
+            if not matches:
+                raise ExperimentError("No match for {}.".format(text))
 
-        return matches[0]
+            if len(matches) > 1:
+                raise Experiment("More than one match for {}.".format(text))
 
+            matching_treatment = matches[0]
 
+        if repnum >= 1:
+            matching_replicate = matching_treatment.with_replicate_id(repnum)
+        else:
+            matching_replicate = None
+
+        return matching_treatment, matching_replicate
 
     # def visit_replicates(self, visitor,
     #                      filter_treatments=None,

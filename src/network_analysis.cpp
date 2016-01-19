@@ -48,7 +48,11 @@ void cNetworkAnalysis::make_edges(cEdgeList &edges)
             edges.insert(Edge_t(mnode, gnode));
             for (size_t k=0; k < m->site_count(); ++k)
             {
-                Node_t cnode = std::make_pair(NT_CHANNEL, m->get_site(k));
+                signal_t current = m->get_site(k);
+                // 0 is NEVER active. Ever.
+                if (current == 0)
+                    continue;
+                Node_t cnode = std::make_pair(NT_CHANNEL, current);
                 edges.insert(Edge_t(cnode, mnode));
             }
         }
@@ -100,11 +104,10 @@ void cNetworkAnalysis::make_active_edges(cEdgeList &edges)
             {
                 // Knock this out by setting it to ZERO channel. Nothing ever
                 // publishes to the ZERO channel!
-                signal_t old = m->set_site(k, 0);
-                Node_t cnode = std::make_pair(NT_CHANNEL, old);
+                signal_t original_channel = m->set_site(k, 0);
 
                 // It was already zero?
-                if (old == 0)
+                if (original_channel == 0)
                     continue;
 
                 // Otherwise, we need to test to see if it changed anything
@@ -113,11 +116,18 @@ void cNetworkAnalysis::make_active_edges(cEdgeList &edges)
                 // Did it change?
                 if (modified->rates != original->rates)
                 {
-                    // It did, so this channel makes a difference to the module
-                    edges.insert(Edge_t(cnode, mnode));
+                    // We need to reset it.
+                    m->set_site(k, original_channel);
 
-                    // ... and we need to reset it
-                    m->set_site(k, old);
+                    // We don't both including any signals that come from the
+                    // permanently ON channel.
+                    if (original_channel != 1)
+                    {
+                        // And include it in the graph.
+                        Node_t cnode = std::make_pair(NT_CHANNEL, original_channel);
+                        edges.insert(Edge_t(cnode, mnode));
+                    }
+
                 }
             }
         }

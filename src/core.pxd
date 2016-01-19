@@ -108,6 +108,8 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         cNetworkAnalysis(const cNetwork_ptr &n)
         void make_active_edges(cEdgeList e)
         void make_edges(cEdgeList e)
+        cNetwork_ptr original
+        cNetwork_ptr modified
 
     # # ctypedef shared_ptr[cNetwork] cNetwork_ptr
     # # cNetwork_ptr get_detached_copy(cNetwork_ptr)

@@ -32,6 +32,23 @@ cdef class NetworkAnalysis:
         self._this.make_active_edges(edges)
         return edges
 
+    property modified: 
+        def __get__(self):
+            cdef cNetwork *ptr = self._this.modified.get()
+
+            # Is there an existing python object?
+            # Note: cython automatically increments the reference count when we do
+            # this (which is what we want). This move just means we get object
+            # identity, at least while one python reference continues to exist.
+            if ptr.pyobject:
+                return <object>(ptr.pyobject)
+
+            # Nope. We need to create a new python wrapper object
+            cdef Factory f = self.network.factory
+            cdef Network n = f.network_class(f, f._secret_key)
+            n.bind_to(self._this.modified)
+            return n
+
 
 cdef class JointProbabilities:
     def __cinit__(self, World w):
