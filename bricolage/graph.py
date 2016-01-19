@@ -2,7 +2,10 @@ from enum import IntEnum
 import networkx as nx
 from pygraphviz import AGraph
 from analysis_ext import NetworkAnalysis
+from .core import InterventionState
+from .logic_tools import text_for_gene, text_for_cis_mod
 import pathlib
+
 
 class NodeType(IntEnum):
     # NOTE: These should be the same as those defined in pubsub2_c.h
@@ -23,11 +26,17 @@ def _encode_module_id(gene_id, module_id):
 
 
 class BaseGraph(object):
-    def __init__(self, analysis):
+    def __init__(self, analysis, knockouts=True):
         self.analysis = analysis
-        self.network = analysis.network
+        self.knockouts = knockouts
+        self.original_network = analysis.network
+        self.knockout_network = analysis.modified
         self.world = self.network.factory.world
         self.nx_graph = nx.DiGraph()
+
+    @property
+    def network(self):
+        return self.knockout_network if self.knockouts else self.original_network
 
     def is_inert(self, node):
         return False
@@ -108,9 +117,9 @@ class BaseGraph(object):
 
 class FullGraph(BaseGraph):
     def __init__(self, analysis, knockouts=True):
-        BaseGraph.__init__(self, analysis)
+        BaseGraph.__init__(self, analysis, knockouts)
         # Build the nx_graph
-        if knockouts:
+        if self.knockouts:
             edges = analysis.get_active_edges()
         else:
             edges = analysis.get_edges()
@@ -120,16 +129,16 @@ class FullGraph(BaseGraph):
 
     def get_gene_label(self, i):
         # mods = self.network.genes[i].modules
-        # return "|".join([str(j) for j, m in enumerate(mods)])
-        return str(self.network.genes[i])
-    
+        return "G{}".format(i + 1)
+
     def get_module_label(self, i):
         gi, mi = _decode_module_id(i)
         m = self.network.genes[gi].modules[mi]
-        return str(m)
+        return text_for_cis_mod(self.world, m)
 
     def get_channel_label(self, i):
         return self.world.name_for_channel(i)
+
 
 class SignalFlowGraph(FullGraph):
     begin_node = (NodeType.BEGIN, 0)
@@ -161,16 +170,30 @@ class SignalFlowGraph(FullGraph):
         return nx.minimum_node_cut(
             self.nx_graph, self.begin_node, self.end_node)
 
+
 class GeneSignalGraph(FullGraph):
     def __init__(self, analysis, knockouts=True):
         FullGraph.__init__(self, analysis, knockouts)
         self.remove_nodes(NodeType.MODULE)
 
-class GeneGraph(FullGraph):
+    def get_gene_label(self, i):
+        glabel = FullGraph.get_gene_label(self, i)
+        equation = text_for_gene(self.world, self.network.genes[i])
+        return "{} : {}".format(glabel, equation)
+
+
+class GeneGraph(GeneSignalGraph):
     def __init__(self, analysis, knockouts=True):
-        FullGraph.__init__(self, analysis, knockouts)
-        self.remove_nodes(NodeType.MODULE)
+        GeneSignalGraph.__init__(self, analysis, knockouts)
         self.remove_nodes(NodeType.CHANNEL, internal_only=True)
+
+    def get_gene_label(self, i):
+        glabel = FullGraph.get_gene_label(self, i)
+        g = self.network.genes[i]
+        equation = text_for_gene(self.world, g)
+        w = self.network.factory.world
+        return "{}: {} => {}".format(glabel, equation, w.name_for_channel(g.pub))
+
 
 class DotMaker(object):
     """Convert an NXGraph into an AGraph."""
@@ -233,8 +256,8 @@ class DotMaker(object):
         # TODO: We could add some nice clustering stuff here, by annotating
         # the graph with clustering or "modules".
 
-        # internal = [] 
-        structural_nodes = [] 
+        # internal = []
+        structural_nodes = []
         output_nodes = []
         input_nodes = []
         # First, add nodes
@@ -250,12 +273,12 @@ class DotMaker(object):
             # if self.is_internal(node):
             #     internal.append(name)
             # if node[0] == "G" and node[1] >= self.params.reg_gene_count:
-            
+
             # if self.graph.is_node_old(node):
             #     attrs['style'] = 'dotted'
             # elif self.graph.is_node_new(node):
             #     attrs['color'] = 'red'
-            
+
             # Keep a reference to the original node
             # attrs['gnode'] = node
             A.add_node(name, **attrs)
@@ -285,8 +308,8 @@ class DotMaker(object):
             #     attrs['color'] = 'red'
             #
             attrs = {}
-            A.add_edge(self.graph.node_to_name(u), 
-                self.graph.node_to_name(v), 
+            A.add_edge(self.graph.node_to_name(u),
+                self.graph.node_to_name(v),
                 **attrs)
 
         return A

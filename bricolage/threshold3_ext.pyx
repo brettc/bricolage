@@ -6,7 +6,7 @@ cimport core_ext
 from threshold3 cimport *
 from cython.operator import dereference as deref, preincrement as preinc
 
-from .logic_tools import boolean_func_from_coop_binding
+from .logic_tools import text_for_cis_mod
 
 cimport numpy as np
 import numpy
@@ -158,7 +158,7 @@ cdef class CisModule(core_ext.CisModule):
     property operation:
         def __get__(self):
             w = self.gene.network.factory.world
-            return boolean_func_from_coop_binding(w, self.channels, self.bindings)
+            return text_for_cis_mod(w, self)
 
     def is_active(self, core_ext.ChannelState c):
         cdef cCisModule *cm = dynamic_cast_cCisModule(self._this) 

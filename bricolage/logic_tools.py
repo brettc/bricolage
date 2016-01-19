@@ -1,27 +1,103 @@
 from sympy.logic import SOPform, simplify_logic
-from sympy import symbols, sympify
 from sympy.printing.latex import latex
-
+from bricolage.core import InterventionState
 import itertools
 
-def detex(term):
-    rt = latex(term)
-    rt = rt.replace(r"\left", "")
-    rt = rt.replace(r"\right", "")
-    rt = rt.replace(r"\wedge", "&")
-    rt = rt.replace(r"\vee", "|")
-    rt = rt.replace(r"\neg ", "~")
-    rt = " ".join(rt.strip().split())
-    return rt
 
-def boolean_func_from_coop_binding(factory, channels, bindings):
+def function_to_text(eq):
+
+    if eq == False:
+        return "OFF"
+    elif eq == True:
+        return "ON"
+
+    text = latex(eq)
+    text = text.replace(r"\left", "")
+    text = text.replace(r"\right", "")
+    text = text.replace(r"\wedge", "&")
+    text = text.replace(r"\vee", "|")
+    text = text.replace(r"\neg ", "~")
+    text = text.replace(r"_", "")
+    text = " ".join(text.strip().split())
+
+    return text
+
+
+def text_for_gene(wrld, gene):
+    eq = compute_gene_function(wrld, gene)
+    return function_to_text(eq)
+
+
+def text_for_cis_mod(wrld, mod):
+    eq = compute_cis_mod_function(wrld, mod)
+    return function_to_text(eq)
+
+
+def compute_gene_function(wrld, gene):
+    eq = False
+    for mod in gene.modules:
+        # Skip anything that is turned OFF
+        if InterventionState.INTERVENE_OFF == mod.intervene:
+            continue
+        eq |= compute_cis_mod_function(wrld, mod)
+
+    return simplify_logic(eq)
+
+
+def compute_cis_mod_function(wrld, mod):
+    unique = list(set(mod.channels))
+
+    # Remove the fixed channels
+    if 0 in unique:
+        unique.remove(0)
+    if 1 in unique:
+        unique.remove(1)
+
+    # Build a list of True stats
+    is_true = []
+
+    # What if there's nothing here...?
+    if not unique:
+        st = wrld.create_state()
+
+        # Set our fixed channel
+        st[1] = 1
+        act = mod.is_active(st)
+        if act:
+            return True
+        return False
+
+    # Generate all possible states for this many channels
+    all_states = [_ for _ in itertools.product([0, 1], repeat=len(unique))]
+    for state in all_states:
+        channel_state = wrld.create_state()
+        channel_state[1] = 1
+        for i, channel in enumerate(state):
+            if channel:
+                channel_state[unique[i]] = 1
+
+        # Now, ASK the module whether this state turns it on...
+        act = mod.is_active(channel_state)
+        if act:
+            is_true.append(state)
+
+    # NOTE: We need to append _, as sympy barfs on 'E1' for
+    # some bizarre reason...
+    names = ['_' + wrld.name_for_channel(u) for u in unique]
+    sop = SOPform(names, is_true)
+
+    return sop
+
+
+# NOTE: keep this around for reference for now.
+def old_boolean_func_from_coop_binding(world, channels, bindings):
     """Convert a coop binding into a boolean function"""
-    # Can't assume all sites are unique, so we need to reconstruct a the truth
+    # Can't assume all sites are unique, so we need to reconstruct a truth
     # table entries to pool together sites that are the same.
     unique = list(set(channels))
     indexes = {unique[i]: i for i in range(len(unique))}
 
-    # Generate all possible states 
+    # Generate all possible states
     all_states = [_ for _ in itertools.product([0, 1], repeat=len(bindings))]
 
     # We'll put the truth table entries that are TRUE into this
@@ -43,7 +119,7 @@ def boolean_func_from_coop_binding(factory, channels, bindings):
             is_true.append(entry)
 
     # This should be possible, but sympy barfs on 'E1' for some bizarre reason
-    # names = [factory.name_for_channel(u) for u in unique] 
+    # names = [world.name_for_channel(u) for u in unique]
     # So, we use simple names and the replace at the end...
     names = list('abcdefghijklmnopqrstuvwxyz')[:len(unique)]
     sop = SOPform(names, is_true)
@@ -70,8 +146,7 @@ def boolean_func_from_coop_binding(factory, channels, bindings):
     text = detex(sop)
 
     # Necessary cos of the E1 problem
-    for i, n in enumerate(names): 
-        text = text.replace(n, factory.name_for_channel(unique[i]))
+    for i, n in enumerate(names):
+        text = text.replace(n, world.name_for_channel(unique[i]))
 
     return text
-

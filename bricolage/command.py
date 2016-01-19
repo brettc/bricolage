@@ -1,8 +1,9 @@
 #!env python
 import click
-import logging
-from bricolage.stats import (StatsFitness, StatsVisitor,
-                             StatsMutualInformation, StatsOutputControl)
+from logtools import set_logging
+from bricolage.stats import (
+    StatsFitness, StatsVisitor, StatsMutualInformation, StatsOutputControl)
+from experiment import ExperimentError
 
 
 class NS(object):
@@ -20,12 +21,17 @@ def run_from_commandline(exp):
 def bricolage():
     pass
 
-verbose = click.option('--verbose', is_flag=True, default=False,
-                       help="Show debug output.")
-
+verbose_ = click.option('--verbose', is_flag=True, default=False,
+                        help="Show debug output.")
+every_ = click.option('--every', default=1000,
+                      help="Only do every N generations")
+treatment_ = click.option('--treatment', default="",
+                          help="Filter treatments by name.")
+replicate_ = click.option('--replicate', default=-1,
+                        help="Filter replicates by number.")
 
 @bricolage.command()
-@verbose
+@verbose_
 @click.option('--overwrite', is_flag=True, default=False,
               help="Trash the experiment and start again.")
 def run(overwrite, verbose):
@@ -33,45 +39,29 @@ def run(overwrite, verbose):
 
     This will create a new simulation or complete an existing one (if unfinished).
     """
-    if verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
-
-        # We need to do this separately. This is equivalent to setting "echo"
-        # on the database creation.
-        logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
-
+    set_logging(verbose)
     NS.experiment.run(overwrite=overwrite)
 
 
 @bricolage.command()
-@click.option('--every', default=100)
-@click.option('--treatment', default="", help="Filter treatments by name.")
-@click.option('--replicate', default=-1, help="Filter replicates by number.")
-@verbose
+@every_
+@treatment_
+@replicate_
+@verbose_
 def stats(every, treatment, replicate, verbose):
     """Gather statistics about the simulation"""
-    if verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
+    set_logging(verbose)
 
-        # We need to do this separately. This is equivalent to setting "echo"
-        # on the database creation.
-        logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
-
-    # Find the treatment.
-    the_t = None
-    if treatment != "":
-        the_t = NS.experiment.find_matching_treatment(treatment)
-        if the_t is None:
-                raise click.BadParameter(
-                    "Can't find unique treatment name starting: '{}".format(treatment))
-    if replicate < 1:
-        replicate = None
+    try:
+        the_t, the_rep = NS.experiment.find_matching(treatment, replicate)
+    except ExperimentError as e:
+        raise click.BadParameter(e.text)
 
     visitor = StatsVisitor(NS.experiment,
                            [StatsOutputControl, StatsFitness, StatsMutualInformation])
     NS.experiment.visit_generations(visitor,
                                     only_treatment=the_t,
-                                    only_replicate=replicate,
+                                    only_replicate=the_rep,
                                     every=every)
 
 
@@ -83,6 +73,40 @@ def trash():
     """
     if click.confirm("Are you sure?"):
         NS.experiment._remove_paths()
+
+
+class DrawVisitor(object):
+    def wants_generation(self, gen_num):
+        return True
+
+    def visit_lineage(self, rep, lin):
+        self.replicate = rep
+
+    def visit_generation(self, gen_num, pop):
+        winners = [(n.fitness, n.identifier, n) for n in pop]
+        winners.sort(reverse=True)
+        for i, (fit, ident, net) in enumerate(winners):
+            if i == 1:
+                break
+            self.replicate.draw_net('best', net, gen_num, signals=False)
+
+
+@bricolage.command()
+@every_
+@treatment_
+@replicate_
+@verbose_
+def draw(every, treatment, replicate, verbose):
+    """Draw graphs of the best networks."""
+    try:
+        the_t, the_rep = NS.experiment.find_matching(treatment, replicate)
+    except ExperimentError as e:
+        raise click.BadParameter(e.message)
+
+    NS.experiment.visit_generations(DrawVisitor(),
+                                    only_treatment=the_t,
+                                    only_replicate=the_rep,
+                                    every=every)
 
 # @bricolage.command()
 # @click.option('--verbose', is_flag=True)
