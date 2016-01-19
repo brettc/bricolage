@@ -1,5 +1,5 @@
 from bricolage import graph, threshold3
-from bricolage.logic_tools import text_for_gene, text_for_cis_mod
+from bricolage.cis_logic import text_for_gene, text_for_cis_mod
 import pathlib
 from bricolage.core_ext import Network
 from bricolage.analysis_ext import NetworkAnalysis

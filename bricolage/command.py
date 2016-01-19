@@ -21,6 +21,7 @@ def run_from_commandline(exp):
 def bricolage():
     pass
 
+
 verbose_ = click.option('--verbose', is_flag=True, default=False,
                         help="Show debug output.")
 every_ = click.option('--every', default=1000,
@@ -28,7 +29,8 @@ every_ = click.option('--every', default=1000,
 treatment_ = click.option('--treatment', default="",
                           help="Filter treatments by name.")
 replicate_ = click.option('--replicate', default=-1,
-                        help="Filter replicates by number.")
+                          help="Filter replicates by number.")
+
 
 @bricolage.command()
 @verbose_
@@ -37,7 +39,8 @@ replicate_ = click.option('--replicate', default=-1,
 def run(overwrite, verbose):
     """Run the simulation.
 
-    This will create a new simulation or complete an existing one (if unfinished).
+    This will create a new simulation or complete an existing one (if
+    unfinished).
     """
     set_logging(verbose)
     NS.experiment.run(overwrite=overwrite)
@@ -58,7 +61,8 @@ def stats(every, treatment, replicate, verbose):
         raise click.BadParameter(e.text)
 
     visitor = StatsVisitor(NS.experiment,
-                           [StatsOutputControl, StatsFitness, StatsMutualInformation])
+                           [StatsOutputControl, StatsFitness,
+                            StatsMutualInformation])
     NS.experiment.visit_generations(visitor,
                                     only_treatment=the_t,
                                     only_replicate=the_rep,

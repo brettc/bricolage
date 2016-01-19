@@ -3,7 +3,7 @@ import networkx as nx
 from pygraphviz import AGraph
 from analysis_ext import NetworkAnalysis
 from .core import InterventionState
-from .logic_tools import text_for_gene, text_for_cis_mod
+from .cis_logic import text_for_gene, text_for_cis_mod
 import pathlib
 
 
@@ -36,7 +36,8 @@ class BaseGraph(object):
 
     @property
     def network(self):
-        return self.knockout_network if self.knockouts else self.original_network
+        return self.knockout_network if self.knockouts else \
+            self.original_network
 
     def is_inert(self, node):
         return False
@@ -81,7 +82,10 @@ class BaseGraph(object):
             return "end-{}".format(nindex)
         raise RuntimeError("Unknown node type {}".format(ntype))
 
-    _ntype_lookup = {"G":NodeType.GENE, "M":NodeType.MODULE, "C":NodeType.CHANNEL}
+    _ntype_lookup = {
+        "G": NodeType.GENE, "M": NodeType.MODULE, "C": NodeType.CHANNEL
+        }
+
     def name_to_node(self, name):
         """Convert the name back into a node descriptor"""
         ntype = self._ntype_lookup[name[:1]]
@@ -168,7 +172,7 @@ class SignalFlowGraph(FullGraph):
         if self.begin_node not in self.nx_graph.nodes():
             return None
         return nx.minimum_node_cut(
-            self.nx_graph, self.begin_node, self.end_node)
+                self.nx_graph, self.begin_node, self.end_node)
 
 
 class GeneSignalGraph(FullGraph):
@@ -192,7 +196,8 @@ class GeneGraph(GeneSignalGraph):
         g = self.network.genes[i]
         equation = text_for_gene(self.world, g)
         w = self.network.factory.world
-        return "{}: {} => {}".format(glabel, equation, w.name_for_channel(g.pub))
+        return "{}: {} => {}".format(glabel, equation,
+                                     w.name_for_channel(g.pub))
 
 
 class DotMaker(object):
@@ -309,8 +314,8 @@ class DotMaker(object):
             #
             attrs = {}
             A.add_edge(self.graph.node_to_name(u),
-                self.graph.node_to_name(v),
-                **attrs)
+                       self.graph.node_to_name(v),
+                       **attrs)
 
         return A
 
@@ -322,6 +327,7 @@ class DotMaker(object):
         a = self.get_layout()
         a.write(f)
 
+
 def save_network_as_fullgraph(n, path='.', name=None, simplify=True):
     output_path = pathlib.Path(path)
     ana = NetworkAnalysis(n)
@@ -332,6 +338,3 @@ def save_network_as_fullgraph(n, path='.', name=None, simplify=True):
     print 'saving', name
     dot.save_picture(str(output_path / "network-{}.png".format(name)))
     dot.save_dot(str(output_path / "network-{}.dot".format(name)))
-
-
-
