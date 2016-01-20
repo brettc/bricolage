@@ -5,6 +5,7 @@ from bricolage.stats import (
     StatsFitness, StatsVisitor, StatsMutualInformation, StatsOutputControl)
 from .analysis_ext import OutputControlAnalyzer, MutualInfoAnalyzer
 from experiment import ExperimentError
+from experimentdb import StatsReplicateRecord
 import numpy
 
 log = get_logger()
@@ -118,11 +119,24 @@ def draw(every, treatment, replicate, verbose):
 
 
 class FindFirstFitVisitor(object):
-    def __init__(self):
-        self.oc_analyzer = None
-        self.mi_analyzer = None
+    def __init__(self, experiment):
+        self.experiment = experiment
+        self.session = experiment.database.session
         self.replicate = None
         self.lineage = None
+        self.oc_analyzer = None
+        self.mi_analyzer = None
+        self.done = {}
+
+        self.first_best = 'FIRST_BEST'
+        self.first_control = 'FIRST_CONTROL'
+
+        # TODO: should only load relevant ones
+        for srep in self.session.query(StatsReplicateRecord).all():
+            self.done[(srep.treatment_id, srep.replicate_id, srep.kind)] = srep
+
+    def is_done(self, rep, kind):
+        return (rep.treatment.seq, rep.seq, kind) in self.done
 
     def visit_lineage(self, rep, lin):
         log.info("{}".format(rep)).push().add()
@@ -134,19 +148,26 @@ class FindFirstFitVisitor(object):
         self.mi_analyzer = MutualInfoAnalyzer(lin.world, lin.targets[0].calc_categories())
 
         # Analysis
-        fgen = self.find_first_winner()
-        cgen = self.find_first_control()
-        log.info("First fit {} -- first control {}".format(fgen, cgen))
+        if not self.is_done(rep, self.first_best):
+            fgen = self.find_first_winner()
+            self.session.add(StatsReplicateRecord(rep, self.first_best, fgen))
+
+        if not self.is_done(rep, self.first_control):
+            cgen = self.find_first_control()
+            self.session.add(StatsReplicateRecord(rep, self.first_control, cgen))
+
+        self.session.commit()
 
         log.pop()
 
     def find_first_winner(self):
+        first_win = None
         for g in self.lineage._generations.where("best == 1.0"):
             first_win = g['generation']
-            log.debug("Found first winner at generation {}".format(first_win))
-            return first_win
+            break
 
-        return None
+        log.info("Found first winner at generation {}".format(first_win))
+        return first_win
 
     def find_first_control(self):
         # Load last generation and check if we got a master gene
@@ -167,6 +188,7 @@ class FindFirstFitVisitor(object):
                 break
 
         # Just one
+        log.info("First control is at generation {}.".format(generations[0]))
         return generations[0]
 
     def get_controlled_indexes(self, collection):
@@ -210,7 +232,7 @@ def calc_lag(verbose):
     set_logging(verbose)
 
     # First, let's find the best fitness
-    NS.experiment.visit_lineages(FindFirstFitVisitor())
+    NS.experiment.visit_lineages(FindFirstFitVisitor(NS.experiment))
 
 
 # def status(verbose):

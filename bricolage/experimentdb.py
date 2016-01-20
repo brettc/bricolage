@@ -84,6 +84,24 @@ class StatsGroupRecord(SQLBase):
         self.tag = tag
 
 
+class StatsReplicateRecord(SQLBase):
+    __tablename__ = 'stats_rep'
+    treatment_id = Column(Integer,
+                          ForeignKey('treatment.treatment_id'),
+                          primary_key=True)
+    replicate_id = Column(Integer,
+                          ForeignKey('replicate.replicate_id'),
+                          primary_key=True)
+    kind = Column(String(10), primary_key=True)
+    value = Column(Float())
+
+    def __init__(self, rep, kind, val):
+        self.treatment_id = rep.treatment.seq
+        self.replicate_id = rep.seq
+        self.kind = kind
+        self.value = val
+
+
 class Database(object):
     def __init__(self, folder):
         self.path = (folder / 'stats').with_suffix('.sqlite')
