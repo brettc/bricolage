@@ -2,11 +2,24 @@ import logging
 
 log = logging.getLogger("drawing")
 
-from graph_maker import FullGraph, GeneSignalGraph
-from graph_layout import DotMaker, BaseLayout
+from graph_maker import ChannelType
+from graph_layout import DotDiagram
 from pyx_drawing import (Diagram, rounded_rect, CurvePath, Shape, cut_hexagon,
                        hexagon, diamond)
 from pyx import canvas, color as pcolor, path as ppath
+from .cis_logic import text_for_gene, text_for_cis_mod
+
+def latexify(l):
+    l = l.replace("~", r"$\lnot{}$")
+    # l = l.replace("~", r"$\sim$")
+    # l = l.replace("~", "NOT ")
+    # l = l.replace("~", r"\~{}")
+    l = l.replace(" & ", r" $\land{}$ ")
+    l = l.replace(" | ", r" $\lor{}$ ")
+    # l = l.replace(")", "")
+    # l = l.replace("(", "")
+    l = l.replace("|", r"$\to$")
+    return l
 
 
 class ColorScheme(object):
@@ -37,43 +50,71 @@ def signal_to_variable(p, c):
     return txt
 
 
-def latexify(l):
-    l = l.replace("~", r"$\lnot{}$")
-    # l = l.replace("~", r"$\sim$")
-    # l = l.replace("~", "NOT ")
-    # l = l.replace("~", r"\~{}")
-    l = l.replace(" AND ", r" $\land{}$ ")
-    l = l.replace(" OR ", r" $\lor{}$ ")
-    l = l.replace(")", "")
-    l = l.replace("(", "")
-    l = l.replace("|", r"$\to$")
-    return l
-
-
 class SimpleGeneShape(Shape):
     width = .8
     height = .2
 
-    def __init__(self, diag, px, py, node_id, data):
+    def __init__(self, diag, px, py, gene):
         Shape.__init__(self, diag, px, py)
         self.outline = rounded_rect(px, py, self.width, self.height)
-        self.node_id = node_id
-        self.gene_number = node_id[1]
-        # Convert from stupid attribute type
-        self.data = dict([(k, v) for k, v in data.items()])
-        # self.gene = self.diagram.net.genes[self.gene_number]
 
-    def draw(self, C):
-        # No text labeling, just filled in black
-        # if self.diagram.graph.'old' in self.data:
-        #     color = self.diagram.scheme.gene_old
-        #     print 'old'
-        # if 'new' in self.data:
-        #     color = self.diagram.scheme.gene_new
-        #     print 'new'
-        # else:
-        # color = self.diagram.scheme.gene
-        C.fill(self.outline, [pcolor.cmyk.Gray])
+    def draw(self, pyx_canvas):
+        pyx_canvas.fill(self.outline, [pcolor.cmyk.Gray])
+
+
+class SimpleChannelShape(Shape):
+    size = .55
+    radius = .35
+
+    def __init__(self, diag, px, py, channel, channel_type):
+        Shape.__init__(self, diag, px, py)
+        self.channel = channel
+        if channel_type == ChannelType.INPUT:
+            self.outline = cut_hexagon(px, py, self.radius * .8)
+            self.color = ColorScheme.cue
+        elif channel_type == ChannelType.OUTPUT:
+            self.outline = ppath.circle(px, py, self.radius * .8)
+            self.color = ColorScheme.act
+        else:
+            self.outline = diamond(px, py, self.radius)
+            self.color = ColorScheme.sig
+        self.text = str(channel)
+
+    def draw(self, c):
+        c.fill(self.outline, [self.color])
+        # self.draw_text(c, reversetext=True)
+
+
+class TextGeneShape(Shape):
+    width = 2.8
+    height = .55
+
+    def __init__(self, diag, px, py, gene):
+        Shape.__init__(self, diag, px, py)
+        self.outline = rounded_rect(px, py, self.width, self.height)
+        self.text = latexify(text_for_gene(gene.network.factory.world, gene))
+        # latexify(self.gene.description)
+
+
+class SimpleDiagram(DotDiagram):
+    def __init__(self, graph):
+        DotDiagram.__init__(self, graph, yscale=.8, xscale=.7)
+
+    # TODO!!!
+    # def get_gene_description(self, g):
+    #     # This is key for how the layout looks ... it gives space
+    #     return "X"
+
+    def get_gene_shape(self, px, py, gene):
+        return SimpleGeneShape(self, px, py, gene)
+
+    def get_signal_shape(self, px, py, channel, channel_type):
+        return SimpleChannelShape(self, px, py, channel, channel_type)
+
+    def get_connector(self, shape1, shape2, points):
+        return GeneConnector(shape1, shape2, points)
+
+
 
 
 class AGeneShape(Shape):
@@ -91,34 +132,6 @@ class AGeneShape(Shape):
         self.text = "%s-%s" % node_id
 
 
-class TextGeneShape(Shape):
-    width = 2.2
-    height = .55
-
-    def __init__(self, diag, px, py, node_id, data):
-        Shape.__init__(self, diag, px, py)
-        self.outline = rounded_rect(px, py, self.width, self.height)
-        self.gene_number = node_id[1]
-        self.gene = self.diagram.net.genes[self.gene_number]
-        self.data = data
-        # self.text = self.gene.description
-        # self.text = "%d" % self.gene_number
-        p = self.diagram.net.collection.parameters
-        varnames = [signal_to_variable(p, s) for s in self.gene.sub]
-        varnames.reverse()  # This is just the way things are
-        txt = self.gene.raw_description.format(*varnames)
-        txt = "%s|%s" % (txt, signal_to_variable(p, self.gene.pub))
-        self.text = latexify(txt)
-        # latexify(self.gene.description)
-
-
-class BaseDiagram(Diagram):
-    def __init__(self, color=True):
-        # self.scheme = ColorScheme if color else GrayScheme
-        self.scheme = GrayScheme
-
-    def draw(self, C):
-        self.layout.draw(C)
 
 
 class AChannelShape(Shape):
@@ -200,128 +213,51 @@ class ChannelShape(Shape):
 
 class GeneConnector(CurvePath):
     # Map the binding types to arrows
-    #
-    def __init__(self, s1, s2, points, data):
+    def __init__(self, s1, s2, points):
         CurvePath.__init__(self, s1, s2, points)
-        # TODO: Just defaulting to arrows for now
-        self.edge_data = data
-        # self.deco_fun = self.arrow_types[data['kind']]
         self.deco_fun = CurvePath.arrow_end
+        self.color = pcolor.rgb.black
 
-        if 'new' in data:
-            col = pcolor.cmyk.Red
-        elif 'old' in data:
-            col = pcolor.cmyk.Gray
-        else:
-            col = pcolor.rgb.black
-        self.color = col
-
-    def draw(self, C):
+    def draw(self, pyx_canvas):
         active = False
-        # if self.diagram._phase == PhaseType.BIND:
-        #     if isinstance(self.shape1, ChannelShape):
-        #         if self.diagram._elements[self.shape1.channel]:
-        #             active = True
-        # else:
-        #     if isinstance(self.shape2, ChannelShape):
-        #         if self.diagram._active[self.shape1.gene_number]:
-        #             active = True
-
-        CurvePath.draw(self, C, active, self.color)
+        CurvePath.draw(self, pyx_canvas, active, self.color)
 
 
-class BaseDotLayout(object):
-    def write(self, f):
-        self.agraph.write(f)
-
-    def draw(self, f):
-        self.agraph.draw(f, prog='dot', args=_dot_default_args)
-
-    def get_gene_description(self, g):
-        # return "G%02d: %s" % (g.index, g.description)
-        return "%s" % (g.description)
-
-
-class SimpleLayout(BaseLayout):
-    def __init__(self, diagram):
-        BaseLayout.__init__(self, diagram)
-        # Compress along the yscale a bit
-        self.yscaling = .015
-        self.xscaling = .010
-
-    def get_gene_description(self, g):
-        # This is key for how the layout looks ... it gives space
-        return "X"
-
-    def get_gene_shape(self, node_id, px, py, data):
-        return SimpleGeneShape(self.diagram, px, py, node_id, data)
-
-    def get_signal_shape(self, node_id, px, py, data):
-        return ChannelShape(self.diagram, px, py, node_id)
-
-    def get_connection(self, shape1, shape2, points, data):
-        return GeneConnector(shape1, shape2, points, data)
-
-
-class TextLayout(BaseLayout):
-    def __init__(self, diagram):
-        BaseLayout.__init__(self, diagram)
-        # Compress along the yscale a bit
-
-    def get_gene_shape(self, node_id, px, py, data):
-        return TextGeneShape(self.diagram, px, py, node_id, data)
-
-    def get_signal_shape(self, node_id, px, py, data):
-        return ChannelShape(self.diagram, px, py, node_id)
-
-    def get_connection(self, shape1, shape2, points, data):
-        return GeneConnector(shape1, shape2, points, data)
-
-
-class AnalysisLayout(BaseLayout):
-    def __init__(self, diagram):
-        BaseLayout.__init__(self, diagram)
-        # Compress along the yscale a bit
-        self.yscaling = .015
-        self.xscaling = .025
-
-    def get_gene_description(self, g):
-        # This is key for how the layout looks ... it gives space
-        return "X-1"
-
-    def get_gene_shape(self, node_id, px, py, data):
-        return AGeneShape(self.diagram, px, py, node_id, data)
-
-    def get_signal_shape(self, node_id, px, py, data):
-        return AChannelShape(self.diagram, px, py, node_id)
-
-    def get_connection(self, shape1, shape2, points, data):
-        return GeneConnector(shape1, shape2, points, data)
-
-
-class WiringDiagram(BaseDiagram):
-    def __init__(self, net, color=True, layout_type=SimpleLayout):
-        BaseDiagram.__init__(self, color)
-        self.net = net
-        self.graph = WiringGraph(net)
-        self.graph.clean_graph()
-
-        self.layout = layout_type(self)
-        dm = DotMaker(self.graph)
-        dm.make_layout(self.layout)
-
-
-class SignallingDiagram(BaseDiagram):
-    def __init__(self, net, color=True, layout_type=SimpleLayout):
-        BaseDiagram.__init__(self, color)
-        self.net = net
-        self.graph = SignalGraph(net)
-        self.graph.clean_graph()
-
-        self.layout = layout_type(self)
-        dm = DotMaker(self.graph)
-        dm.make_layout(self.layout)
-
+# class TextLayout(BaseLayout):
+#     def __init__(self, diagram):
+#         BaseLayout.__init__(self, diagram)
+#         # Compress along the yscale a bit
+#
+#     def get_gene_shape(self, node_id, px, py, data):
+#         return TextGeneShape(self.diagram, px, py, node_id, data)
+#
+#     def get_signal_shape(self, node_id, px, py, data):
+#         return ChannelShape(self.diagram, px, py, node_id)
+#
+#     def get_connector(self, shape1, shape2, points, data):
+#         return GeneConnector(shape1, shape2, points, data)
+#
+#
+# class AnalysisLayout(BaseLayout):
+#     def __init__(self, diagram):
+#         BaseLayout.__init__(self, diagram)
+#         # Compress along the yscale a bit
+#         self.yscaling = .015
+#         self.xscaling = .025
+#
+#     def get_gene_description(self, g):
+#         # This is key for how the layout looks ... it gives space
+#         return "X-1"
+#
+#     def get_gene_shape(self, node_id, px, py, data):
+#         return AGeneShape(self.diagram, px, py, node_id, data)
+#
+#     def get_signal_shape(self, node_id, px, py, data):
+#         return AChannelShape(self.diagram, px, py, node_id)
+#
+#     def get_connector(self, shape1, shape2, points, data):
+#         return GeneConnector(shape1, shape2, points, data)
+#
 
 def test():
     import logging
@@ -329,31 +265,31 @@ def test():
     nets = networks_from_yaml_file('tests/networks.yaml')
     # for i, n in enumerate(nets):
     #     d = SignallingDiagram(n)
-    #     C = canvas.canvas()
-    #     d.draw_basic(C)
-    #     C.writePDFfile("net-%02d" % i)
+    #     pyx_canvas = canvas.canvas()
+    #     d.draw_basic(pyx_canvas)
+    #     pyx_canvas.writePDFfile("net-%02d" % i)
     #
     # d = SignallingDiffDiagram(n1, n2)
     n1, n2 = nets[7], nets[8]
     n2 = nets[3]
-    C = canvas.canvas()
+    pyx_canvas = canvas.canvas()
     d = SignallingDiagram(n2, layout_type=TextLayout)
-    d.draw(C)
-    C.writePDFfile('signal')
+    d.draw(pyx_canvas)
+    pyx_canvas.writePDFfile('signal')
 
-    C = canvas.canvas()
+    pyx_canvas = canvas.canvas()
     d = SignallingDiagram(n2, layout_type=SimpleLayout)
-    d.draw(C)
-    C.writePDFfile('signal2')
+    d.draw(pyx_canvas)
+    pyx_canvas.writePDFfile('signal2')
 
     d = WiringDiagram(n2, layout_type=TextLayout)
-    C = canvas.canvas()
-    d.draw(C)
-    C.writePDFfile('wire')
+    pyx_canvas = canvas.canvas()
+    d.draw(pyx_canvas)
+    pyx_canvas.writePDFfile('wire')
     # st = d.get_states()
     # for s in st:
-    #     s.draw(C)
-    # C.writePDFfile('step')
+    #     s.draw(pyx_canvas)
+    # pyx_canvas.writePDFfile('step')
     #
 
 

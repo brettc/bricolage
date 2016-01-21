@@ -10,9 +10,8 @@ log = logtools.get_logger()
 
 # We'll just set this stuff globally. Maybe it will matter later, but it
 # doesn't right now.
-# NOTE: This appears to generate some annoying temp # files...
+# TODO: This appears to generate some annoying temp files
 pyx_text.set(mode="latex")
-
 
 # TODO: Make a pallette class here, that synchronises the colors with latex
 # col = color.cmyk.PineGreen
@@ -247,13 +246,22 @@ class CurvePath(Connector):
 
 class Diagram(object):
     def __init__(self):
-        self.smoother = deformer.cornersmoothed(.1)
+        # self.smoother = deformer.cornersmoothed(.1)
+        self._draw_list = []
 
-    def connect_line(self, f, t):
-        return LinePath(f, t)
+    def add_object(self, obj, zorder=1):
+        self._draw_list.append((zorder, obj))
 
-    def connect_curve(self, f, t, points):
-        return CurvePath(f, t, points)
+    def draw(self, pyx_canvas):
+        self._draw_list.sort()
+        for z, obj in self._draw_list:
+            obj.draw(pyx_canvas)
+
+    # def connect_line(self, f, t):
+    #     return LinePath(f, t)
+    #
+    # def connect_curve(self, f, t, points):
+    #     return CurvePath(f, t, points)
 
 
 def test1():

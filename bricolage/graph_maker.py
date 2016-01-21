@@ -13,6 +13,19 @@ class NodeType(IntEnum):
     END = 4
 
 
+class GraphType(IntEnum):
+    FULL = 0
+    SIGNAL_FLOW = 1
+    GENE_SIGNAL = 2
+    GENE = 3
+
+
+class ChannelType(IntEnum):
+    INPUT = 0
+    INTERNAL = 1
+    OUTPUT = 2
+
+
 # NOTE: Should mirror "encode_module_id" in pubsub2_c.h
 def _decode_module_id(module_id):
     return (0xff00 & module_id) >> 8, 0xff & module_id
@@ -38,6 +51,15 @@ class BaseGraph(object):
 
     def is_inert(self, node):
         return False
+
+    def get_channel_type(self, node):
+        t, n = node
+        assert t == NodeType.CHANNEL
+        if self.is_input(node):
+            return ChannelType.INPUT
+        if self.is_internal(node):
+            return ChannelType.INTERNAL
+        return ChannelType.OUTPUT
 
     def is_internal(self, node):
         return not self.is_input(node) and not self.is_output(node)
@@ -195,3 +217,15 @@ class GeneGraph(GeneSignalGraph):
         w = self.network.factory.world
         return "{}: {} => {}".format(glabel, equation,
                                      w.name_for_channel(g.pub))
+
+
+_type_map = {
+    GraphType.FULL: FullGraph,
+    GraphType.GENE_SIGNAL: GeneSignalGraph,
+    GraphType.GENE: GeneGraph,
+    GraphType.SIGNAL_FLOW: SignalFlowGraph,
+}
+
+
+def get_graph_by_type(gtype, *args, **kwargs):
+    return _type_map[gtype](*args, **kwargs)
