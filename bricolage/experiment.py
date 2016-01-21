@@ -1,3 +1,4 @@
+import bricolage.graph_layout
 import logtools
 
 import copy
@@ -6,7 +7,7 @@ import random
 import inspect
 
 from .analysis_ext import NetworkAnalysis
-import graph
+import graph_maker
 
 try:
     from send2trash import send2trash
@@ -183,10 +184,10 @@ class Replicate(object):
     def draw_net(self, prefix, net, gen, signals=True):
         ana = NetworkAnalysis(net)
         if signals:
-            g = graph.FullGraph(ana)
+            g = graph_maker.FullGraph(ana)
         else:
-            g = graph.GeneSignalGraph(ana)
-        d = graph.DotMaker(g)
+            g = graph_maker.GeneSignalGraph(ana)
+        d = bricolage.graph_layout.DotMaker(g)
         p = self.analysis_path / '{}-G{:07d}-N{:02d}-F{}.png'.format(
             prefix, gen, net.identifier, net.fitness)
         log.info("writing {}".format(str(p)))
