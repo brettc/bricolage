@@ -312,9 +312,11 @@ struct cNetworkAnalysis
     cNetworkAnalysis(cNetwork_ptr &n);
     cNetwork_ptr original;
     cNetwork_ptr modified;
+    size_t potential_bindings, active_bindings;
 
     void make_edges(cEdgeList &edges);
     void make_active_edges(cEdgeList &edges);
+    size_t calc_active_bindings();
 };
 
 struct cJointProbabilities;
