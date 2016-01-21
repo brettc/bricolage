@@ -25,6 +25,8 @@ inline bool not_zeroish(double a)
 cNetworkAnalysis::cNetworkAnalysis(cNetwork_ptr &n)
     : original(n)
     , modified(original->clone())
+    , potential_bindings(0)
+    , active_bindings(0)
 {
 }
 
@@ -35,6 +37,7 @@ void cNetworkAnalysis::make_edges(cEdgeList &edges)
     // Channel -> Module
     // Module -> Gene
     edges.clear();
+    potential_bindings = 0;
     for (size_t i=0; i < original->gene_count(); ++i)
     {
         cGene *g = original->get_gene(i);
@@ -54,6 +57,7 @@ void cNetworkAnalysis::make_edges(cEdgeList &edges)
                     continue;
                 Node_t cnode = std::make_pair(NT_CHANNEL, current);
                 edges.insert(Edge_t(cnode, mnode));
+                potential_bindings++;
             }
         }
     }
@@ -68,6 +72,7 @@ void cNetworkAnalysis::make_active_edges(cEdgeList &edges)
     // This isn't perfect, but it will do for now.  TODO: Fix this so it handle
     // double knockouts etc.
     edges.clear();
+    active_bindings = 0;
     for (size_t i=0; i < modified->gene_count(); ++i)
     {
         cGene *g = modified->get_gene(i);
@@ -127,12 +132,70 @@ void cNetworkAnalysis::make_active_edges(cEdgeList &edges)
                         Node_t cnode = std::make_pair(NT_CHANNEL, original_channel);
                         edges.insert(Edge_t(cnode, mnode));
                     }
+                    active_bindings++;
 
                 }
             }
         }
     }
 }
+
+// As above, but don't bother constructing edges
+size_t cNetworkAnalysis::calc_active_bindings()
+{
+    active_bindings = 0;
+    for (size_t i=0; i < modified->gene_count(); ++i)
+    {
+        cGene *g = modified->get_gene(i);
+
+        // Can we knock this gene out?
+        g->intervene = INTERVENE_OFF;
+        modified->calc_attractors_with_intervention();
+
+        // If this makes no diff, then no edges attached to this Gene make any
+        // difference. Let's skip to the next one.
+        if (modified->rates == original->rates)
+            continue;
+
+        // Ok, it does something ...
+        g->intervene = INTERVENE_NONE;
+        for (size_t j=0; j < g->module_count(); ++j)
+        {
+            cCisModule *m = g->get_module(j);
+            m->intervene = INTERVENE_OFF;
+            modified->calc_attractors_with_intervention();
+            if (modified->rates == original->rates)
+                continue;
+
+            // Reset and add edge
+            m->intervene = INTERVENE_NONE;
+            for (size_t k=0; k < m->site_count(); ++k)
+            {
+                // Knock this out by setting it to ZERO channel. Nothing ever
+                // publishes to the ZERO channel!
+                signal_t original_channel = m->set_site(k, 0);
+
+                // It was already zero?
+                if (original_channel == 0)
+                    continue;
+
+                // Otherwise, we need to test to see if it changed anything
+                modified->calc_attractors_with_intervention();
+
+                // Did it change?
+                if (modified->rates != original->rates)
+                {
+                    // We need to reset it.
+                    m->set_site(k, original_channel);
+                    active_bindings++;
+                }
+            }
+        }
+    }
+
+    return active_bindings;
+}
+
 
 
 //-----------------------------------------------------------------------------

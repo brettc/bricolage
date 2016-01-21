@@ -104,8 +104,7 @@ class StatsAverageControl(object):
         atot = ameans.sum(axis=1)
         vals.extend([
             ('MEAN', atot.mean()),
-            ('MAX', ameans.max()),
-            ('MXMN', atot.max()),
+            ('MAX', ai.max()),
         ])
         return vals
 
@@ -139,8 +138,8 @@ class StatsOutputControl(object):
         vals.extend([
             ('C_MEAN', reg_mean[0]),
             ('E_MEAN', reg_mean[1]),
-            ('C_MAX', ameans[:, 0].max()),
-            ('E_MIN', ameans[:, 1].min()),
+            ('C_MAX', ai[:, :, 0].max()),
+            ('E_MIN', ai[:, :, 1].min()),
         ])
         return vals
 
@@ -172,7 +171,8 @@ class StatsMutualInformation(object):
 
     def init_lineage(self, rep, lin):
         assert isinstance(lin, FullLineage)
-        # TODO: This should be configurable
+        # TODO: Should really use the target that is configured in the
+        # generations.
         self.target = lin.targets[0]
         self.regs = lin.params.reg_channels
         self.analyzer = MutualInfoAnalyzer(lin.world, self.target.calc_categories())
@@ -195,7 +195,7 @@ class StatsMutualInformation(object):
 
         vals.extend([
             ('MEAN', ameans.mean()),
-            ('MAX', ameans.max()),
+            ('MAX', mi.max()),
         ])
         return vals
 
@@ -203,7 +203,7 @@ class StatsMutualInformation(object):
 class StatsNeighbourhood(object):
     tag = "NB"
 
-    def __init__(self, sample_per_net=20, one_step_proportion=.1):
+    def __init__(self, sample_per_net=20, one_step_proportion=.5):
         self.fits = None
         self.sample_per_net = sample_per_net
         self.one_step_proportion = one_step_proportion
@@ -213,9 +213,8 @@ class StatsNeighbourhood(object):
         self.target = lin.targets[0]
 
     def calc_stats(self, pop):
-        nayb = PopulationNeighbourhood(pop,
-                                       self.sample_per_net,
-                                       self.one_step_proportion)
+        nayb = PopulationNeighbourhood(
+            pop, self.sample_per_net, self.one_step_proportion)
         self.target.assess_collection(nayb.neighbours)
         fits = nayb.neighbours.fitnesses
         n1 = sum(fits == 1.0)
@@ -225,4 +224,22 @@ class StatsNeighbourhood(object):
             ('MEAN', fits.mean()),
             ('VAR', fits.var()),
             ('MED', np.median(fits)),
+        ]
+
+
+class StatsBindings(object):
+    tag = "BD"
+
+    def __init__(self):
+        self.fits = None
+
+    def init_lineage(self, rep, lin):
+        pass
+
+    def calc_stats(self, pop):
+        bindings = pop.active_bindings
+        return [
+            ('MEAN', bindings.mean()),
+            ('VAR', bindings.var()),
+            ('MIN', bindings.min()),
         ]

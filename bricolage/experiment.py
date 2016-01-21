@@ -190,7 +190,7 @@ class Replicate(object):
         d = bricolage.graph_layout.DotMaker(g)
         p = self.analysis_path / '{}-G{:07d}-N{:02d}-F{}.png'.format(
             prefix, gen, net.identifier, net.fitness)
-        log.info("writing {}".format(str(p)))
+        log.info("Writing {}".format(str(p)))
         d.save_picture(str(p))
         d.save_dot(str(p.with_suffix('.dot')))
 
@@ -349,6 +349,21 @@ class Experiment(object):
 
         if self.user_interrupt:
             log.info("User interrupted --- quitting")
+
+    def visit_lineages(self, visitor,
+                       only_treatment=None,
+                       only_replicate=None):
+
+        for treat in self.treatments:
+            if only_treatment is not None and treat != only_treatment:
+                continue
+
+            for rep in treat.replicates:
+                if only_replicate is not None and rep != only_replicate:
+                    continue
+
+                with rep.get_lineage() as lin:
+                    visitor.visit_lineage(rep, lin)
 
     def visit_generations(self, visitor, every=1,
                           only_treatment=None,
