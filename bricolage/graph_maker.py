@@ -117,8 +117,8 @@ class BaseGraph(object):
 
     def remove_nodes(self, nodetype, internal_only=False, external_only=False):
         assert not (internal_only and external_only)
-        G = self.nx_graph
-        for nd in G.nodes():
+        gr = self.nx_graph
+        for nd in gr.nodes():
             if nd[0] != nodetype:
                 continue
 
@@ -130,12 +130,24 @@ class BaseGraph(object):
                     continue
 
             # Ok -- do the removal
-            pred = G.predecessors(nd)
-            succ = G.successors(nd)
+            pred = gr.predecessors(nd)
+            succ = gr.successors(nd)
             for p in pred:
                 for s in succ:
-                    G.add_edge(p, s)
-            G.remove_node(nd)
+                    gr.add_edge(p, s)
+            gr.remove_node(nd)
+
+    def format_annotations(self, obj):
+        try:
+            a = self.analysis.annotations[obj]
+        except (AttributeError, KeyError):
+            return ""
+        else:
+            keys = a.keys()
+            keys.sort()
+            return ", ".join(
+                ["{}:{}".format(k, round(a[k], 2))
+                 for k in keys])
 
 
 class FullGraph(BaseGraph):
@@ -163,37 +175,6 @@ class FullGraph(BaseGraph):
         return self.world.name_for_channel(i)
 
 
-class SignalFlowGraph(FullGraph):
-    begin_node = (NodeType.BEGIN, 0)
-    end_node = (NodeType.END, 0)
-
-    def __init__(self, analysis):
-        FullGraph.__init__(self, analysis, knockouts=True)
-        G = self.nx_graph
-
-        inp_nodes = [n for n in G.nodes_iter() if self.is_input(n)]
-        for n in inp_nodes:
-            G.add_edge(self.begin_node, n)
-
-        out_nodes = [n for n in G.nodes_iter() if self.is_output(n)]
-        for n in out_nodes:
-            G.add_edge(n, self.end_node)
-
-        # Now remove the other stuff
-        self.remove_nodes(NodeType.MODULE)
-        self.remove_nodes(NodeType.GENE)
-
-        # We've replaced the outside channels with the begin/end nodes
-        self.remove_nodes(NodeType.CHANNEL, external_only=True)
-
-    def minimum_cut(self):
-        # Sometimes begin nodes may not even be in the graph!
-        if self.begin_node not in self.nx_graph.nodes():
-            return None
-        return nx.minimum_node_cut(
-                self.nx_graph, self.begin_node, self.end_node)
-
-
 class GeneSignalGraph(FullGraph):
     def __init__(self, analysis, knockouts=True):
         FullGraph.__init__(self, analysis, knockouts)
@@ -201,8 +182,10 @@ class GeneSignalGraph(FullGraph):
 
     def get_gene_label(self, i):
         glabel = FullGraph.get_gene_label(self, i)
-        equation = text_for_gene(self.world, self.network.genes[i])
-        return "{} : {}".format(glabel, equation)
+        gene = self.network.genes[i]
+        equation = text_for_gene(self.world, gene)
+        ann = self.format_annotations(i)
+        return "{} : {} [{}]".format(glabel, equation, ann)
 
 
 class GeneGraph(GeneSignalGraph):
@@ -217,6 +200,37 @@ class GeneGraph(GeneSignalGraph):
         w = self.network.factory.world
         return "{}: {} => {}".format(glabel, equation,
                                      w.name_for_channel(g.pub))
+
+
+class SignalFlowGraph(FullGraph):
+    begin_node = (NodeType.BEGIN, 0)
+    end_node = (NodeType.END, 0)
+
+    def __init__(self, analysis):
+        FullGraph.__init__(self, analysis, knockouts=True)
+        gr = self.nx_graph
+
+        inp_nodes = [n for n in gr.nodes_iter() if self.is_input(n)]
+        for n in inp_nodes:
+            gr.add_edge(self.begin_node, n)
+
+        out_nodes = [n for n in gr.nodes_iter() if self.is_output(n)]
+        for n in out_nodes:
+            gr.add_edge(n, self.end_node)
+
+        # Now remove the other stuff
+        self.remove_nodes(NodeType.MODULE)
+        self.remove_nodes(NodeType.GENE)
+
+        # We've replaced the outside channels with the begin/end nodes
+        self.remove_nodes(NodeType.CHANNEL, external_only=True)
+
+    def minimum_cut(self):
+        # Sometimes begin nodes may not even be in the graph!
+        if self.begin_node not in self.nx_graph.nodes():
+            return None
+        return nx.minimum_node_cut(
+            self.nx_graph, self.begin_node, self.end_node)
 
 
 _type_map = {

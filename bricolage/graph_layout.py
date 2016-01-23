@@ -2,7 +2,9 @@ import pathlib
 from pygraphviz import AGraph
 from pyx_drawing import Diagram
 
-from bricolage.graph_maker import NodeType, FullGraph, BaseGraph, _decode_module_id
+from bricolage.graph_maker import (NodeType, BaseGraph, GraphType,
+                                   _decode_module_id, get_graph_by_type)
+from analysis import NetworkAnalysis
 
 _dot_default_args = '-Nfontname="Helvetica-8"'
 
@@ -204,13 +206,23 @@ class DotDiagram(Diagram):
         raise NotImplementedError
 
 
-def save_network_as_fullgraph(n, path='.', name=None, simplify=True):
-    output_path = pathlib.Path(path)
-    ana = NetworkAnalysis(n)
-    gph = FullGraph(ana, simplify)
-    dot = DotMaker(gph)
-    if name is None:
-        name = n.identifier
-    print 'saving', name
-    dot.save_picture(str(output_path / "network-{}.png".format(name)))
-    dot.save_dot(str(output_path / "network-{}.dot".format(name)))
+def save_network_as_fullgraph(net, path='.', name=None,
+                              simplify=True,
+                              graph_type=GraphType.GENE_SIGNAL,
+                              target=None,
+                              with_dot=False):
+        if not isinstance(path, pathlib.Path):
+            path = pathlib.Path(path)
+        ana = NetworkAnalysis(net)
+        ana.calc_output_control()
+        if target:
+            ana.calc_mutual_info(target)
+        g = get_graph_by_type(graph_type, ana)
+        d = DotMaker(g)
+        if name is None:
+            name = str(net.identifier)
+        path = path / name
+        d.save_picture(str(path.with_suffix('.png')))
+        if with_dot:
+            d.save_dot(str(path.with_suffix('.dot')))
+        return path
