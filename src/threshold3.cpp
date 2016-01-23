@@ -5,7 +5,7 @@
 
 using namespace thresh3;
 
-cFactory::cFactory(const bricolage::cWorld_ptr &w, size_t cc, 
+cFactory::cFactory(const bricolage::cWorld_ptr &w, size_t cc,
                            const MutateType mtype)
     : bricolage::cFactory(w)
     , gene_count(w->reg_channels + w->out_channels)
@@ -44,7 +44,7 @@ bricolage::cNetwork_ptr cFactory::construct(bool fill)
     if (fill)
         net->identifier = world->get_next_network_ident();
 
-    for (size_t pub = world->reg_range.first, gindex = 0; 
+    for (size_t pub = world->reg_range.first, gindex = 0;
          pub < world->pub_range.second; ++pub, ++gindex)
     {
         net->genes.push_back(cGene(gindex, pub));
@@ -104,7 +104,7 @@ cCisModule::cCisModule(const cFactory &c)
 void cCisModule::mutate(const cFactory &c)
 {
     size_t site = c.r_site();
-    switch (c.mutate_type) 
+    switch (c.mutate_type)
     {
     case JUMP:
         {
@@ -125,7 +125,7 @@ void cCisModule::mutate(const cFactory &c)
                 // Make it either -1 or +1
                 mutate = c.r_direction() * 2 - 1;
 
-            // If we're at zero, possibly change into a different binding 
+            // If we're at zero, possibly change into a different binding
             if (current == 0)
                 // Randomly draw from the provided list
                 channels[site] = c.draw_from_subs[c.r_sub()];
@@ -143,7 +143,7 @@ void cCisModule::mutate(const cFactory &c)
 //     // 1 + poisson something?
 // }
 
-bool cCisModule::is_active(bricolage::cChannelState const &state) const 
+bool cCisModule::is_active(bricolage::cChannelState const &state) const
 {
     // Calculate the weighted sum. Unrolled.
     bricolage::int_t sum = 0;
@@ -189,7 +189,7 @@ void cNetwork::cycle_with_intervention(bricolage::cChannelState &c) const
     static algo::Cycle<cNetwork> cycler;
     cycler.cycle_with_intervention(*this, c);
 }
-   
+
 cGene::cGene(bricolage::sequence_t sequence, bricolage::signal_t p)
     : bricolage::cGene(sequence, p)
 {
@@ -202,7 +202,7 @@ cGene::cGene(bricolage::sequence_t sequence, bricolage::signal_t p)
 //
 //     // First, decide what cis module we're using. Account for the fact that
 //     // there might be only one cis module.
-//     size_t cis_i = 0; 
+//     size_t cis_i = 0;
 //
 //     // More than? We need to pick one...
 //     if (cis_count > 0)
