@@ -7,7 +7,7 @@ import pandas as pd
 from .analysis_ext import (
     MutualInfoAnalyzer, AverageControlAnalyzer,
     Information, NetworkAnalysis, OutputControlAnalyzer)
-from .graph import SignalFlowGraph
+from .graph_maker import SignalFlowGraph
 from neighbourhood import NetworkNeighbourhood
 
 
