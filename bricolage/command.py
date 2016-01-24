@@ -3,7 +3,7 @@ import click
 from logtools import set_logging, get_logger
 from bricolage.stats import (
     StatsFitness, StatsVisitor, StatsMutualInformation, StatsOutputControl,
-    StatsBindings)
+    StatsAverageControl)
 from .analysis_ext import OutputControlAnalyzer, MutualInfoAnalyzer
 from experiment import ExperimentError
 from experimentdb import StatsReplicateRecord
@@ -68,7 +68,7 @@ def stats(every, treatment, replicate, verbose):
 
     visitor = StatsVisitor(NS.experiment,
                            [StatsOutputControl, StatsFitness,
-                            StatsMutualInformation, StatsBindings])
+                            StatsMutualInformation, StatsAverageControl])
     NS.experiment.visit_generations(visitor,
                                     only_treatment=the_t,
                                     only_replicate=the_rep,
