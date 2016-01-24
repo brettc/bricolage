@@ -3,7 +3,7 @@ import click
 from logtools import set_logging, get_logger
 from bricolage.stats import (
     StatsFitness, StatsVisitor, StatsMutualInformation, StatsOutputControl,
-    StatsBindings)
+    StatsAverageControl)
 from .analysis_ext import OutputControlAnalyzer, MutualInfoAnalyzer
 from experiment import ExperimentError
 from experimentdb import StatsReplicateRecord
@@ -68,7 +68,7 @@ def stats(every, treatment, replicate, verbose):
 
     visitor = StatsVisitor(NS.experiment,
                            [StatsOutputControl, StatsFitness,
-                            StatsMutualInformation, StatsBindings])
+                            StatsMutualInformation, StatsAverageControl])
     NS.experiment.visit_generations(visitor,
                                     only_treatment=the_t,
                                     only_replicate=the_rep,
@@ -196,16 +196,16 @@ class FindFirstFitVisitor(object):
         return generations[0]
 
     def get_controlled_indexes(self, collection):
-        ai = self.oc_analyzer.numpy_info_from_collection(collection)
         mi = self.mi_analyzer.numpy_info_from_collection(collection)
         mi.shape = mi.shape[:-1]
+        ai = self.oc_analyzer.numpy_info_from_collection(collection)
         left_to_explain = ai[:, :, 1] - ai[:, :, 0]
         control = mi - left_to_explain
         controlled = numpy.isclose(control, 1.0)
         if not controlled.any():
             return None
 
-        # Just grab the network indexes (we don't are which gene it was)
+        # Just grab the network indexes (we don't care which gene it was)
         where = numpy.where(controlled)[0]
         return where
 

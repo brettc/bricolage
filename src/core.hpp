@@ -374,6 +374,19 @@ struct cBaseCausalAnalyzer
     void _calc_natural(cNetwork &net);
 };
 
+struct cRateCategorizer
+{
+    // We only allocate this many categories. More than this and we're screwed.
+    size_t next_category;
+    std::map<double, int> rate_categories;
+    std::vector<double> category_probabilities;
+
+    cRateCategorizer() : next_category(0) {}
+    size_t get_category(double rate, double prob);
+    void clear();
+};
+
+
 struct cCausalFlowAnalyzer : public cBaseCausalAnalyzer
 {
     cCausalFlowAnalyzer(cWorld_ptr &world);
@@ -387,6 +400,9 @@ struct cCausalFlowAnalyzer : public cBaseCausalAnalyzer
 
 struct cAverageControlAnalyzer : public cBaseCausalAnalyzer
 {
+    boost::multi_array<cRateCategorizer, 2> categorizers;
+    cJointProbabilities joint_over_envs;
+
     cAverageControlAnalyzer(cWorld_ptr &world);
 
     // Note you need to delete the return values from these!
@@ -394,6 +410,7 @@ struct cAverageControlAnalyzer : public cBaseCausalAnalyzer
     cInformation *analyse_collection(const cNetworkVector &networks);
 
     void _analyse(cNetwork &net, info_array_type::reference sub);
+    void _clear();
 };
 
 struct cMutualInfoAnalyzer
