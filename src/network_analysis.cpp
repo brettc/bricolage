@@ -409,7 +409,7 @@ void cCausalFlowAnalyzer::_analyse(cNetwork &net, joint_array_type::reference su
 // --------------------------------------------------------------------------
 cAverageControlAnalyzer::cAverageControlAnalyzer(cWorld_ptr &world)
     : cBaseCausalAnalyzer(world)
-    , categorizers(world->reg_channels)
+    , categorizers(boost::extents[world->reg_channels][world->out_channels])
     , joint_over_envs(world, world->environments.size(),
                       world->out_channels,
                       cBaseCausalAnalyzer::max_category)
@@ -419,7 +419,8 @@ cAverageControlAnalyzer::cAverageControlAnalyzer(cWorld_ptr &world)
 // Note you need to delete the return values from these!
 cInformation *cAverageControlAnalyzer::analyse_network(cNetwork &net)
 {
-    cInformation *info = new cInformation(world, 1, world->out_channels);
+    // Entropies and mutual info
+    cInformation *info = new cInformation(world, 1, world->out_channels * 2);
     _analyse(net, info->_array[0]);
     return info;
 }
@@ -427,7 +428,8 @@ cInformation *cAverageControlAnalyzer::analyse_network(cNetwork &net)
 cInformation *cAverageControlAnalyzer::analyse_collection(
     const cNetworkVector &networks)
 {
-    cInformation *info = new cInformation(world, networks.size(), world->out_channels);
+    // Entropies and mutual info
+    cInformation *info = new cInformation(world, networks.size(), world->out_channels * 2);
     for (size_t i = 0; i < networks.size(); ++i)
         _analyse(*networks[i], info->_array[i]);
     return info;
@@ -437,8 +439,9 @@ void cAverageControlAnalyzer::_clear()
 {
     std::fill(joint_over_envs._array.origin(),
               joint_over_envs._array.origin() + joint_over_envs._array.num_elements(), 0.0);
-    for (auto &cat : categorizers)
-        cat.clear();
+    for (size_t i = 0; i < world->reg_channels; ++i)
+        for (size_t j = 0; j < world->out_channels; ++j)
+            categorizers[i][j].clear();
 }
 
 void cAverageControlAnalyzer::_analyse(
@@ -471,7 +474,7 @@ void cAverageControlAnalyzer::_analyse(
         for (size_t i = 0; i < net.rates.size(); ++i)
             for (size_t k = 0; k < world->out_channels; ++k)
             {
-                size_t cat = categorizers[j].get_category(net.rates[i][k], p_gene_off);
+                size_t cat = categorizers[j][k].get_category(net.rates[i][k], p_gene_off);
                 joint_over_envs._array[i][j][k][0][cat] += p_gene_off;
             }
 
@@ -482,7 +485,7 @@ void cAverageControlAnalyzer::_analyse(
         for (size_t i = 0; i < net.rates.size(); ++i)
             for (size_t k = 0; k < world->out_channels; ++k)
             {
-                size_t cat = categorizers[j].get_category(net.rates[i][k], p_gene_on);
+                size_t cat = categorizers[j][k].get_category(net.rates[i][k], p_gene_on);
                 joint_over_envs._array[i][j][k][1][cat] += p_gene_on;
             }
 
@@ -500,11 +503,16 @@ void cAverageControlAnalyzer::_analyse(
     // Now take the env weighted average of all of these, and summarize them in
     // the object that was passed.
     // Currently all environments have the same probability.
+    size_t output_size = world->out_channels;
     double p_env = 1.0 / net.rates.size();
     for (size_t i = 0; i < net.rates.size(); ++i)
         for (size_t j = 0; j < world->reg_channels; ++j)
             for (size_t k = 0; k < world->out_channels; ++k)
+            {
                 sub[j][k] += info._array[i][j][k] * p_env;
+                cRateCategorizer &categ = categorizers[j][k];
+                sub[j][k + output_size] = calc_entropy(p_env, categ.category_probabilities);
+            }
 
 }
 

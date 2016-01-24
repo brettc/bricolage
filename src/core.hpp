@@ -398,7 +398,7 @@ struct cCausalFlowAnalyzer : public cBaseCausalAnalyzer
 
 struct cAverageControlAnalyzer : public cBaseCausalAnalyzer
 {
-    std::vector<cRateCategorizer> categorizers;
+    boost::multi_array<cRateCategorizer, 2> categorizers;
     cJointProbabilities joint_over_envs;
 
     cAverageControlAnalyzer(cWorld_ptr &world);
