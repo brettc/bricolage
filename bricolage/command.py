@@ -193,16 +193,16 @@ class FindFirstFitVisitor(object):
         return generations[0]
 
     def get_controlled_indexes(self, collection):
-        ai = self.oc_analyzer.numpy_info_from_collection(collection)
         mi = self.mi_analyzer.numpy_info_from_collection(collection)
         mi.shape = mi.shape[:-1]
+        ai = self.oc_analyzer.numpy_info_from_collection(collection)
         left_to_explain = ai[:, :, 1] - ai[:, :, 0]
         control = mi - left_to_explain
         controlled = numpy.isclose(control, 1.0)
         if not controlled.any():
             return None
 
-        # Just grab the network indexes (we don't are which gene it was)
+        # Just grab the network indexes (we don't care which gene it was)
         where = numpy.where(controlled)[0]
         return where
 
