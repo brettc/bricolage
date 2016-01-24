@@ -327,7 +327,7 @@ class StatsLag(object):
         entropy = ai[:, :, output_size:]
 
         # Nothing should be uncontrolled -- all of the last one should be zero
-        uncontrolled = (entropy - control).product(axis=2)
+        uncontrolled = (entropy - control).prod(axis=2)
 
         control = mi - uncontrolled
         controlled = np.isclose(control, 1.0)
