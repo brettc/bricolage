@@ -1,4 +1,6 @@
 import analysis_ext
+import core_ext
+import numpy
 
 
 class NetworkAnalysis(analysis_ext.NetworkAnalysis):
@@ -32,3 +34,33 @@ class NetworkAnalysis(analysis_ext.NetworkAnalysis):
             # Make it available via the channel too
             a['C'] = oi[0]
             a['E'] = oi[1]
+
+
+# TODO: Possible way of handling information in more pythonic way...
+class AverageControlNetwork(object):
+    def __init__(self, net, result):
+        self._result = result
+        self._net = net
+        arr = numpy.asarray(result)
+        assert arr.shape[0] == 1
+        arr.shape = arr.shape[1:]
+        self._array = arr
+
+
+class AverageControlCollection(object):
+    def __init__(self, collection, result):
+        self._result = result
+        self._collection = collection
+
+
+class AverageControlAnalyzer(analysis_ext.AverageControlAnalyzer):
+    def __init__(self, world):
+        super(AverageControlAnalyzer, self).__init__(world)
+
+    def calc_info(self, net_or_collection):
+        if isinstance(net_or_collection, core_ext.Network):
+            res = self.analyse_network(net_or_collection)
+            return AverageControlNetwork(net_or_collection, res)
+
+        res = self.analyse_collection(net_or_collection)
+        return AverageControlCollection(net_or_collection, res)

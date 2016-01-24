@@ -71,6 +71,12 @@ class Replicate(object):
         self.params.seed = self.seed
         self.generations = -1
 
+    def __repr__(self):
+        return "<Replicate: {}-{}>".format(
+            self.treatment.name,
+            self.seq,
+        )
+
     @property
     def session(self):
         if not hasattr(self, '_session'):
@@ -180,7 +186,7 @@ class Replicate(object):
                 break
             self.draw_net('winner', net, lin.generation)
 
-    def draw_net(self, prefix, net, gen,
+    def draw_net(self, prefix, net,
                  graph_type=GraphType.GENE_SIGNAL,
                  knockouts=True,
                  target=None):
@@ -191,7 +197,7 @@ class Replicate(object):
         g = get_graph_by_type(graph_type, ana)
         d = DotMaker(g)
         p = self.analysis_path / '{}-G{:07d}-N{:02d}-F{}.png'.format(
-            prefix, gen, net.identifier, net.fitness)
+            prefix, net.generation, net.identifier, net.fitness)
         log.info("Writing {}".format(str(p)))
         d.save_picture(str(p))
         d.save_dot(str(p.with_suffix('.dot')))
