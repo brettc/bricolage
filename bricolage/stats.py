@@ -5,7 +5,7 @@ import numpy as np
 from .analysis_ext import (MutualInfoAnalyzer, AverageControlAnalyzer,
                            OutputControlAnalyzer)
 from .lineage import FullLineage
-from .experimentdb import StatsGroupRecord, StatsRecord
+from .experimentdb import StatsGroupRecord, StatsRecord, StatsReplicateRecord
 from .neighbourhood import PopulationNeighbourhood
 from bricolage.experiment import Experiment
 
@@ -243,3 +243,117 @@ class StatsBindings(object):
             ('VAR', bindings.var()),
             ('MIN', bindings.min()),
         ]
+
+
+class StatsLag(object):
+    def __init__(self, experiment):
+        self.experiment = experiment
+        self.session = experiment.database.session
+        self.replicate = None
+        self.lineage = None
+        self.ac_analyzer = None
+        self.mi_analyzer = None
+        self.done = {}
+
+        self.first_best = 'FIRST_BEST'
+        self.first_control = 'FIRST_CONTROL'
+
+        # TODO: should only load relevant ones
+        for srep in self.session.query(StatsReplicateRecord).all():
+            self.done[(srep.treatment_id, srep.replicate_id, srep.kind)] = srep
+
+    def is_done(self, rep, kind):
+        return (rep.treatment.seq, rep.seq, kind) in self.done
+
+    def visit_lineage(self, rep, lin):
+        log.info("{}".format(rep)).push().add()
+
+        # Setup
+        self.replicate = rep
+        self.lineage = lin
+        self.ac_analyzer = AverageControlAnalyzer(lin.world)
+        self.mi_analyzer = MutualInfoAnalyzer(lin.world, lin.targets[0].calc_categories())
+
+        # Analysis
+        if not self.is_done(rep, self.first_best):
+            fgen = self.find_first_winner()
+            self.session.add(StatsReplicateRecord(rep, self.first_best, fgen))
+
+        if not self.is_done(rep, self.first_control):
+            cgen = self.find_first_control()
+            self.session.add(StatsReplicateRecord(rep, self.first_control, cgen))
+
+        self.session.commit()
+
+        log.pop()
+
+    def find_first_winner(self):
+        first_win = None
+        for g in self.lineage._generations.where("best == 1.0"):
+            first_win = g['generation']
+            break
+
+        log.info("Found first winner at generation {}".format(first_win))
+        return first_win
+
+    def find_first_control(self):
+        # Load last generation and check if we got a master gene
+        ct = self.get_controlled_indexes(self.lineage.population)
+        if ct is None:
+            log.debug("No control evolved")
+            return None
+        log.debug("We got a master gene at the last generation.")
+
+        # Grab the first one and load the ancestry
+        generations = []
+        for i, net_index in enumerate(ct):
+            net = self.lineage.population[net_index]
+            first = self.get_ancestry_control(net)
+            generations.append(first)
+            if i == 0:
+                # Just one for now. It looks like the coalesce!
+                break
+
+        # Just one
+        log.info("First control is at generation {}.".format(generations[0]))
+        return generations[0]
+
+    def get_controlled_indexes(self, collection):
+        mi = self.mi_analyzer.numpy_info_from_collection(collection)
+        mi.shape = mi.shape[:-1]
+        ai = self.ac_analyzer.numpy_info_from_collection(collection)
+        output_size = self.lineage.params.out_channels
+        control = ai[:, :, :output_size]
+        entropy = ai[:, :, output_size:]
+
+        # Nothing should be uncontrolled -- all of the last one should be zero
+        uncontrolled = (entropy - control).product(axis=2)
+
+        control = mi - uncontrolled
+        controlled = np.isclose(control, 1.0)
+        if not controlled.any():
+            return None
+
+        # Just grab the network indexes (we don't care which gene it was)
+        where = np.where(controlled)[0]
+        return where
+
+    def get_ancestry_control(self, network):
+        log.debug("loading ancestry of winner {}".format(network.identifier))
+        anc = self.lineage.get_ancestry(network.identifier)
+
+        log.debug("Calculating ancestry control of {} networks.".format(anc.size))
+        ct = self.get_controlled_indexes(anc)
+
+        # We know that at least the last one should be good!
+        assert ct is not None
+
+        first_ancestor = anc[ct[0]]
+
+        # Make sure the network has a fitnes
+        self.lineage.targets[0].assess(first_ancestor)
+        log.debug("First ancestor with master gene is at {}.".format(
+            first_ancestor.generation))
+        self.replicate.draw_net('first-control', first_ancestor,
+                                first_ancestor.generation, signals=False)
+        return first_ancestor.generation
