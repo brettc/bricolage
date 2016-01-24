@@ -298,62 +298,57 @@ class StatsLag(object):
 
     def find_first_control(self):
         # Load last generation and check if we got a master gene
-        ct = self.get_controlled_indexes(self.lineage.population)
-        if ct is None:
+        c_index = self.find_controlled(self.lineage.population)
+        if c_index is None:
             log.debug("No control evolved")
             return None
         log.debug("We got a master gene at the last generation.")
 
         # Grab the first one and load the ancestry
-        generations = []
-        for i, net_index in enumerate(ct):
-            net = self.lineage.population[net_index]
-            first = self.get_ancestry_control(net)
-            generations.append(first)
-            if i == 0:
-                # Just one for now. It looks like the coalesce!
-                break
+        net = self.lineage.population[c_index]
+        first_control = self.get_ancestry_control(net)
 
         # Just one
-        log.info("First control is at generation {}.".format(generations[0]))
-        return generations[0]
+        log.info("First control is at generation {}.".format(first_control))
+        return first_control
 
-    def get_controlled_indexes(self, collection):
-        mi = self.mi_analyzer.numpy_info_from_collection(collection)
-        mi.shape = mi.shape[:-1]
-        ai = self.ac_analyzer.numpy_info_from_collection(collection)
+    def find_controlled(self, collection):
         output_size = self.lineage.params.out_channels
+
+        mutual = self.mi_analyzer.numpy_info_from_collection(collection)
+        # Ditch the empty dimension
+        mutual.shape = mutual.shape[:-1]
+
+        ai = self.ac_analyzer.numpy_info_from_collection(collection)
         control = ai[:, :, :output_size]
         entropy = ai[:, :, output_size:]
 
-        # Nothing should be uncontrolled -- all of the last one should be zero
-        uncontrolled = (entropy - control).product(axis=2)
-
-        control = mi - uncontrolled
-        controlled = np.isclose(control, 1.0)
-        if not controlled.any():
-            return None
-
-        # Just grab the network indexes (we don't care which gene it was)
-        where = np.where(controlled)[0]
-        return where
+        for i, (m_net, c_net, e_net) in enumerate(zip(mutual, control, entropy)):
+            for j, (m_reg, c_reg, e_reg) in enumerate(zip(m_net, c_net, e_net)):
+                # It must have full information about the environment
+                if m_reg == 1.0:
+                    # And this must translate into control
+                    if (c_reg == 1.0).all():
+                            # The control must explain all of the entropy
+                            if (e_reg == c_reg).all():
+                                return i
+        return None
 
     def get_ancestry_control(self, network):
         log.debug("loading ancestry of winner {}".format(network.identifier))
         anc = self.lineage.get_ancestry(network.identifier)
 
         log.debug("Calculating ancestry control of {} networks.".format(anc.size))
-        ct = self.get_controlled_indexes(anc)
+        c_index = self.find_controlled(anc)
 
         # We know that at least the last one should be good!
-        assert ct is not None
+        assert c_index is not None
 
-        first_ancestor = anc[ct[0]]
+        first_ancestor = anc[c_index]
 
         # Make sure the network has a fitnes
         self.lineage.targets[0].assess(first_ancestor)
         log.debug("First ancestor with master gene is at {}.".format(
             first_ancestor.generation))
-        self.replicate.draw_net('first-control', first_ancestor,
-                                first_ancestor.generation, signals=False)
+        self.replicate.draw_net('first-control', first_ancestor)
         return first_ancestor.generation
