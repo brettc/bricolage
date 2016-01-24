@@ -129,15 +129,15 @@ def draw(every, treatment, replicate, verbose):
 def calc_lag(verbose, treatment, replicate):
     set_logging(verbose)
 
-    # try:
-    #     the_t, the_rep = NS.experiment.find_matching(treatment, replicate)
-    # except ExperimentError as e:
-    #     raise click.BadParameter(e.message)
+    try:
+        the_t, the_rep = NS.experiment.find_matching(treatment, replicate)
+    except ExperimentError as e:
+        raise click.BadParameter(e.message)
 
     # First, let's find the best fitness
-    NS.experiment.visit_lineages(StatsLag(NS.experiment))
-                                 # only_treatment=the_t,
-                                 # only_replicate=the_rep)
+    NS.experiment.visit_lineages(StatsLag(NS.experiment),
+                                 only_treatment=the_t,
+                                 only_replicate=the_rep)
 
 
 # def status(verbose):
