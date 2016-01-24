@@ -225,3 +225,21 @@ class StatsNeighbourhood(object):
             ('VAR', fits.var()),
             ('MED', np.median(fits)),
         ]
+
+
+class StatsBindings(object):
+    tag = "BD"
+
+    def __init__(self):
+        self.fits = None
+
+    def init_lineage(self, rep, lin):
+        pass
+
+    def calc_stats(self, pop):
+        bindings = pop.active_bindings
+        return [
+            ('MEAN', bindings.mean()),
+            ('VAR', bindings.var()),
+            ('MIN', bindings.min()),
+        ]

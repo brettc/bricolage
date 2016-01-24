@@ -583,6 +583,21 @@ cdef class CollectionBase:
                 c_gens[i] = deref(self._collection)[i].get().generation
             return gens
 
+    property active_bindings:
+        def __get__(self):
+            bindings = numpy.zeros(self.size, dtype=int)
+            cdef:
+                size_t i
+                np.int_t[:] c_bindings = bindings
+                cNetworkAnalysis *analysis
+
+            for i in range(self._collection.size()):
+                # TODO: make this more sensible 
+                analysis = new cNetworkAnalysis(deref(self._collection)[i])
+                c_bindings[i] = analysis.calc_active_bindings()
+                del analysis
+
+            return bindings
 
 
 cdef class Collection(CollectionBase):
