@@ -22,6 +22,23 @@ inline bool not_zeroish(double a)
     return fabs(a) > ABSOLUTE_TOL;
 }
 
+double calc_entropy(double normalizer, const std::vector<double> &probs)
+{
+    double entropy = 0.0;
+    for (auto pr : probs)
+    {
+        // We need to normalize this; it's not done above.
+        double cond_pr = normalizer * pr;
+        if (not_zeroish(cond_pr))
+        {
+            double result = cond_pr * -log2(cond_pr);
+            entropy += result;
+        }
+    }
+    return entropy;
+}
+
+
 cNetworkAnalysis::cNetworkAnalysis(cNetwork_ptr &n)
     : original(n)
     , modified(original->clone())
@@ -281,38 +298,36 @@ void cBaseCausalAnalyzer::_calc_natural(cNetwork &net)
 // Keep a map of the unique rates that are output and assign them to persistent
 // categories within a network. We'll use these categories to calculate the
 // information.
-struct RateCategorizer
+size_t cRateCategorizer::get_category(double rate, double prob)
 {
-    // We only allocate this many categories. More than this and we're screwed.
-    size_t next_category;
-    std::map<double, int> rate_categories;
-
-    RateCategorizer() : next_category(2) {}
-    size_t get_category(double rate)
+    auto result = rate_categories.insert(
+        std::make_pair(rate, next_category));
+    if (result.second)
     {
-        if (rate == 0.0)
-            return 0;
-        if (rate == 1.0)
-            return 1.0;
+        // Successful insert. We have a new category. Update the category.
+        if (++next_category > cBaseCausalAnalyzer::max_category)
+            throw std::out_of_range("Maximum categories reached!!");
 
-        auto result = rate_categories.insert(
-            std::make_pair(rate, next_category));
-        if (result.second)
-        {
-            // Successful insert. We have a new category. Update the category.
-            if (++next_category > cBaseCausalAnalyzer::max_category)
-                throw std::out_of_range("Maximum categories reached!!");
-        }
-
-        // In either case, return the value in the pair the insert points to.
-        // (It will either be the new pair, or the one found).
-        auto the_pair = *result.first;
-        return the_pair.second;
+        // Set the probabilities on this category
+        category_probabilities.push_back(prob);
     }
-};
+    else
+    {
+        // Update the probabilities
+        category_probabilities[(*result.first).second] += prob;
+    }
 
+    // In either case, return the value in the pair the insert points to.
+    // (It will either be the new pair, or the one found).
+    return (*result.first).second;
+}
 
-
+void cRateCategorizer::clear()
+{
+    next_category = 0;
+    rate_categories.clear();
+    category_probabilities.clear();
+}
 
 cCausalFlowAnalyzer::cCausalFlowAnalyzer(cWorld_ptr &w)
     : cBaseCausalAnalyzer(w)
@@ -351,7 +366,7 @@ void cCausalFlowAnalyzer::_analyse(cNetwork &net, joint_array_type::reference su
 {
     _calc_natural(net);
 
-    RateCategorizer categorizer;
+    cRateCategorizer categorizer;
     double p_env = 1.0 / net.rates.size();
 
     // For each channel
@@ -365,7 +380,7 @@ void cCausalFlowAnalyzer::_analyse(cNetwork &net, joint_array_type::reference su
         for (size_t j = 0; j < net.rates.size(); ++j)
             for (size_t k = 0; k < world->out_channels; ++k)
             {
-                size_t cat = categorizer.get_category(net.rates[j][k]);
+                size_t cat = categorizer.get_category(net.rates[j][k], p_gene_off);
                 sub[i][k][0][cat] += p_gene_off;
             }
 
@@ -377,7 +392,7 @@ void cCausalFlowAnalyzer::_analyse(cNetwork &net, joint_array_type::reference su
         for (size_t j = 0; j < net.rates.size(); ++j)
             for (size_t k = 0; k < world->out_channels; ++k)
             {
-                size_t cat = categorizer.get_category(net.rates[j][k]);
+                size_t cat = categorizer.get_category(net.rates[j][k], p_gene_on);
                 sub[i][k][1][cat] += p_gene_on;
             }
 
@@ -394,6 +409,10 @@ void cCausalFlowAnalyzer::_analyse(cNetwork &net, joint_array_type::reference su
 // --------------------------------------------------------------------------
 cAverageControlAnalyzer::cAverageControlAnalyzer(cWorld_ptr &world)
     : cBaseCausalAnalyzer(world)
+    , categorizers(world->reg_channels)
+    , joint_over_envs(world, world->environments.size(),
+                      world->out_channels,
+                      cBaseCausalAnalyzer::max_category)
 {
 }
 
@@ -414,6 +433,14 @@ cInformation *cAverageControlAnalyzer::analyse_collection(
     return info;
 }
 
+void cAverageControlAnalyzer::_clear()
+{
+    std::fill(joint_over_envs._array.origin(),
+              joint_over_envs._array.origin() + joint_over_envs._array.num_elements(), 0.0);
+    for (auto &cat : categorizers)
+        cat.clear();
+}
+
 void cAverageControlAnalyzer::_analyse(
     cNetwork &net,
     info_array_type::reference sub
@@ -424,15 +451,9 @@ void cAverageControlAnalyzer::_analyse(
     // environment for a particular network, rather than the summed dist_n for
     // a network in population.
     auto &world = net.factory->world;
-    auto env_count = world->environments.size();
 
-    // We keep a set of category assignments for the rates
-    RateCategorizer categorizer;
-    cJointProbabilities joint_over_envs(
-        world, env_count, world->out_channels, cBaseCausalAnalyzer::max_category);
-
-    // Effectively the same as above
     _calc_natural(net);
+    _clear();
 
     // Note the reversed order here (j, i, k). I've exchanged the loops because
     // it is very expensive to recalculate the attractors. So we do it as
@@ -450,7 +471,7 @@ void cAverageControlAnalyzer::_analyse(
         for (size_t i = 0; i < net.rates.size(); ++i)
             for (size_t k = 0; k < world->out_channels; ++k)
             {
-                size_t cat = categorizer.get_category(net.rates[i][k]);
+                size_t cat = categorizers[j].get_category(net.rates[i][k], p_gene_off);
                 joint_over_envs._array[i][j][k][0][cat] += p_gene_off;
             }
 
@@ -461,7 +482,7 @@ void cAverageControlAnalyzer::_analyse(
         for (size_t i = 0; i < net.rates.size(); ++i)
             for (size_t k = 0; k < world->out_channels; ++k)
             {
-                size_t cat = categorizer.get_category(net.rates[i][k]);
+                size_t cat = categorizers[j].get_category(net.rates[i][k], p_gene_on);
                 joint_over_envs._array[i][j][k][1][cat] += p_gene_on;
             }
 
@@ -688,23 +709,6 @@ void cOutputControlAnalyzer::_analyse(
 
             // Now calc the entropy of the output from manipulating this channel
             cOutputCategorizer &categ = categorizers[j];
-            double entropy = 0.0;
-            for (auto pr : categ.category_probabilities)
-            {
-                // We need to normalize this; it's not done above.
-                double cond_pr = p_env * pr;
-                if (not_zeroish(cond_pr))
-                {
-                    double result = cond_pr * -log2(cond_pr);
-                    // if (result != result)
-                    // {
-                    //     std::ostringstream o;
-                    //     o << "Nan:" << cond_pr;
-                    //     throw std::out_of_range(o.str());
-                    // }
-                    entropy += result;
-                }
-            }
-            sub[j][1] = entropy;
+            sub[j][1] = calc_entropy(p_env, categ.category_probabilities);
         }
 }
