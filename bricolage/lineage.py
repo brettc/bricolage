@@ -394,6 +394,14 @@ class FullLineage(BaseLineage):
         self.factory.from_numpy(arr, anc)
         return anc
 
+    def get_network(self, ident):
+        data = self._networks[ident]
+        arr = numpy.zeros(1, dtype=self.factory.dtype())
+        arr[0] = data
+        temp = core_ext.Collection(self.factory)
+        self.factory.from_numpy(arr, temp)
+        return temp[0]
+
     def _check(self):
         rec = self._generations[-1]
         max_index = max(rec['indexes'])

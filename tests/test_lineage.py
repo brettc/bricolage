@@ -4,31 +4,31 @@ from bricolage.operand import Operand
 from bricolage import logic2, threshold3
 import bricolage.lineage as L
 
-@pytest.fixture(scope="module", params=['logic2', 'threshold3'])
-def module(request):
-    # Using strings as params makes the py.test output more information
-    return {
-        'logic2': logic2,
-        'threshold3': threshold3,
-    }[request.param]
+# @pytest.fixture(scope="module", params=['logic2', 'threshold3'])
+# def module(request):
+#     # Using strings as params makes the py.test output more information
+#     return {
+#         'logic2': logic2,
+#         'threshold3': threshold3,
+#     }[request.param]
 
 # An unparameterized version used for internal testing of a single module
-# @pytest.fixture
-# def module():
-#     return threshold3
-#     return logic2
+@pytest.fixture
+def module():
+    return threshold3
+    # return logic2
 
 @pytest.fixture
 def p_3x2(module):
     o = Operand
     ops = o.NOT_A_AND_B, o.A_AND_NOT_B, o.NOR, o.AND
     return module.Parameters(
-        seed=1, 
-        operands=ops, 
-        cis_count=2, 
+        seed=1,
+        operands=ops,
+        cis_count=2,
         reg_channels=10,
-        out_channels=2, 
-        cue_channels=3, 
+        out_channels=2,
+        cue_channels=3,
         population_size=100,
         mutation_rate=.001,
         replicates=10,
@@ -47,7 +47,7 @@ def target2(a, b, c):
 def test_numpy_export(p_3x2, module):
     world = module.World(p_3x2)
     factory = module.Factory(world)
-    
+
     p1 = module.Population(factory, 1000)
     as_array = factory.to_numpy(p1)
 
@@ -74,21 +74,25 @@ def test_creation(tmpdir, module):
     with L.FullLineage(path, params) as a:
         assert a.population
 
+
+def assert_nets_equal(n1, n2):
+    assert n1.identifier == n2.identifier
+    assert n1.parent_identifier == n2.parent_identifier
+    assert n1.generation == n2.generation
+    for g1, g2 in zip(n1.genes, n2.genes):
+        assert g1.pub == g2.pub
+        for m1, m2 in zip(g1.modules, g2.modules):
+            assert m1.same_as(m2)
+
+    # No blank attractors allowed
+    assert n1.attractors
+    assert n1.attractors == n2.attractors
+    assert (n1.rates == n2.rates).all()
+
 def assert_pops_equal(p1, p2):
     assert p1.size == p2.size
     for n1, n2 in zip(p1, p2):
-        assert n1.identifier == n2.identifier
-        assert n1.parent_identifier == n2.parent_identifier
-        assert n1.generation == n2.generation
-        for g1, g2 in zip(n1.genes, n2.genes):
-            assert g1.pub == g2.pub
-            for m1, m2 in zip(g1.modules, g2.modules):
-                assert m1.same_as(m2)
-
-        # No blank attractors allowed
-        assert n1.attractors
-        assert n1.attractors == n2.attractors
-        assert (n1.rates == n2.rates).all()
+        assert_nets_equal(n1, n2)
 
 def test_snapshot_reload(p_3x2, tmpdir):
     base = pathlib.Path(str(tmpdir))
@@ -258,6 +262,23 @@ def test_ancestry(tmpdir, p_3x2):
             assert p == prev_i
             prev_i = i
 
+
+def test_network(p_3x2, tmpdir):
+    path = pathlib.Path(str(tmpdir)) / 'network.db'
+
+    # Set it all up
+    with L.FullLineage(path, p_3x2) as a:
+        a.add_target(target1)
+        gen_count = 100
+        for i in range(gen_count):
+            a.next_generation()
+            if i == 10:
+                net_100_0 = a.population[0]
+
+        got_net = a.get_network(net_100_0.identifier)
+        assert_nets_equal(got_net, net_100_0)
+
+
 def test_targets(p_3x2, tmpdir):
     base = pathlib.Path(str(tmpdir))
     path = base / 'targets.db'
@@ -265,7 +286,7 @@ def test_targets(p_3x2, tmpdir):
         a.add_target(target1)
         for i in range(100):
             a.next_generation()
-    
+
         pa1_gen = a.generation
         fa1 = [n.fitness for n in a.population]
 
@@ -282,7 +303,7 @@ def test_targets(p_3x2, tmpdir):
     with L.FullLineage(path=path) as b:
         fb2 = [n.fitness for n in b.population]
         assert fa2 == fb2
-    
+
         # This should automatically reload and recalculate the fitnesses using the
         # appropriate target
         fb1 = [n.fitness for n in b.get_generation(pa1_gen)]

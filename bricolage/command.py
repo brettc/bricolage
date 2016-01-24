@@ -64,7 +64,7 @@ def stats(every, treatment, replicate, verbose):
     try:
         the_t, the_rep = NS.experiment.find_matching(treatment, replicate)
     except ExperimentError as e:
-        raise click.BadParameter(e.text)
+        raise click.BadParameter(e.message)
 
     visitor = StatsVisitor(NS.experiment,
                            [StatsOutputControl, StatsFitness,
@@ -91,6 +91,7 @@ class DrawVisitor(object):
 
     def visit_lineage(self, rep, lin):
         self.replicate = rep
+        self.lineage = lin
 
     def visit_generation(self, gen_num, pop):
         winners = [(n.fitness, n.identifier, n) for n in pop]
@@ -98,7 +99,9 @@ class DrawVisitor(object):
         for i, (fit, ident, net) in enumerate(winners):
             if i == 1:
                 break
-            self.replicate.draw_net('best', net, gen_num, signals=False)
+            self.replicate.draw_net('best', net, gen_num,
+                                    knockouts=True,
+                                    target=self.lineage.targets[0])
 
 
 @bricolage.command()
