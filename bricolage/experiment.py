@@ -184,7 +184,7 @@ class Replicate(object):
         for i, (fit, ident, net) in enumerate(winners):
             if i == maxw:
                 break
-            self.draw_net('winner', net, lin.generation)
+            self.draw_net('winner', net)
 
     def draw_net(self, prefix, net,
                  graph_type=GraphType.GENE_SIGNAL,
@@ -200,7 +200,7 @@ class Replicate(object):
             prefix, net.generation, net.identifier, net.fitness)
         log.info("Writing {}".format(str(p)))
         d.save_picture(str(p))
-        d.save_dot(str(p.with_suffix('.dot')))
+        # d.save_dot(str(p.with_suffix('.dot')))
 
 
 class Treatment(object):
