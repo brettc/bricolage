@@ -1,4 +1,4 @@
-from bricolage.analysis_ext import NetworkAnalysis
+from bricolage.analysis import NetworkAnalysis, AverageControlAnalyzer
 
 
 def get_max_bindings(net):
@@ -34,3 +34,14 @@ def test_bindings_pop(bowtie_database, bowtie_network):
         assert ana.active_bindings != 0
         assert ana.potential_bindings <= max_bindings
         assert ana.active_bindings <= ana.potential_bindings
+
+
+def test_analysis_control(bowtie_database):
+    az = AverageControlAnalyzer(bowtie_database.world)
+    info = az.calc_info(bowtie_database.population)
+
+    # Try accessing these
+    info.control.mean(axis=0)
+    info.entropy.mean(axis=0)
+    print info.with_control
+

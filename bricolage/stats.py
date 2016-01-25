@@ -2,8 +2,8 @@
 """
 import logtools
 import numpy as np
-from .analysis_ext import (MutualInfoAnalyzer, AverageControlAnalyzer,
-                           OutputControlAnalyzer)
+from .analysis_ext import (MutualInfoAnalyzer, OutputControlAnalyzer)
+from .analysis import AverageControlAnalyzer
 from .lineage import FullLineage
 from .experimentdb import StatsGroupRecord, StatsRecord, StatsReplicateRecord
 from .neighbourhood import PopulationNeighbourhood
@@ -87,10 +87,11 @@ class StatsAverageControl(object):
         self.out = lin.params.out_channels
 
     def calc_stats(self, pop):
-        ai = np.asarray(self.analyzer.analyse_collection(pop))
+        ai = self.analyzer.calc_info(pop)
 
         # Summarize across the population
-        ameans = np.mean(ai, axis=0)
+        control = ai.control.mean(axis=0)
+        entropy = ai.entropy.mean(axis=0)
 
         vals = []
 
@@ -99,12 +100,12 @@ class StatsAverageControl(object):
         out = self.out
         for i, c in enumerate(range(regs)):
             for j in range(out):
-                vals.append(('{}_{}'.format(c + 1, j + 1), ameans[i, j]))
+                vals.append(('C_{}_{}'.format(c + 1, j + 1), control[i, j]))
+                vals.append(('E_{}_{}'.format(c + 1, j + 1), entropy[i, j]))
 
-        atot = ameans.sum(axis=1)
         vals.extend([
-            ('MEAN', atot.mean()),
-            ('MAX', ai.max()),
+            ('C_MEAN', control.mean()),
+            ('E_MEAN', entropy.mean()),
         ])
         return vals
 
