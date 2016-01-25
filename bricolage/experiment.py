@@ -184,7 +184,7 @@ class Replicate(object):
         for i, (fit, ident, net) in enumerate(winners):
             if i == maxw:
                 break
-            self.draw_net('winner', net)
+            self.draw_net('winner', net, target=lin.targets[0])
 
     def draw_net(self, prefix, net,
                  graph_type=GraphType.GENE_SIGNAL,
@@ -245,14 +245,17 @@ class Treatment(object):
         assert rep.seq == rep_id
         return rep
 
-    def run(self):
+    def run(self, only_replicate=None):
         # Check paths...
+        log.debug("Running Treatment {}".format(self))
         if not self.path.exists():
             self.path.mkdir()
         if not self.analysis_path.exists():
             self.analysis_path.mkdir()
 
         for r in self.replicates:
+            if only_replicate is not None and r is not only_replicate:
+                continue
             if not self.experiment.user_interrupt:
                 r.run()
 
@@ -337,7 +340,8 @@ class Experiment(object):
                 with r.get_lineage(readonly=readonly) as lin:
                     yield r, lin
 
-    def run(self, overwrite=False, verbose=False, dry=False):
+    def run(self, overwrite=False, verbose=False, dry=False,
+            only_treatment=None, only_replicate=None):
         """Run the experiment."""
         if overwrite:
             self._remove_paths()
@@ -350,8 +354,10 @@ class Experiment(object):
         # Now run
         log.info("Beginning experiment in {}".format(str(self.path)))
         for treat in self.treatments:
+            if only_treatment is not None and treat != only_treatment:
+                continue
             if not self.user_interrupt:
-                treat.run()
+                treat.run(only_replicate)
 
         if self.user_interrupt:
             log.info("User interrupted --- quitting")

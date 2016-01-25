@@ -4,10 +4,7 @@ from logtools import set_logging, get_logger
 from bricolage.stats import (
     StatsFitness, StatsVisitor, StatsMutualInformation, StatsOutputControl,
     StatsAverageControl, StatsLag)
-from .analysis_ext import OutputControlAnalyzer, MutualInfoAnalyzer
 from experiment import ExperimentError
-from experimentdb import StatsReplicateRecord
-import numpy
 
 log = get_logger()
 
@@ -40,16 +37,25 @@ replicate_ = click.option('--replicate', default=-1,
 
 @bricolage.command()
 @verbose_
+@treatment_
+@replicate_
 @click.option('--overwrite', is_flag=True, default=False,
               help="Trash the experiment and start again.")
-def run(overwrite, verbose):
+def run(overwrite, verbose, treatment, replicate):
     """Run the simulation.
 
     This will create a new simulation or complete an existing one (if
     unfinished).
     """
     set_logging(verbose)
-    NS.experiment.run(overwrite=overwrite)
+    try:
+        the_t, the_rep = NS.experiment.find_matching(treatment, replicate)
+    except ExperimentError as e:
+        raise click.BadParameter(e.message)
+
+    NS.experiment.run(overwrite=overwrite,
+                      only_treatment=the_t,
+                      only_replicate=the_rep)
 
 
 @bricolage.command()
