@@ -49,8 +49,35 @@ class AverageControlNetwork(object):
 
 class AverageControlCollection(object):
     def __init__(self, collection, result):
+        assert isinstance(collection, core_ext.CollectionBase)
         self._result = result
         self._collection = collection
+        self._world = self._collection.factory.world
+        self._array = numpy.asarray(self._result)
+        self._output_size = self._world.out_channels
+
+    @property
+    def control(self):
+        return self._array[:, :, :self._output_size]
+
+    @property
+    def entropy(self):
+        return self._array[:, :, self._output_size:]
+
+    @property
+    def with_control(self):
+        controlled = []
+        for i, (c_net, e_net) in enumerate(zip(self.control, self.entropy)):
+            for j, (c_reg, e_reg) in enumerate(zip(c_net, e_net)):
+                # It must have full information about the environment
+                if e_reg.prod() != 0.0:
+                    if (e_reg == c_reg).all():
+                        controlled.append(i)
+        return controlled
+
+    # @property
+    # def fast_with_control(self):
+    #     non_zero = self.entropy.prod(axis=2)
 
 
 class AverageControlAnalyzer(analysis_ext.AverageControlAnalyzer):
