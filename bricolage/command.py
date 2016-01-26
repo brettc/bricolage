@@ -105,8 +105,7 @@ class DrawVisitor(object):
         for i, (fit, ident, net) in enumerate(winners):
             if i == 1:
                 break
-            self.replicate.draw_net('best', net, gen_num,
-                                    knockouts=True,
+            self.replicate.draw_net('best', net,
                                     target=self.lineage.targets[0])
 
 
