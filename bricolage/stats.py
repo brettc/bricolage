@@ -351,5 +351,5 @@ class StatsLag(object):
         self.lineage.targets[0].assess(first_ancestor)
         log.debug("First ancestor with master gene is at {}.".format(
             first_ancestor.generation))
-        self.replicate.draw_net('first-control', first_ancestor)
+        self.replicate.draw_net('first-control', first_ancestor, target=self.lineage.targets[0])
         return first_ancestor.generation

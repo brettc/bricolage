@@ -411,9 +411,12 @@ class Experiment(object):
         if text == "":
             # If they've selected a replicate too, then we need a treatment.
             if len(self.treatments) > 1:
-                raise ExperimentError("No unique Treatment found.")
-            else:
-                matches.append(self.treatments[0])
+                # If they've supplied a replicate...
+                if repnum >= 1:
+                    raise ExperimentError("No treatment supplied and more than one is possible.")
+                else:
+                    # Otherwise just match the only treament
+                    matches.append(self.treatments[0])
         else:
             look = text.lower()
             len_look = len(text)
