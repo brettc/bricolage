@@ -247,7 +247,7 @@ class Treatment(object):
 
     def run(self, only_replicate=None):
         # Check paths...
-        log.debug("Running Treatment {}".format(self))
+        log.info("Running Treatment {}".format(self))
         if not self.path.exists():
             self.path.mkdir()
         if not self.analysis_path.exists():
@@ -410,13 +410,15 @@ class Experiment(object):
 
         if text == "":
             # If they've selected a replicate too, then we need a treatment.
-            if len(self.treatments) > 1:
-                # If they've supplied a replicate...
-                if repnum >= 1:
+            if repnum >= 1:
+                if len(self.treatments) > 1:
                     raise ExperimentError("No treatment supplied and more than one is possible.")
+                    # If they've supplied a replicate...
                 else:
                     # Otherwise just match the only treament
                     matches.append(self.treatments[0])
+            else:
+                matches = [None]
         else:
             look = text.lower()
             len_look = len(text)
@@ -426,12 +428,13 @@ class Experiment(object):
                     if look == current[:len_look]:
                         matches.append(t)
 
-        if not matches:
-            raise ExperimentError("No match for {}.".format(text))
+            if not matches:
+                raise ExperimentError("No match for {}.".format(text))
 
-        if len(matches) > 1:
-            raise Experiment("More than one match for {}.".format(text))
+            if len(matches) > 1:
+                raise Experiment("More than one match for {}.".format(text))
 
+        # Ok. Grab the match. It may be None.
         matching_treatment = matches[0]
 
         if repnum >= 1:
