@@ -712,18 +712,25 @@ cdef class Population(CollectionBase):
             return self._this.selected
 
 # NOTE: allow weighting to be None for backward compatibility
-def _construct_target(World w, name, ident, rates, weighting=None):
-    t = Target(w, None, name, ident)
+def _construct_target(World w, name, ident, rates, weighting=None,
+                      scoring_method=None, strength=None):
+    t = Target(w, None, name, ident=ident)
     # Manually construct these
     t._this.optimal_rates = rates
     if weighting is not None:
         t.weighting = weighting
+    if scoring_method is not None:
+        t.scoring_method = scoring_method
+    if strength is not None:
+        t.strength = strength
+
     return t
 
 cdef class Target:
-    def __cinit__(self, World w, init_func=None, name="", ident=-1):
+    def __cinit__(self, World w, init_func=None, name="", 
+                  scoring_method=0, strength=0.0, ident=-1):
         self.world = w
-        self._this = new cTarget(w._shared, name, ident)
+        self._this = new cTarget(w._shared, name, scoring_method, strength, ident)
         if init_func:
             self._construct_from_function(init_func)
 
@@ -761,7 +768,9 @@ cdef class Target:
                                    self._this.name, 
                                    self._this.identifier,
                                    self._this.optimal_rates,
-                                   self._this.weighting)
+                                   self._this.weighting,
+                                   self._this.scoring_method,
+                                   self._this.strength)
 
     def __dealloc__(self):
         del self._this
@@ -799,5 +808,15 @@ cdef class Target:
                 cat_n += 1
         return cats
             
+    property scoring_method:
+        def __get__(self):
+            return self._this.scoring_method
+        def __set__(self, ScoringMethod method):
+            self._this.scoring_method = method
 
+    property strength:
+        def __get__(self):
+            return self._this.strength
+        def __set__(self, double s):
+            self._this.strength = s
 

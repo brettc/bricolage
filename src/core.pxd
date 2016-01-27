@@ -118,9 +118,13 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
     # # ctypedef shared_ptr[const cNetwork] cConstNetwork_ptr
     # # ctypedef vector[cConstNetwork_ptr] cNetworkVector
     # ctypedef vector[cNetwork_ptr] cNetworkVector
-    #
+    
+    cdef enum ScoringMethod:
+        SCORE_LINEAR = 0,
+        SCORE_EXPONENTIAL = 1,
+
     cdef cppclass cTarget:
-        cTarget(cWorld_ptr &w, string name, int_t ident)
+        cTarget(cWorld_ptr &w, string name, ScoringMethod meth, double strength, int_t id)
         double assess(cNetwork &net)
         void assess_networks(cNetworkVector &networks)
         void set_weighting(const cRates &w);
@@ -129,6 +133,8 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         string name
         cRatesVector optimal_rates
         cRates weighting
+        ScoringMethod scoring_method
+        double strength
 
     cdef cppclass cSelectionModel:
         cSelectionModel(cWorld_ptr &factory)

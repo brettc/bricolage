@@ -1,16 +1,26 @@
 import bricolage.core as T
 import cPickle as pickle
 import pathlib
+import numpy
+
 
 def make_target1(a, b, c):
     f1 = .5 if a and b or not c else 1.0
     f2 = 1 if ((a or c) and not (a and b)) and b else 0
     return f1, f2
 
+
 def make_target2(a, b, c):
     f1 = .25 if (a or b) and (not a and not c) else 1.0
     f2 = 1 if ((a or b) and not (a and b)) and c else 0
     return f1, f2
+
+
+def bowtie_target(a, b, c):
+    if (a and not c) or (b and c):
+        return [1, .5, .25]
+    return [0, 0, 0]
+
 
 def test_world():
     cue = 3
@@ -26,6 +36,7 @@ def test_world():
     assert w.reg_channels == reg
     assert w.out_channels == out
     assert w.channel_count == 2 + cue + reg + out
+
 
 def test_target():
     p = T.Parameters(
@@ -79,7 +90,11 @@ def test_pickling_target(tmpdir):
 
     # Now ensure that pickling Targets works too
     t1 = T.Target(w, make_target1, name='a')
-    t2 = T.Target(w, make_target2, name='b')
+    assert t1.scoring_method == T.ScoringMethod.LINEAR
+    assert t1.strength == 0.0
+
+    t2 = T.Target(w, make_target2, name='b',
+                  scoring_method=T.ScoringMethod.EXPONENTIAL, strength=4.0)
     t2.weighting = [1, 2]
 
     with open(str(tmpdir / 'target1.pickle'), 'wb') as f:
@@ -99,6 +114,37 @@ def test_pickling_target(tmpdir):
 
     assert t1.weighting == rt1.weighting
     assert t2.weighting == rt2.weighting
+
+    assert t1.scoring_method == rt1.scoring_method
+    assert t2.scoring_method == rt2.scoring_method
+
+    assert t1.strength == rt1.strength
+    assert t2.strength == rt2.strength
+
+
+def test_scoring_methods(bowtie_database):
+    pop = bowtie_database.population
+    # Use different identifiers to force recalculation
+    targ1 = T.Target(pop.factory.world, bowtie_target, ident=2)
+    targ2 = T.Target(pop.factory.world, bowtie_target, ident=3,
+                     scoring_method=T.ScoringMethod.EXPONENTIAL,
+                     strength=1)
+    targ3 = T.Target(pop.factory.world, bowtie_target, ident=4,
+                     scoring_method=T.ScoringMethod.EXPONENTIAL_VEC,
+                     strength=1)
+
+    targ1.assess_collection(pop)
+    f1 = pop.fitnesses
+    targ2.assess_collection(pop)
+    f2 = pop.fitnesses
+    targ3.assess_collection(pop)
+    f3 = pop.fitnesses
+    ones1 = numpy.where(f1 == 1.0)[0]
+    ones2 = numpy.where(f2 == 1.0)[0]
+    ones3 = numpy.where(f3 == 1.0)[0]
+    assert (ones1 == ones2).all()
+    assert (ones1 == ones3).all()
+
 
 def test_channelstate():
     p = T.Parameters(
@@ -126,6 +172,7 @@ def test_channelstate():
     copy_e2.flip(0)
     assert e2 == copy_e2
 
+
 def test_random_engine():
     p = T.Parameters(
         cue_channels=3,
@@ -136,7 +183,7 @@ def test_random_engine():
     w.seed_random_engine(1)
     first_time = [w.get_random_double(0, 1) for _ in range(20)]
     first_time += [w.get_random_int(0, 100) for _ in range(20)]
-    
+
     w.seed_random_engine(1)
     second_time = [w.get_random_double(0, 1) for _ in range(20)]
     second_time += [w.get_random_int(0, 100) for _ in range(20)]
@@ -151,6 +198,3 @@ def test_random_engine():
     b = [w.get_random_double(0, 1) for _ in range(100)]
 
     assert a == b
-        
-    
-

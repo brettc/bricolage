@@ -240,14 +240,26 @@ private:
     cNetwork(const cNetwork &);
 };
 
+
+enum ScoringMethod
+{
+    SCORE_LINEAR = 0,
+    SCORE_EXPONENTIAL = 1,
+    SCORE_EXPONENTIAL_VEC = 2
+};
+
 struct cTarget
 {
-    cTarget(const cWorld_ptr &world, const std::string &name, int_t id=-1);
+    cTarget(const cWorld_ptr &world, const std::string &name,
+            ScoringMethod method=SCORE_LINEAR, double strength=1.0,
+            int_t ident=-1);
     cWorld_ptr world;
     std::string name;
     int_t identifier;
     cRatesVector optimal_rates;
     cRates weighting;
+    ScoringMethod scoring_method;
+    double strength;
 
     // TODO: per env weighting
     // TODO: per output weighting
