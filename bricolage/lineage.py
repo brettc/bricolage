@@ -3,6 +3,7 @@ import numpy
 import pathlib
 import tables
 from . import core_ext
+from core import ScoringMethod
 
 log = logtools.get_logger()
 
@@ -47,7 +48,9 @@ class BaseLineage(object):
         log.debug("Closing lineage {} in __exit__".format(self))
         self.close()
 
-    def add_target(self, func, name="", target_class=None, weighting=None):
+    def add_target(self, func, name="", target_class=None, weighting=None,
+                   scoring_method=ScoringMethod.LINEAR,
+                   strength=1.0):
         if self.readonly:
             raise LineageError("Network is readonly")
         if target_class is None:
@@ -58,7 +61,8 @@ class BaseLineage(object):
             name = str(len(self.targets))
 
         # Add locally and save
-        t = target_class(self.world, func, name=name)
+        t = target_class(self.world, func, name=name,
+                         scoring_method=scoring_method, strength=strength)
 
         if weighting is not None:
             t.weighting = weighting

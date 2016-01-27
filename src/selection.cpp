@@ -5,9 +5,12 @@
 
 using namespace bricolage;
 
-cTarget::cTarget(const cWorld_ptr &w, const std::string &n, int_t id)
-    : world(w) 
+cTarget::cTarget(const cWorld_ptr &w, const std::string &n,
+                 ScoringMethod m, double s, int_t id)
+    : world(w)
     , name(n)
+    , scoring_method(m)
+    , strength(s)
 {
     if (id == -1)
         identifier = w->get_next_target_ident();
@@ -39,7 +42,6 @@ void cTarget::set_weighting(const cRates &wghts)
 
 }
 
-// TODO: per output weighting
 // TODO: per env weighting
 // TODO: Profiling -- make faster?
 // TODO: Maybe we should be use multi_array??
@@ -57,28 +59,71 @@ double cTarget::assess(const cNetwork &net) const
         throw std::runtime_error("optimal rates and networks rates differ in size");
 
     // We need to score each of the outputs individually
-    // TODO: Maybe make this a member
-    cRates scores;
-    std::fill_n(std::back_inserter(scores), osize, 0.0);
 
-    // The difference from the target reduces the score from a max of 1.0
-    for (size_t i = 0; i < nsize; ++i)
+    double normalize = double(nsize);
+    double final_score = 0.0;
+
+    switch (scoring_method)
+    {
+    case SCORE_EXPONENTIAL_VEC:
+        {
+        for (size_t i = 0; i < nsize; ++i)
+        {
+            double dist = 0.0;
+            for (size_t j = 0; j < osize; ++j)
+            {
+                double diff = net.rates[i][j] - optimal_rates[i][j];
+                diff *= weighting[j];
+                dist += diff * diff;
+
+            }
+            if (dist != 0.0)
+                dist = sqrt(dist);
+            final_score += exp(-fabs(dist) / strength)
+                / normalize;
+        }
+        }
+        break;
+
+    case SCORE_EXPONENTIAL:
+        {
+        cRates scores;
+        std::fill_n(std::back_inserter(scores), osize, 0.0);
+
+        for (size_t i = 0; i < nsize; ++i)
+            for (size_t j = 0; j < osize; ++j)
+                scores[j] += exp(-fabs(net.rates[i][j] - optimal_rates[i][j]) / strength)
+                                  / normalize;
+        // Now apply the weighting
         for (size_t j = 0; j < osize; ++j)
-            scores[j] += ((1.0 - fabs(net.rates[i][j] - optimal_rates[i][j])) 
-                          / double(nsize));
+            final_score += scores[j] * weighting[j];
+        }
+        break;
 
-    // Now apply the weighting
-    double score = 0.0;
-    for (size_t j = 0; j < osize; ++j)
-        score += scores[j] * weighting[j];
+    default:
+    case SCORE_LINEAR:
+        // The difference from the target reduces the score from a max of 1.0
+        {
+        cRates scores;
+        std::fill_n(std::back_inserter(scores), osize, 0.0);
+
+        for (size_t i = 0; i < nsize; ++i)
+            for (size_t j = 0; j < osize; ++j)
+                scores[j] += (1.0 - fabs(net.rates[i][j] - optimal_rates[i][j]))
+                            / normalize;
+        // Now apply the weighting
+        for (size_t j = 0; j < osize; ++j)
+            final_score += scores[j] * weighting[j];
+        }
+    }
 
     // Must be greater 0 >= n <= 1.0
-    net.fitness = score;
+    net.fitness = final_score;
 
     // Record the target we've been used to assess. We can skip doing every
     // time then.
     net.target = identifier;
-    return score;
+    return final_score;
 }
 
 void cTarget::assess_networks(cNetworkVector &networks) const
@@ -117,7 +162,7 @@ bool cSelectionModel::select(
         indexes.push_back(i);
     }
 
-    // Everyone was crap. 
+    // Everyone was crap.
     if (cum_scores.size() == 0)
         return false;
 
