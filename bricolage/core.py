@@ -6,14 +6,23 @@ from .core_ext import SelectionModel, World, Target
 
 __all__ = ["World", "SelectionModel", "Parameters", "Target"]
 
+
 class InterventionState(IntEnum):
     INTERVENE_NONE = 0
     INTERVENE_ON = 1
     INTERVENE_OFF = 2
 
+
 class MutateType(IntEnum):
     JUMP = 0
     PROGRESSIVE = 1
+
+
+class ScoringMethod(IntEnum):
+    LINEAR = 0
+    EXPONENTIAL = 1
+    EXPONENTIAL_VEC = 2
+
 
 class Parameters(object):
 
@@ -29,6 +38,8 @@ class Parameters(object):
         self.population_size = 100
         self.mutation_rate = 0.001
         self.mutate_type = MutateType.JUMP
+        self.score_method = ScoringMethod.LINEAR
+        self.score_strength = 1.0
         self.add_zeros = 0
 
         self._override(kwargs)
@@ -44,7 +55,8 @@ class Parameters(object):
         if set(sdict.keys()) != set(odict.keys()):
             x = set(sdict.keys())
             y = set(odict.keys())
-            log.warning("Differences in parameters-- {}/{}".format(x-y, y-x))
+            log.warning(
+                "Differences in parameters-- {}/{}".format(x - y, y - x))
             return False
 
         for k, v in sdict.items():
@@ -52,6 +64,5 @@ class Parameters(object):
                 log.warning("parameters {}, has changed: {} -> {}".format(
                     k, v, odict[k]))
                 return False
-        
-        return True
 
+        return True
