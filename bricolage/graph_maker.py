@@ -198,8 +198,9 @@ class GeneGraph(GeneSignalGraph):
         g = self.network.genes[i]
         equation = text_for_gene(self.world, g)
         w = self.network.factory.world
-        return "{}: {} => {}".format(glabel, equation,
-                                     w.name_for_channel(g.pub))
+        # return "{}: {} => {}".format(glabel, equation,
+        #                              w.name_for_channel(g.pub))
+        return "{} => {}".format(equation, w.name_for_channel(g.pub))
 
 
 class SignalFlowGraph(FullGraph):

@@ -5,6 +5,7 @@ from bricolage.stats import (
     StatsFitness, StatsVisitor, StatsMutualInformation, StatsOutputControl,
     StatsAverageControl, StatsLag)
 from experiment import ExperimentError
+from bricolage.graph_maker import GraphType
 
 log = get_logger()
 
@@ -92,6 +93,10 @@ def trash():
 
 
 class DrawVisitor(object):
+
+    def __init__(self):
+        super(DrawVisitor, self).__init__()
+
     def wants_generation(self, gen_num):
         return True
 
@@ -105,8 +110,9 @@ class DrawVisitor(object):
         for i, (fit, ident, net) in enumerate(winners):
             if i == 1:
                 break
-            self.replicate.draw_net('best', net,
-                                    target=self.lineage.targets[0])
+            self.replicate.draw_net('g_best', net,
+                                    target=self.lineage.targets[0],
+                                    graph_type=GraphType.GENE)
 
 
 @bricolage.command()
