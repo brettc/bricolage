@@ -49,8 +49,15 @@ class Parameters(object):
             setattr(self, k, v)
 
     def same_as(self, other):
-        sdict = self.__dict__
-        odict = other.__dict__
+        sdict = self.__dict__.copy()
+        odict = other.__dict__.copy()
+
+        # For now!
+        for d in sdict, odict:
+            if 'score_method' not in d:
+                d['score_method'] = ScoringMethod.LINEAR
+            if 'score_strength' not in d:
+                d['score_strength'] = 1.0
 
         if set(sdict.keys()) != set(odict.keys()):
             x = set(sdict.keys())
