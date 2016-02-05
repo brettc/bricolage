@@ -6,6 +6,7 @@ from bricolage.analysis_ext import (
     _get_max_category_size)
 from bricolage.core import InterventionState
 import numpy
+numpy.set_printoptions(linewidth=120)
 
 
 def _mutual_info(joint):
@@ -180,15 +181,28 @@ def get_causal_specs(net):
 
 
 class PhenotypeCategorizer(object):
-    max_categories = 64
+    max_categories = 16
 
-    def __init__(self):
+    def __init__(self, targets, env_size):
         self.categories = {}
         self.next_cat = 0
         self.probabilities = []
+        self.targets = set()
+        if targets is not None:
+            for t in targets:
+                self.targets.add(t)
 
-    def categorize(self, rates, pr):
+        self.targets_hit = [0.0] * env_size
+
+    def categorize(self, rates, pr, env_num):
         rates = tuple(rates)
+
+        # If targets was None, we won't be doing this.
+        for t in self.targets:
+            if numpy.allclose(t, rates):
+                self.targets_hit[env_num] += pr
+                break
+
         # What category is it?
         cat = self.categories.setdefault(rates, self.next_cat)
         # Did we insert?
@@ -204,9 +218,8 @@ class PhenotypeCategorizer(object):
         return cat
 
 
-def get_causal_specs_phenotype(net):
-    """Calculate the causal specificity for the entire output in each
-    environment"""
+def get_causal_specs_phenotype(net, targets=None):
+    """Calculate the causal specificity for the entire output in each environment"""
     wrld = net.factory.world
 
     # For now, states are equiprobable
@@ -222,7 +235,7 @@ def get_causal_specs_phenotype(net):
     # 1. We need 2 rows for FALSE / TRUE.
     # 2. And we guess(!) a maximum number of columns for all possible rates in this
     # network.
-    categorizers = [PhenotypeCategorizer() for _ in range(wrld.reg_channels)]
+    categorizers = [PhenotypeCategorizer(targets, env_count) for _ in range(wrld.reg_channels)]
     probs = [numpy.zeros((wrld.reg_channels,
                           2,
                           PhenotypeCategorizer.max_categories))
@@ -240,14 +253,14 @@ def get_causal_specs_phenotype(net):
         gene.intervene = InterventionState.INTERVENE_OFF
         for j, rate in enumerate(net.rates):
             if not numpy.isclose(p_off, 0.0):
-                cat = categorizers[i].categorize(rate, p_off)
+                cat = categorizers[i].categorize(rate, p_off, j)
                 probs[j][i, 0, cat] += p_off
 
         # ----- GENE IS MANIPULATED ON
         gene.intervene = InterventionState.INTERVENE_ON
         for j, rate in enumerate(net.rates):
             if not numpy.isclose(p_on, 0.0):
-                cat = categorizers[i].categorize(rate, p_on)
+                cat = categorizers[i].categorize(rate, p_on, j)
                 probs[j][i, 1, cat] += p_on
 
         # Reset this gene
@@ -438,7 +451,7 @@ def test_average_control_phenotype_net(bowtie_network):
         assert p <= e
 
     onz = OutputControlAnalyzer(net.factory.world)
-    cy_info = onz.numpy_info_from_network(net)[0]
+    cy_info = onz.numpy_info_from_network(net)[0][:,:2]
     py_info = numpy.asarray([[p, e] for (p, e) in zip(probs, ents)])
     numpy.testing.assert_allclose(cy_info, py_info)
 
@@ -451,7 +464,7 @@ def test_average_control_phenotype_pop(bowtie_database):
     for i, net in enumerate(pop):
         probs, ents = get_average_control_phenotype(net)
         py_info = numpy.asarray([[p, e] for (p, e) in zip(probs, ents)])
-        numpy.testing.assert_allclose(py_info, cy_info[i])
+        numpy.testing.assert_allclose(py_info, cy_info[i][:, :2])
 
         assert not numpy.any(numpy.isnan(cy_info[1]))
 
@@ -497,3 +510,72 @@ def test_category_size_control(bowtie_network):
         anz.analyse_network(net)
 
     _set_max_category_size(16)
+
+
+def get_weighted_control_phenotype(net, targets):
+    w = net.factory.world
+    prob_list, cats = get_causal_specs_phenotype(net, targets)
+
+    # To calculate this, we need to get the causal spec of each env, then
+    # average the information over each env.
+    summed_info = numpy.zeros((w.reg_channels))
+    penv = 1.0 / float(len(prob_list))
+
+    # For each environment
+    for i, prob in enumerate(prob_list):
+        # We need to weight the information by the occurence of the
+        # probability of getting the targets that we actually WANT
+        info_per_reg = penv * calc_info_from_probs(prob)
+        for j, cat in enumerate(cats):
+            info_per_reg[j] *= cat.targets_hit[i]
+
+        summed_info += info_per_reg
+
+    return summed_info
+
+
+def test_weighted_control_phenotype(bowtie_database, bowtie_network):
+    print
+    net = bowtie_network
+    net = bowtie_database.population[50]
+    t = bowtie_database.targets[0]
+    tset = t.calc_distinct_outputs()
+    onz = OutputControlAnalyzer(net.factory.world, tset)
+    cy_info = onz.numpy_info_from_network(net)[0]
+
+    probs, cats = get_causal_specs_phenotype(net, tset)
+    print probs[0].shape
+    for c in cats:
+        print c.targets_hit
+    wc = get_weighted_control_phenotype(net, tset)
+    ac, ent = get_average_control_phenotype(net)
+    # Should always DECREASE
+    assert (wc <= ac).all()
+    print ac
+    print wc
+    print cy_info[:, 2]
+    # numpy.testing.assert_allclose(wc, cy_info[:, 2])
+
+
+def test_weighted_control_phenotype_pop(bowtie_database):
+    pop = bowtie_database.population
+    t = bowtie_database.targets[0]
+    tset = t.calc_distinct_outputs()
+    anz = OutputControlAnalyzer(pop.factory.world, tset)
+    cy_info = numpy.asarray(anz.analyse_collection(pop))
+    print cy_info
+
+    for i, net in enumerate(pop):
+        wc = get_weighted_control_phenotype(net, tset)
+        if not numpy.allclose(wc, cy_info[i, :, 2]):
+            print i
+            # print wc
+            # print cy_info[i, :, 2]
+
+
+        # assert (cy_info[i][:, 0] >= cy_info[i][:, 2]).all()
+        # numpy.testing.assert_allclose(wc, cy_info[i][:, 2])
+
+        # # Let's just do 50.
+        if i > 50:
+            break

@@ -1,6 +1,7 @@
 #include "core.hpp"
 #include <cmath>
 #include <stdexcept>
+#include <iostream>
 #include <algorithm>
 #include <map>
 #include <exception>
@@ -643,8 +644,35 @@ void cMutualInfoAnalyzer::_analyse(
 }
 
 //-----------------------------------------------------------------------------
-size_t cOutputCategorizer::get_category(const cRates &rates, double prob)
+cOutputCategorizer::cOutputCategorizer(const cRatesVector &tr, size_t env_size)
+    : next_category(0)
+    , target_rates(tr)
 {
+    std::fill_n(std::back_inserter(targets_hit_in_env), env_size, 0.0);
+}
+
+size_t cOutputCategorizer::get_category(const cRates &rates, double prob, size_t env)
+{
+    // Record the probability that we actually hit one of the rates we wanted.
+    bool match;
+    for (auto &tr : target_rates)
+    {
+        match = true;
+        for (size_t i = 0; i < tr.size(); ++i)
+        {
+            if (!is_close(tr[i], rates[i]))
+            {
+                match = false;
+                break;
+            }
+        }
+        if (match)
+        {
+            targets_hit_in_env[env] += prob;
+            break;
+        }
+    }
+
     auto result = rate_categories.insert(
         std::make_pair(rates, next_category));
     if (result.second)
@@ -672,24 +700,27 @@ void cOutputCategorizer::clear()
     next_category = 0;
     rate_categories.clear();
     category_probabilities.clear();
+    std::fill(targets_hit_in_env.begin(), targets_hit_in_env.end(), 0.0);
 }
 
 // --------------------------------------------------------------------------
-cOutputControlAnalyzer::cOutputControlAnalyzer(cWorld_ptr &world)
+cOutputControlAnalyzer::cOutputControlAnalyzer(cWorld_ptr &world, const cRatesVector &tr)
     : cBaseCausalAnalyzer(world)
-    , categorizers(world->reg_channels)
     , joint_over_envs(world, world->environments.size(),
                       1, // only 1 per channel in this case.
                       cBaseCausalAnalyzer::max_category)
+    , target_rates(tr)
 {
+    for (size_t i = 0; i < world->reg_channels; ++i)
+        categorizers.push_back(cOutputCategorizer(target_rates, world->environments.size()));
 }
 
 // Note you need to delete the return values from these!
 cInformation *cOutputControlAnalyzer::analyse_network(cNetwork &net)
 {
-    // One network. 2 information measures. 0 is causal power. 1 is output
-    // entropy
-    cInformation *info = new cInformation(world, 1, 2);
+    // One network. 2 information measures. 0 is causal power. 1 is output.
+    // entropy. 2 is weighted info.
+    cInformation *info = new cInformation(world, 1, 3);
     _analyse(net, info->_array[0]);
     return info;
 }
@@ -698,8 +729,8 @@ cInformation *cOutputControlAnalyzer::analyse_collection(
     const cNetworkVector &networks)
 {
     // Many networks. 2 information measures. 0 is causal power. 1 is output
-    // entropy
-    cInformation *info = new cInformation(world, networks.size(), 2);
+    // entropy. 2 is weighted info.
+    cInformation *info = new cInformation(world, networks.size(), 3);
     for (size_t i = 0; i < networks.size(); ++i)
         _analyse(*networks[i], info->_array[i]);
     return info;
@@ -739,7 +770,7 @@ void cOutputControlAnalyzer::_analyse(
         if (p_gene_off != 0.0)
             for (size_t i = 0; i < net.rates.size(); ++i)
             {
-                size_t cat = categorizers[j].get_category(net.rates[i], p_gene_off);
+                size_t cat = categorizers[j].get_category(net.rates[i], p_gene_off, i);
                 joint_over_envs._array[i][j][0][0][cat] += p_gene_off;
             }
 
@@ -750,7 +781,7 @@ void cOutputControlAnalyzer::_analyse(
         if (p_gene_on != 0.0)
             for (size_t i = 0; i < net.rates.size(); ++i)
             {
-                size_t cat = categorizers[j].get_category(net.rates[i], p_gene_on);
+                size_t cat = categorizers[j].get_category(net.rates[i], p_gene_on, i);
                 joint_over_envs._array[i][j][0][1][cat] += p_gene_on;
             }
 
@@ -762,7 +793,7 @@ void cOutputControlAnalyzer::_analyse(
     net.calc_attractors();
 
     // Now calculate the information in each of these environments.
-    cInformation info(world, world->environments.size(), 2);
+    cInformation info(world, world->environments.size(), 1);
 
     // Note that only the first entry will be calculated here. We'll put
     // entropy into the other.
@@ -781,5 +812,9 @@ void cOutputControlAnalyzer::_analyse(
             // Now calc the entropy of the output from manipulating this channel
             cOutputCategorizer &categ = categorizers[j];
             sub[j][1] = calc_entropy(p_env, categ.category_probabilities);
+
+            // Summarize info, but SCALE it, according to the targets we want
+            sub[j][2] += info._array[i][j][0] * p_env * categ.targets_hit_in_env[i];
         }
+
 }
