@@ -74,7 +74,7 @@ def stats(every, treatment, replicate, verbose):
 
     visitor = StatsVisitor(NS.experiment,
                            [StatsOutputControl, StatsFitness,
-                            StatsMutualInformation, StatsAverageControl])
+                            StatsMutualInformation])
     NS.experiment.visit_generations(visitor,
                                     only_treatment=the_t,
                                     only_replicate=the_rep,
