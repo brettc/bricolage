@@ -535,26 +535,19 @@ def get_weighted_control_phenotype(net, targets):
 
 
 def test_weighted_control_phenotype(bowtie_database, bowtie_network):
-    print
     net = bowtie_network
-    net = bowtie_database.population[50]
+    # net = bowtie_database.population[50]
     t = bowtie_database.targets[0]
     tset = t.calc_distinct_outputs()
     onz = OutputControlAnalyzer(net.factory.world, tset)
     cy_info = onz.numpy_info_from_network(net)[0]
 
     probs, cats = get_causal_specs_phenotype(net, tset)
-    print probs[0].shape
-    for c in cats:
-        print c.targets_hit
     wc = get_weighted_control_phenotype(net, tset)
     ac, ent = get_average_control_phenotype(net)
     # Should always DECREASE
     assert (wc <= ac).all()
-    print ac
-    print wc
-    print cy_info[:, 2]
-    # numpy.testing.assert_allclose(wc, cy_info[:, 2])
+    numpy.testing.assert_allclose(wc, cy_info[:, 2])
 
 
 def test_weighted_control_phenotype_pop(bowtie_database):
@@ -563,18 +556,11 @@ def test_weighted_control_phenotype_pop(bowtie_database):
     tset = t.calc_distinct_outputs()
     anz = OutputControlAnalyzer(pop.factory.world, tset)
     cy_info = numpy.asarray(anz.analyse_collection(pop))
-    print cy_info
 
     for i, net in enumerate(pop):
         wc = get_weighted_control_phenotype(net, tset)
-        if not numpy.allclose(wc, cy_info[i, :, 2]):
-            print i
-            # print wc
-            # print cy_info[i, :, 2]
-
-
-        # assert (cy_info[i][:, 0] >= cy_info[i][:, 2]).all()
-        # numpy.testing.assert_allclose(wc, cy_info[i][:, 2])
+        assert (cy_info[i][:, 0] >= cy_info[i][:, 2]).all()
+        numpy.testing.assert_allclose(wc, cy_info[i][:, 2])
 
         # # Let's just do 50.
         if i > 50:
