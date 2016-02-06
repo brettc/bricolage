@@ -117,7 +117,9 @@ class StatsOutputControl(object):
         self.analyzer = None
 
     def init_lineage(self, rep, lin):
-        self.analyzer = OutputControlAnalyzer(lin.world)
+        targ = lin.targets[0]
+        tset = targ.calc_distinct_outputs()
+        self.analyzer = OutputControlAnalyzer(lin.world, tset)
         self.regs = lin.params.reg_channels
 
     def calc_stats(self, pop):
