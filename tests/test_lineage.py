@@ -4,18 +4,18 @@ from bricolage.operand import Operand
 from bricolage import logic2, threshold3
 import bricolage.lineage as L
 
-# @pytest.fixture(scope="module", params=['logic2', 'threshold3'])
-# def module(request):
-#     # Using strings as params makes the py.test output more information
-#     return {
-#         'logic2': logic2,
-#         'threshold3': threshold3,
-#     }[request.param]
+@pytest.fixture(scope="module", params=['logic2', 'threshold3'])
+def module(request):
+    # Using strings as params makes the py.test output more information
+    return {
+        'logic2': logic2,
+        'threshold3': threshold3,
+    }[request.param]
 
 # An unparameterized version used for internal testing of a single module
-@pytest.fixture
-def module():
-    return threshold3
+# @pytest.fixture
+# def module():
+#     return threshold3
     # return logic2
 
 @pytest.fixture

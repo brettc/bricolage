@@ -117,7 +117,9 @@ class StatsOutputControl(object):
         self.analyzer = None
 
     def init_lineage(self, rep, lin):
-        self.analyzer = OutputControlAnalyzer(lin.world)
+        targ = lin.targets[0]
+        tset = targ.calc_distinct_outputs()
+        self.analyzer = OutputControlAnalyzer(lin.world, tset)
         self.regs = lin.params.reg_channels
 
     def calc_stats(self, pop):
@@ -134,13 +136,16 @@ class StatsOutputControl(object):
         for i, c in enumerate(range(regs)):
             vals.append(('C_{}'.format(c + 1), ameans[i, 0]))
             vals.append(('E_{}'.format(c + 1), ameans[i, 1]))
+            vals.append(('W_{}'.format(c + 1), ameans[i, 2]))
 
         reg_mean = ameans.mean(axis=0)
         vals.extend([
             ('C_MEAN', reg_mean[0]),
             ('E_MEAN', reg_mean[1]),
+            ('W_MEAN', reg_mean[2]),
             ('C_MAX', ai[:, :, 0].max()),
             ('E_MIN', ai[:, :, 1].min()),
+            ('W_MAX', ai[:, :, 2].max()),
         ])
         return vals
 
