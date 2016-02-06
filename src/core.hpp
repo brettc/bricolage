@@ -450,17 +450,20 @@ struct cOutputCategorizer
     size_t next_category;
     std::map<std::vector<double>, size_t> rate_categories;
     std::vector<double> category_probabilities;
+    const cRatesVector &target_rates;
+    std::vector<double> targets_hit_in_env;
 
-    cOutputCategorizer() : next_category(0) {}
-    size_t get_category(const cRates &rates, double prob);
+    cOutputCategorizer(const cRatesVector &tr, size_t env_size);
+    size_t get_category(const cRates &rates, double prob, size_t env);
     void clear();
 };
 
 struct cOutputControlAnalyzer : public cBaseCausalAnalyzer
 {
-    cOutputControlAnalyzer(cWorld_ptr &world);
+    cOutputControlAnalyzer(cWorld_ptr &world, const cRatesVector &tr);
     std::vector<cOutputCategorizer> categorizers;
     cJointProbabilities joint_over_envs;
+    cRatesVector target_rates;
 
     // Note you need to delete the return values from these!
     cInformation *analyse_network(cNetwork &net);

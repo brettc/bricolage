@@ -726,13 +726,14 @@ def _construct_target(World w, name, ident, rates, weighting=None,
 
     return t
 
+
 cdef class Target:
     def __cinit__(self, World w, init_func=None, name="", 
                   scoring_method=0, strength=0.0, ident=-1):
         self.world = w
         self._this = new cTarget(w._shared, name, scoring_method, strength, ident)
-        if init_func:
-            self._construct_from_function(init_func)
+        # if init_func:
+        #     self._construct_from_function(init_func)
 
     def _construct_from_function(self, init_func):
         a, b = self.world._this.cue_range
@@ -793,6 +794,18 @@ cdef class Target:
         def __get__(self):
             return self._this.name
 
+    property scoring_method:
+        def __get__(self):
+            return self._this.scoring_method
+        def __set__(self, ScoringMethod method):
+            self._this.scoring_method = method
+
+    property strength:
+        def __get__(self):
+            return self._this.strength
+        def __set__(self, double s):
+            self._this.strength = s
+
     def calc_categories(self):
         """Categorise the targets"""
         cat_dict = {}
@@ -808,15 +821,9 @@ cdef class Target:
                 cat_n += 1
         return cats
             
-    property scoring_method:
-        def __get__(self):
-            return self._this.scoring_method
-        def __set__(self, ScoringMethod method):
-            self._this.scoring_method = method
-
-    property strength:
-        def __get__(self):
-            return self._this.strength
-        def __set__(self, double s):
-            self._this.strength = s
-
+    def calc_distinct_outputs(self):
+        out = set()
+        for et in self.as_array():
+            out.add(tuple(et))
+        return out
+            

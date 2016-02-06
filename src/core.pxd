@@ -213,7 +213,7 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         cJointProbabilities *analyse_collection(const cNetworkVector &networks) except +
 
     cdef cppclass cOutputControlAnalyzer:
-        cOutputControlAnalyzer(const cWorld_ptr& world)
+        cOutputControlAnalyzer(const cWorld_ptr& world, cRatesVector)
         cRates natural_probabilities
         cInformation *analyse_network(cNetwork &net) except +
         cInformation *analyse_collection(const cNetworkVector &networks) except +

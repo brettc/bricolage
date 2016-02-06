@@ -247,9 +247,9 @@ cdef class MutualInfoAnalyzer:
         return numpy.asarray(i)
 
 cdef class OutputControlAnalyzer:
-    def __cinit__(self, World w):
+    def __cinit__(self, World w, cRatesVector tr = []):
         self.world = w
-        self._this = new cOutputControlAnalyzer(w._shared)
+        self._this = new cOutputControlAnalyzer(w._shared, tr)
 
     def __dealloc__(self):
         if self._this != NULL:
