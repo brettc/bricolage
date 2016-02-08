@@ -1,6 +1,6 @@
 import pathlib
 
-from bricolage.graph_layout import DotMaker
+from bricolage.dot_layout import DotMaker, DotDiagram
 # from bricolage.graph_draw import SimpleLayout
 from bricolage.pyx_drawing import Diagram
 from bricolage import graph_maker, threshold3
@@ -28,12 +28,12 @@ def test_graph_creation(tmpdir, bowtie_network):
 
 
 # TODO: reinstate some tests
-# def test_layouts(bowtie_network):
-#     net = bowtie_network
-#     ana = NetworkAnalysis(net)
-#     grph = graph_maker.GeneSignalGraph(ana)
-#     dotm = DotMaker(grph)
-#     dotm.make_diagram(SimpleLayout(Diagram()))
+def test_layouts(bowtie_network):
+    net = bowtie_network
+    ana = NetworkAnalysis(net)
+    grph = graph_maker.GeneSignalGraph(ana)
+    dotdia = DotMaker(grph)
+    dotm.make_diagram(SimpleLayout(Diagram()))
 
 
 # def test_1(bowtie_network):

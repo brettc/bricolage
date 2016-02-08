@@ -1,4 +1,4 @@
-from bricolage.graph_layout import DotMaker
+from bricolage.dot_layout import DotMaker
 from bricolage.graph_maker import get_graph_by_type, GraphType
 import logtools
 

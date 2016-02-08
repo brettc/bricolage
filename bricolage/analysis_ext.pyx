@@ -57,6 +57,10 @@ cdef class NetworkAnalysis:
         def __get__(self):
             return self._this.active_bindings
 
+    property world: 
+        def __get__(self):
+            return self.modified.factory.world
+
 cdef class JointProbabilities:
     def __cinit__(self, World w):
         self.world = w

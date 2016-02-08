@@ -169,7 +169,7 @@ class FullGraph(BaseGraph):
     def get_module_label(self, i):
         gi, mi = _decode_module_id(i)
         m = self.network.genes[gi].modules[mi]
-        return text_for_cis_mod(self.world, m)
+        return text_for_cis_mod(m)
 
     def get_channel_label(self, i):
         return self.world.name_for_channel(i)
