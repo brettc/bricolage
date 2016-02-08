@@ -251,6 +251,39 @@ class StatsBindings(object):
         ]
 
 
+class StatsRobustness(object):
+    tag = "RB"
+
+    def __init__(self):
+        self.target = None
+
+    def init_lineage(self, rep, lin):
+        self.target = lin.targets[0]
+
+    def calc_stats(self, pop):
+        self.target.assess_collection(pop)
+        p_fit = pop.fitnesses
+        pop_mean = p_fit.mean()
+
+        nay = PopulationNeighbourhood(pop, 100)
+        nay_coll = nay.neighbours
+        self.target.assess_collection(nay_coll)
+
+        # How many
+        nay_fit = nay_coll.fitnesses
+        better_than_mean = np.where(nay_fit >= pop_mean)[0].size
+        prop_better = float(better_than_mean) / float(nay_coll.size)
+        perfect = float(np.where(pop.fitnesses == 1.0)[0].size) / float(pop.size)
+        mutated_perfect = float(np.where(nay_fit == 1.0)[0].size) / float(nay_coll.size)
+
+        return [
+            ('PROP', prop_better),
+            ('MEAN', pop_mean),
+            ('BEST_POP', perfect),
+            ('BEST_MUT', mutated_perfect),
+        ]
+
+
 class StatsLag(object):
     def __init__(self, experiment):
         self.experiment = experiment
@@ -358,3 +391,4 @@ class StatsLag(object):
             first_ancestor.generation))
         self.replicate.draw_net('first-control', first_ancestor, target=self.lineage.targets[0])
         return first_ancestor.generation
+

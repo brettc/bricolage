@@ -3,8 +3,9 @@ import click
 from logtools import set_logging, get_logger
 from bricolage.stats import (
     StatsFitness, StatsVisitor, StatsMutualInformation, StatsOutputControl,
-    StatsAverageControl, StatsLag)
+    StatsAverageControl, StatsLag, StatsRobustness)
 from experiment import ExperimentError
+from bricolage.graph_maker import GraphType
 
 log = get_logger()
 
@@ -92,6 +93,10 @@ def trash():
 
 
 class DrawVisitor(object):
+
+    def __init__(self):
+        super(DrawVisitor, self).__init__()
+
     def wants_generation(self, gen_num):
         return True
 
@@ -105,8 +110,9 @@ class DrawVisitor(object):
         for i, (fit, ident, net) in enumerate(winners):
             if i == 1:
                 break
-            self.replicate.draw_net('best', net,
-                                    target=self.lineage.targets[0])
+            self.replicate.draw_net('g_best', net,
+                                    target=self.lineage.targets[0],
+                                    graph_type=GraphType.GENE)
 
 
 @bricolage.command()
@@ -143,6 +149,28 @@ def calc_lag(verbose, treatment, replicate):
     NS.experiment.visit_lineages(StatsLag(NS.experiment),
                                  only_treatment=the_t,
                                  only_replicate=the_rep)
+
+
+@bricolage.command()
+@verbose_
+@treatment_
+@replicate_
+@every_
+def pop_robustness(verbose, treatment, replicate, every):
+    set_logging(verbose)
+
+    try:
+        the_t, the_rep = NS.experiment.find_matching(treatment, replicate)
+    except ExperimentError as e:
+        raise click.BadParameter(e.message)
+
+    # First, let's find the best fitness
+    visitor = StatsVisitor(NS.experiment,
+                           [StatsRobustness])
+    NS.experiment.visit_generations(visitor,
+                                    only_treatment=the_t,
+                                    only_replicate=the_rep,
+                                    every=every)
 
 
 # def status(verbose):

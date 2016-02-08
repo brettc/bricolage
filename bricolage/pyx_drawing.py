@@ -3,7 +3,7 @@ from pyx import trafo, deformer, canvas, path, deco, color, style, box
 from pyx import text as pyx_text
 from pyx.metapost.path import (beginknot, endknot, smoothknot, tensioncurve,
                                path as mpath)
-
+from pyx import unit
 import logtools
 
 log = logtools.get_logger()
@@ -12,6 +12,7 @@ log = logtools.get_logger()
 # doesn't right now.
 # TODO: This appears to generate some annoying temp files
 pyx_text.set(mode="latex")
+unit.set(defaultunit='cm')
 
 # TODO: Make a pallette class here, that synchronises the colors with latex
 # col = color.cmyk.PineGreen
@@ -62,6 +63,11 @@ def get_text(text):
 
     return result
 
+def measure_text(text):
+    txt = get_text(text)
+    bb = txt.bbox()
+    return bb.width(), bb.height()
+
 
 def rounded_rect(px, py, w, h, radius=.1):
     p = path.rect(px - w / 2.0, py - h / 2.0, w, h)
@@ -84,7 +90,7 @@ def hexagon(px, py, r):
     return p.path()
 
 
-def cut_hexagon(px, py, r):
+def make_cut_hexagon(px, py, r):
     def lift(n):
         x, y = pts[n]
         y += r / 5.0
@@ -98,7 +104,18 @@ def cut_hexagon(px, py, r):
     lift(-1)
     p = box.polygon(pts)
     p.transform(trafo.translate(px, py))
-    return p.path()
+    return p
+
+
+def cut_hexagon(px, py, r):
+    h = make_cut_hexagon(px, py, r)
+    return h.path()
+
+
+def cut_hexagon_rotated(px, py, r):
+    h = make_cut_hexagon(px, py, r)
+    h.transform(trafo.rotate(180, px, py))
+    return h.path()
 
 
 class Shape(object):
@@ -127,24 +144,6 @@ class Shape(object):
         else:
             t = self.text
         c.text(self.px, self.py, t, self.alignment)
-
-
-class RoundedRect(Shape):
-    def __init__(self, diag, px, py, w, h, text=None):
-        Shape.__init__(self, diag, px, py, text)
-        self.outline = rounded_rect(px, py, w, h)
-
-
-class Diamond(Shape):
-    def __init__(self, diag, px, py, w, text=None):
-        Shape.__init__(self, diag, px, py, text)
-        self.outline = diamond(px, py, w)
-
-
-class Circle(Shape):
-    def __init__(self, diag, px, py, r, text=None):
-        Shape.__init__(self, diag, px, py, text)
-        self.outline = path.circle(px, py, r)
 
 
 class Connector(object):
@@ -203,8 +202,12 @@ class Connector(object):
             _, f_intersect = self.shape1.outline.intersect(p)
             _, p = p.split(f_intersect)
 
-            _, t_intersect = self.shape2.outline.intersect(p)
-            p, _ = p.split(t_intersect)
+            # This fails when we're too small
+            try:
+                _, t_intersect = self.shape2.outline.intersect(p)
+                p, _ = p.split(t_intersect)
+            except ValueError:
+                pass
 
             # Now clip it even more so that there is a gap on join
             p, _ = p.split([p.end() - 0.1])
@@ -265,6 +268,22 @@ class Diagram(object):
 
 
 def test1():
+
+    class RoundedRect(Shape):
+        def __init__(self, diag, px, py, w, h, text=None):
+            Shape.__init__(self, diag, px, py, text)
+            self.outline = rounded_rect(px, py, w, h)
+
+    class Diamond(Shape):
+        def __init__(self, diag, px, py, w, text=None):
+            Shape.__init__(self, diag, px, py, text)
+            self.outline = diamond(px, py, w)
+
+    class Circle(Shape):
+        def __init__(self, diag, px, py, r, text=None):
+            Shape.__init__(self, diag, px, py, text)
+            self.outline = path.circle(px, py, r)
+
     d = Diagram()
     a = Diamond(d, 1, 2, .8, 'A')
     b = Circle(d, 5, 6, .4, 'B')

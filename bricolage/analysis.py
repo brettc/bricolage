@@ -8,6 +8,11 @@ class NetworkAnalysis(analysis_ext.NetworkAnalysis):
         super(NetworkAnalysis, self).__init__(network)
         self.annotations = {}
 
+    def annotate(self, target):
+        if target is not None:
+            self.calc_mutual_info(target)
+            self.calc_output_control(target)
+
     def calc_mutual_info(self, target):
         """Annotate the networks with information"""
         analyzer = analysis_ext.MutualInfoAnalyzer(
@@ -19,23 +24,29 @@ class NetworkAnalysis(analysis_ext.NetworkAnalysis):
         info.shape = info.shape[1],
         self.mutual_info = info
 
-        for mi, g in zip(info, self.network.genes):
-            a = self.annotations.setdefault(g.sequence, {})
+        base = self.network.factory.world.reg_range[0]
+
+        for i, mi in enumerate(info):
+            a = self.annotations.setdefault(base + i, {})
             a['M'] = mi
 
-    def calc_output_control(self):
-        analyzer = analysis_ext.OutputControlAnalyzer(self.network.factory.world)
+    def calc_output_control(self, target):
+        analyzer = analysis_ext.OutputControlAnalyzer(
+            self.network.factory.world, target.calc_distinct_outputs())
         info = analyzer.numpy_info_from_network(self.network)
         info.shape = info.shape[1:]
         self.output_control = info
 
-        for oi, g in zip(info, self.network.genes):
-            a = self.annotations.setdefault(g.sequence, {})
+        base = self.network.factory.world.reg_range[0]
+        for i, oi in enumerate(info):
+            a = self.annotations.setdefault(base + i, {})
             # Make it available via the channel too
             a['C'] = oi[0]
             a['E'] = oi[1]
+            a['W'] = oi[2]
 
 
+# WIP
 # TODO: Possible way of handling information in more pythonic way...
 class AverageControlNetwork(object):
     def __init__(self, net, result):

@@ -23,28 +23,29 @@ def function_to_text(eq):
     return text
 
 
-def text_for_gene(wrld, gene):
-    eq = compute_gene_function(wrld, gene)
+def text_for_gene(gene):
+    eq = compute_gene_function(gene)
     return function_to_text(eq)
 
 
-def text_for_cis_mod(wrld, mod):
-    eq = compute_cis_mod_function(wrld, mod)
+def text_for_cis_mod(mod):
+    eq = compute_cis_mod_function(mod)
     return function_to_text(eq)
 
 
-def compute_gene_function(wrld, gene):
+def compute_gene_function(gene):
     eq = False
     for mod in gene.modules:
         # Skip anything that is turned OFF
         if InterventionState.INTERVENE_OFF == mod.intervene:
             continue
-        eq |= compute_cis_mod_function(wrld, mod)
+        eq |= compute_cis_mod_function(mod)
 
     return simplify_logic(eq)
 
 
-def compute_cis_mod_function(wrld, mod):
+def compute_cis_mod_function(mod):
+    wrld = mod.gene.network.factory.world
     unique = list(set(mod.channels))
 
     # Remove the fixed channels
