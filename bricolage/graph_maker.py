@@ -183,7 +183,7 @@ class GeneSignalGraph(FullGraph):
     def get_gene_label(self, i):
         glabel = FullGraph.get_gene_label(self, i)
         gene = self.network.genes[i]
-        equation = text_for_gene(self.world, gene)
+        equation = text_for_gene(gene)
         ann = self.format_annotations(i)
         return "{} : {} [{}]".format(glabel, equation, ann)
 
@@ -196,7 +196,7 @@ class GeneGraph(GeneSignalGraph):
     def get_gene_label(self, i):
         glabel = FullGraph.get_gene_label(self, i)
         g = self.network.genes[i]
-        equation = text_for_gene(self.world, g)
+        equation = text_for_gene(g)
         w = self.network.factory.world
         # return "{}: {} => {}".format(glabel, equation,
         #                              w.name_for_channel(g.pub))
