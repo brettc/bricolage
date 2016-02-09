@@ -44,7 +44,7 @@ class DotMaker(object):
         elif ntype == NodeType.MODULE:
             attrs = {
                 'shape': 'oval',
-                'label': self.get_lablel(ntype, ident),
+                'label': self.get_label(ntype, ident),
             }
 
         elif ntype == NodeType.CHANNEL:
@@ -125,7 +125,11 @@ class DotDiagram(Diagram):
 
         assert isinstance(graph, BaseGraph)
         self.graph = graph
-        self.annotations = graph.analysis.annotations
+        if hasattr(graph.analysis, 'annotations'):
+            self.annotations = graph.analysis.annotations
+        else:
+            self.annotations = None
+
         self.world = graph.analysis.world
 
         self.width = width
@@ -143,7 +147,12 @@ class DotDiagram(Diagram):
     def _generate(self):
         """Use dot program to initialise the diagram
         """
-        dot = DotMaker(self.graph).get_dot(self)
+
+        if hasattr(self, 'get_label'):
+            labeller = self
+        else:
+            labeller = None
+        dot = DotMaker(self.graph).get_dot(labeller)
 
         # Lay it out
         dot.layout(prog='dot', args=_dot_default_args)
@@ -179,6 +188,7 @@ class DotDiagram(Diagram):
             miny, maxy = _update(miny, maxy, py)
 
         return maxx - minx, maxy - miny
+
 
     def add_shape(self, anode):
         node_id = self.graph.name_to_node(anode)

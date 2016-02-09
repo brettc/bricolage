@@ -1,13 +1,10 @@
 import pathlib
 
-from bricolage.dot_layout import DotMaker, DotDiagram
-# from bricolage.graph_draw import SimpleLayout
-from bricolage.pyx_drawing import Diagram
-from bricolage import graph_maker, threshold3
-from bricolage.cis_logic import text_for_gene
-from bricolage.core_ext import Network
+from bricolage.dot_layout import DotMaker
+from bricolage.graph_draw import SmallDiagram, TextDiagram
+from bricolage import graph_maker
 from bricolage.analysis_ext import NetworkAnalysis
-from bricolage.core import InterventionState
+# from bricolage.core import InterventionState
 
 
 def test_graph_creation(tmpdir, bowtie_network):
@@ -32,8 +29,8 @@ def test_layouts(bowtie_network):
     net = bowtie_network
     ana = NetworkAnalysis(net)
     grph = graph_maker.GeneSignalGraph(ana)
-    dotdia = DotMaker(grph)
-    dotm.make_diagram(SimpleLayout(Diagram()))
+    small = SmallDiagram(grph)
+    text = TextDiagram(grph)
 
 
 # def test_1(bowtie_network):
@@ -57,7 +54,7 @@ def test_layouts(bowtie_network):
 #         if InterventionState.INTERVENE_OFF == gm.intervene:
 #             continue
 #
-#         print text_for_gene(w, go), '---', text_for_gene(w, gm)
+#         print text_for_gene(go), '---', text_for_gene(gm)
 #
 #         # for mo, mm in zip(go.modules, gm.modules):
 #         #     if InterventionState.INTERVENE_OFF == mm.intervene:
