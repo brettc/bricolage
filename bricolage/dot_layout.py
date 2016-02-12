@@ -273,9 +273,7 @@ def save_network_as_fullgraph(net, path='.', name=None,
         if not isinstance(path, pathlib.Path):
             path = pathlib.Path(path)
         ana = NetworkAnalysis(net)
-        ana.calc_output_control()
-        if target:
-            ana.calc_mutual_info(target)
+        ana.annotate(target)
         g = get_graph_by_type(graph_type, ana)
         d = DotMaker(g)
         if name is None:

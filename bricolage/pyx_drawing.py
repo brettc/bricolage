@@ -5,6 +5,7 @@ from pyx.metapost.path import (beginknot, endknot, smoothknot, tensioncurve,
                                path as mpath)
 from pyx import unit
 import logtools
+import re
 
 log = logtools.get_logger()
 
@@ -29,6 +30,9 @@ def make_preamble(runner):
     # runner.preamble(r"\usepackage{cmbright}")
     # We use the Helvetica font as it is everywhere (we can import into
     # Illustrator etc)
+    runner.set(texmessagesend=[
+        pyx_text.texmessagepattern(re.compile(r"Ignoring line .*$", re.MULTILINE))
+    ])
     runner.preamble(
         r"\usepackage[T1]{fontenc}\usepackage[scaled]{"
         r"helvet}\renewcommand*\familydefault{\sfdefault}\usepackage{sfmath}")
@@ -40,6 +44,7 @@ def make_preamble(runner):
     \definecolor{blue}{RGB}{60, 147, 248}
     \definecolor{red}{RGB}{227, 69, 69}
     """)
+    
 
 
 make_preamble(pyx_text)
