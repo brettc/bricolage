@@ -137,7 +137,8 @@ class SmallDiagram(DotDiagram):
         super(SmallDiagram, self).__init__(graph, height, width)
 
     def get_label(self, node_type, ident):
-        # We just keep this as small as possible
+        if node_type == NodeType.GENE:
+            return 'XXXX'
         return 'X'
 
     def get_gene_shape(self, px, py, gene):
