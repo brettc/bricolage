@@ -191,9 +191,8 @@ class Replicate(object):
                  knockouts=True,
                  target=None):
         ana = NetworkAnalysis(net)
-        ana.calc_output_control()
-        if target:
-            ana.calc_mutual_info(target)
+        print target.as_array()
+        ana.annotate(target)
         g = get_graph_by_type(graph_type, ana)
         d = DotMaker(g)
         p = self.analysis_path / '{}-G{:07d}-N{:02d}-F{}.png'.format(
