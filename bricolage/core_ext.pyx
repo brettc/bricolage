@@ -732,8 +732,8 @@ cdef class Target:
                   scoring_method=0, strength=0.0, ident=-1):
         self.world = w
         self._this = new cTarget(w._shared, name, scoring_method, strength, ident)
-        # if init_func:
-        #     self._construct_from_function(init_func)
+        if init_func:
+            self._construct_from_function(init_func)
 
     def _construct_from_function(self, init_func):
         a, b = self.world._this.cue_range

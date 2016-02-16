@@ -169,7 +169,7 @@ class FullGraph(BaseGraph):
     def get_module_label(self, i):
         gi, mi = _decode_module_id(i)
         m = self.network.genes[gi].modules[mi]
-        return text_for_cis_mod(self.world, m)
+        return text_for_cis_mod(m)
 
     def get_channel_label(self, i):
         return self.world.name_for_channel(i)
@@ -183,7 +183,7 @@ class GeneSignalGraph(FullGraph):
     def get_gene_label(self, i):
         glabel = FullGraph.get_gene_label(self, i)
         gene = self.network.genes[i]
-        equation = text_for_gene(self.world, gene)
+        equation = text_for_gene(gene)
         ann = self.format_annotations(i)
         return "{} : {} [{}]".format(glabel, equation, ann)
 
@@ -196,10 +196,11 @@ class GeneGraph(GeneSignalGraph):
     def get_gene_label(self, i):
         glabel = FullGraph.get_gene_label(self, i)
         g = self.network.genes[i]
-        equation = text_for_gene(self.world, g)
+        equation = text_for_gene(g)
         w = self.network.factory.world
-        return "{}: {} => {}".format(glabel, equation,
-                                     w.name_for_channel(g.pub))
+        # return "{}: {} => {}".format(glabel, equation,
+        #                              w.name_for_channel(g.pub))
+        return "{} => {}".format(equation, w.name_for_channel(g.pub))
 
 
 class SignalFlowGraph(FullGraph):

@@ -1,7 +1,6 @@
 import pathlib
 from pygraphviz import AGraph
 from pyx_drawing import Diagram
-
 from bricolage.graph_maker import (NodeType, BaseGraph, GraphType,
                                    _decode_module_id, get_graph_by_type)
 from analysis import NetworkAnalysis
@@ -17,21 +16,34 @@ class DotMaker(object):
         """
         assert isinstance(graph, BaseGraph)
         self.graph = graph
+        self.labeller = None
+
+    def get_label(self, node_type, ident):
+        if self.labeller is not None:
+            return self.labeller.get_label(node_type, ident)
+
+        if node_type == NodeType.GENE:
+            return self.graph.get_gene_label(ident)
+        elif node_type == NodeType.MODULE:
+            return self.graph.get_module_label(ident),
+        elif node_type == NodeType.CHANNEL:
+            return self.graph.get_channel_label(ident),
+
+        raise RuntimeError
 
     def get_node_attributes(self, node):
         name = self.graph.node_to_name(node)
         ntype, ident = node
         if ntype == NodeType.GENE:
-            # color = 'green' if self.graph.is_inert(node) else 'black'
             shape = 'hexagon' if self.graph.is_structural(node) else 'box'
             attrs = {
                 'shape': shape,
-                'label': self.graph.get_gene_label(ident),
+                'label': self.get_label(ntype, ident),
             }
         elif ntype == NodeType.MODULE:
             attrs = {
                 'shape': 'oval',
-                'label': self.graph.get_module_label(ident),
+                'label': self.get_label(ntype, ident),
             }
 
         elif ntype == NodeType.CHANNEL:
@@ -44,14 +56,16 @@ class DotMaker(object):
 
             attrs = {
                 'shape': shape,
-                'label': self.graph.get_channel_label(ident),
+                'label': self.get_label(ntype, ident),
             }
         else:
             attrs = {}
 
         return name, attrs
 
-    def get_dot(self):
+    def get_dot(self, labeller=None):
+        self.labeller = labeller
+
         a_graph = AGraph(directed=True)
         nx_graph = self.graph.nx_graph
 
@@ -105,17 +119,25 @@ class DotMaker(object):
 class DotDiagram(Diagram):
     # Map the binding types to arrows
 
-    def __init__(self, graph, xscale=1.0, yscale=1.0):
+    def __init__(self, graph, height=8.0, width=5.0):
         super(DotDiagram, self).__init__()
-        # All the drawing shapes
+
+        assert isinstance(graph, BaseGraph)
         self.graph = graph
+        if hasattr(graph.analysis, 'annotations'):
+            self.annotations = graph.analysis.annotations
+        else:
+            self.annotations = None
 
-        # These just come from fiddling
-        self.xscaling = .020 * xscale
-        self.yscaling = .020 * yscale
+        self.world = graph.analysis.world
 
-        # self.gene_shapes = {}
-        # self.signal_shapes = {}
+        self.width = width
+        self.height = height
+
+        # Set these below
+        self.xscaling = 1.0
+        self.yscaling = 1.0
+
         self.connections = []
         self.shapes_by_name = {}
 
@@ -124,16 +146,48 @@ class DotDiagram(Diagram):
     def _generate(self):
         """Use dot program to initialise the diagram
         """
-        dot = DotMaker(self.graph).get_dot()
+
+        if hasattr(self, 'get_label'):
+            labeller = self
+        else:
+            labeller = None
+        dot = DotMaker(self.graph).get_dot(labeller)
 
         # Lay it out
         dot.layout(prog='dot', args=_dot_default_args)
+
+        sx, sy = self._calc_size(dot)
+        self.yscaling = self.height / sy
+        if self.width is not None:
+            self.xscaling = float(self.width) / sx
+        else:
+            self.xscaling = self.yscaling
 
         for anode in dot.nodes_iter():
             self.add_shape(anode)
 
         for e in dot.edges():
             self.add_connection(e)
+
+    def _calc_size(self, dot):
+        """Calculate the size from the layout of the nodes
+        """
+        minx = miny = maxx = maxy = None
+
+        def _update(mn, mx, cur):
+            if mn is None or cur < mn:
+                mn = cur
+            if mx is None or cur > mx:
+                mx = cur
+            return mn, mx
+
+        for anode in dot.nodes_iter():
+            px, py = self.get_pt(anode.attr['pos'])
+            minx, maxx = _update(minx, maxx, px)
+            miny, maxy = _update(miny, maxy, py)
+
+        return maxx - minx, maxy - miny
+
 
     def add_shape(self, anode):
         node_id = self.graph.name_to_node(anode)
@@ -142,7 +196,7 @@ class DotDiagram(Diagram):
 
         if ntype == NodeType.GENE:
             gene = self.graph.network.genes[ident]
-            shape = self.get_gene_shape(px, py,  gene)
+            shape = self.get_gene_shape(px, py, gene)
             self.add_object(shape, zorder=1)
 
         elif ntype == NodeType.CHANNEL:
@@ -187,10 +241,14 @@ class DotDiagram(Diagram):
         connector = self.get_connector(shape1, shape2, points)
         self.add_object(connector, zorder=3)
 
-    def make_pt(self, strpair):
+    def get_pt(self, strpair):
         x, y = strpair.split(',')
-        x = float(x) * self.xscaling
-        y = float(y) * self.yscaling
+        return float(x), float(y)
+
+    def make_pt(self, strpair):
+        x, y = self.get_pt(strpair)
+        x *= self.xscaling
+        y *= self.yscaling
         return x, y
 
     def get_gene_shape(self, px, py, gene):
@@ -214,9 +272,7 @@ def save_network_as_fullgraph(net, path='.', name=None,
         if not isinstance(path, pathlib.Path):
             path = pathlib.Path(path)
         ana = NetworkAnalysis(net)
-        ana.calc_output_control()
-        if target:
-            ana.calc_mutual_info(target)
+        ana.annotate(target)
         g = get_graph_by_type(graph_type, ana)
         d = DotMaker(g)
         if name is None:
