@@ -1,7 +1,6 @@
 import pathlib
 from pygraphviz import AGraph
 from pyx_drawing import Diagram
-import core_ext
 from bricolage.graph_maker import (NodeType, BaseGraph, GraphType,
                                    _decode_module_id, get_graph_by_type)
 from analysis import NetworkAnalysis
