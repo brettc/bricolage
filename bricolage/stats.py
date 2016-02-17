@@ -2,7 +2,7 @@
 """
 import logtools
 import numpy as np
-from .analysis_ext import (MutualInfoAnalyzer, OutputControlAnalyzer)
+from .analysis_ext import (MutualInfoAnalyzer, OutputControlAnalyzer, RelevantControlAnalyzer)
 from .analysis import AverageControlAnalyzer
 from .lineage import FullLineage
 from .experimentdb import StatsGroupRecord, StatsRecord, StatsReplicateRecord
@@ -146,6 +146,41 @@ class StatsOutputControl(object):
             ('C_MAX', ai[:, :, 0].max()),
             ('E_MIN', ai[:, :, 1].min()),
             ('W_MAX', ai[:, :, 2].max()),
+        ])
+        return vals
+
+
+class StatsRelevantControl(object):
+    tag = "RC"
+
+    def __init__(self):
+        self.analyzer = None
+
+    def init_lineage(self, rep, lin):
+        targ = lin.targets[0]
+        tset = targ.calc_distinct_outputs()
+        self.analyzer = RelevantControlAnalyzer(lin.world, tset)
+        self.regs = lin.params.reg_channels
+
+    def calc_stats(self, pop):
+        rc = self.analyzer.numpy_info_from_collection(pop)
+        assert not np.any(np.isnan(rc.ravel()))
+
+        # Summarize across the population
+        ameans = np.mean(rc, axis=0)
+
+        vals = []
+
+        # Record the mean of all information measures
+        regs = self.regs
+        for i, c in enumerate(range(regs)):
+            vals.append(('C_{}'.format(c + 1), ameans[i]))
+
+        reg_mean = ameans.mean(axis=0)
+        vals.extend([
+            ('C_MEAN', reg_mean),
+            ('C_MAX', rc.max()),
+            ('C_MNMX', ameans.max()),
         ])
         return vals
 

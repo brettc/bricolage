@@ -2,7 +2,7 @@
 import click
 from logtools import set_logging, get_logger
 from bricolage.stats import (
-    StatsFitness, StatsVisitor, StatsMutualInformation, StatsOutputControl,
+    StatsFitness, StatsVisitor, StatsMutualInformation, StatsRelevantControl,
     StatsAverageControl, StatsLag, StatsRobustness)
 from experiment import ExperimentError
 from bricolage.graph_maker import GraphType
@@ -74,7 +74,7 @@ def stats(every, treatment, replicate, verbose):
         raise click.BadParameter(e.message)
 
     visitor = StatsVisitor(NS.experiment,
-                           [StatsOutputControl, StatsFitness,
+                           [StatsRelevantControl, StatsFitness,
                             StatsMutualInformation])
     NS.experiment.visit_generations(visitor,
                                     only_treatment=the_t,
