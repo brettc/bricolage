@@ -646,7 +646,6 @@ def test_relevant_control_network(bowtie_database, bowtie_network):
 def test_relevant_control_pop(bowtie_database, bowtie_network):
     net = bowtie_network
     pop = bowtie_database.population
-    # net = bowtie_database.population[50]
     t = bowtie_database.targets[0]
     tset = t.calc_distinct_outputs()
 
