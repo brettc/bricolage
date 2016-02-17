@@ -2,8 +2,8 @@ import pytest
 from math import log as logarithm
 from bricolage.analysis_ext import (
     MutualInfoAnalyzer, AverageControlAnalyzer, CausalFlowAnalyzer,
-    OutputControlAnalyzer, Information, _set_max_category_size,
-    _get_max_category_size)
+    OutputControlAnalyzer, RelevantControlAnalyzer, Information,
+    _set_max_category_size, _get_max_category_size)
 from bricolage.core import InterventionState
 import numpy
 numpy.set_printoptions(linewidth=120)
@@ -564,4 +564,97 @@ def test_weighted_control_phenotype_pop(bowtie_database):
 
         # # Let's just do 50.
         if i > 50:
+            break
+
+
+def get_relevant_control(net, targets):
+    """Calculate the causal specificity for the entire output in each environment"""
+    wrld = net.factory.world
+
+    # For now, states are equiprobable
+    env_count = len(wrld.environments)
+    env_probs = numpy.ones(env_count) / env_count
+
+    pdist_regs = calc_natural(env_probs, net, wrld)
+
+    target_set = set()
+    for t in targets:
+        target_set.add(t)
+    targets = list(target_set)
+
+    info = numpy.zeros((wrld.reg_channels, env_count))
+    cat_for_off = numpy.zeros(info.shape, dtype=int)
+    cat_for_off[:, :] = -1
+
+    for i in range(wrld.reg_channels):
+        gene = net.genes[i]
+        p_on = pdist_regs[i]
+        p_off = 1.0 - p_on
+        # ----- GENE IS MANIPULATED OFF
+        # NOTE: This automatically updates everything (changing the rates!).
+        gene.intervene = InterventionState.INTERVENE_OFF
+        for j, rate in enumerate(net.rates):
+            if not numpy.isclose(p_off, 0.0):
+                for k, targ in enumerate(targets):
+                    if targ == tuple(rate):
+                        # Record the category
+                        cat_for_off[i, j] = k
+
+                        # Record the info, assuming this is the only entry in
+                        # the row / column of the joint dist. We'll correct
+                        # this below if we were wrong.
+                        info[i, j] += p_off * numpy.log2(1.0 / p_off)
+                        break
+
+        # ----- GENE IS MANIPULATED ON
+        gene.intervene = InterventionState.INTERVENE_ON
+        for j, rate in enumerate(net.rates):
+            if not numpy.isclose(p_on, 0.0):
+                for k, targ in enumerate(targets):
+                    if targ == tuple(rate):
+                        # If the off category was the same as the on category,
+                        # then information is zero (the manipulation makes no
+                        # difference).
+                        if cat_for_off[i, j] == k:
+                            info[i, j] = 0.0
+                        else:
+                            info[i, j] += p_on * numpy.log2(1.0 / p_on)
+                        break
+
+        # Reset this gene
+        gene.intervene = InterventionState.INTERVENE_NONE
+
+    # print
+    # print pdist_regs
+    # print cat_for_off
+
+    # Now just average over the different environments
+    return info.mean(axis=1)
+
+
+def test_relevant_control_network(bowtie_database, bowtie_network):
+    net = bowtie_network
+    # net = bowtie_database.population[50]
+    t = bowtie_database.targets[0]
+    tset = t.calc_distinct_outputs()
+    py_info = get_relevant_control(net, tset)
+    rz = RelevantControlAnalyzer(net.factory.world, tset)
+    cy_info = rz.numpy_info_from_network(net)
+    numpy.testing.assert_allclose(py_info, cy_info)
+
+
+def test_relevant_control_pop(bowtie_database, bowtie_network):
+    net = bowtie_network
+    pop = bowtie_database.population
+    # net = bowtie_database.population[50]
+    t = bowtie_database.targets[0]
+    tset = t.calc_distinct_outputs()
+
+    rz = RelevantControlAnalyzer(net.factory.world, tset)
+    cy_info = rz.numpy_info_from_collection(pop)
+
+    for i, net in enumerate(pop):
+        py_info = get_relevant_control(net, tset)
+        numpy.testing.assert_allclose(py_info, cy_info[i])
+        if i > 200:
             break

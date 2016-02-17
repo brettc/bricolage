@@ -818,3 +818,118 @@ void cOutputControlAnalyzer::_analyse(
         }
 
 }
+
+cRelevantControlAnalyzer::cRelevantControlAnalyzer(cWorld_ptr &world, const cRatesVector &tr)
+    : cBaseCausalAnalyzer(world)
+    , target_rates(tr)
+    , categories(boost::extents[world->environments.size()][world->reg_channels])
+    , info(boost::extents[world->environments.size()][world->reg_channels])
+{
+}
+
+cInformation *cRelevantControlAnalyzer::analyse_network(cNetwork &net)
+{
+    cInformation *info = new cInformation(world, 1, 1);
+    _analyse(net, info->_array[0]);
+    return info;
+}
+
+cInformation *cRelevantControlAnalyzer::analyse_collection(
+    const cNetworkVector &networks)
+{
+    cInformation *info = new cInformation(world, networks.size(), 1);
+    for (size_t i = 0; i < networks.size(); ++i)
+        _analyse(*networks[i], info->_array[i]);
+    return info;
+}
+
+void cRelevantControlAnalyzer::_clear()
+{
+    std::fill(categories.origin(), categories.origin() + categories.num_elements(), -1);
+    std::fill(info.origin(), info.origin() + info.num_elements(), 0.0);
+}
+
+int cRelevantControlAnalyzer::categorize(const cRates rates)
+{
+    bool match;
+    int i = 0;
+    for (; i < target_rates.size(); ++i)
+    {
+        auto &tr = target_rates[i];
+        match = true;
+        for (size_t j = 0; j < tr.size(); ++j)
+        {
+            if (!is_close(tr[j], rates[j]))
+            {
+                match = false;
+                break;
+            }
+        }
+        if (match)
+            break;
+    }
+    if (match)
+        return i;
+    return -1;
+}
+
+void cRelevantControlAnalyzer::_analyse(cNetwork &net, info_array_type::reference sub)
+{
+    auto &world = net.factory->world;
+
+    _clear();
+    _calc_natural(net);
+
+    // Note the reversed order here (j, i). I've exchanged the loops because
+    // it is very expensive to recalculate the attractors. So we do it as
+    // little as possible.
+    for (size_t j = 0; j < world->reg_channels; ++j)
+    {
+        cGene *gene = net.get_gene(j);
+        double p_gene_on = natural_probabilities[j];
+        double p_gene_off = 1.0 - p_gene_on;
+
+        // Force gene OFF
+        gene->intervene = INTERVENE_OFF;
+        net.calc_attractors_with_intervention();
+        // for each environment and each output channel
+        if (p_gene_off != 0.0)
+            for (size_t i = 0; i < net.rates.size(); ++i)
+            {
+                int cat = categorize(net.rates[i]);
+                categories[i][j] = cat;
+                if (cat >= 0)
+                    info[i][j] += p_gene_off * log2(1.0 / p_gene_off);
+            }
+
+        // Force gene ON
+        gene->intervene = INTERVENE_ON;
+        net.calc_attractors_with_intervention();
+        // for each environment and each output channel
+        if (p_gene_on != 0.0)
+            for (size_t i = 0; i < net.rates.size(); ++i)
+            {
+                int cat = categorize(net.rates[i]);
+                if (cat >= 0)
+                {
+                    if (cat == categories[i][j])
+                        info[i][j] = 0.0;
+                    else
+                        info[i][j] += p_gene_on * log2(1.0 / p_gene_on);
+                }
+            }
+
+        // Reset
+        gene->intervene = INTERVENE_NONE;
+    }
+
+    // Recalculate one more time without using interventions. This just resets everything.
+    net.calc_attractors();
+
+    // Now take the env weighted average of all of these, and summarize them in
+    // the object that was passed.
+    double p_env = 1.0 / net.rates.size();
+    for (size_t i = 0; i < net.rates.size(); ++i)
+        for (size_t j = 0; j < world->reg_channels; ++j)
+            sub[j][0] += info[i][j] * p_env;
+}
