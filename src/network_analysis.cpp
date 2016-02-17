@@ -893,7 +893,7 @@ void cRelevantControlAnalyzer::_analyse(cNetwork &net, info_array_type::referenc
         gene->intervene = INTERVENE_OFF;
         net.calc_attractors_with_intervention();
         // for each environment and each output channel
-        if (p_gene_off != 0.0)
+        if (not_zeroish(p_gene_off))
             for (size_t i = 0; i < net.rates.size(); ++i)
             {
                 int cat = categorize(net.rates[i]);
@@ -906,7 +906,7 @@ void cRelevantControlAnalyzer::_analyse(cNetwork &net, info_array_type::referenc
         gene->intervene = INTERVENE_ON;
         net.calc_attractors_with_intervention();
         // for each environment and each output channel
-        if (p_gene_on != 0.0)
+        if (not_zeroish(p_gene_on))
             for (size_t i = 0; i < net.rates.size(); ++i)
             {
                 int cat = categorize(net.rates[i]);
