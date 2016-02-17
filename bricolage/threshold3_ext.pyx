@@ -6,7 +6,7 @@ cimport core_ext
 from threshold3 cimport *
 from cython.operator import dereference as deref, preincrement as preinc
 
-from .logic_tools import text_for_cis_mod
+from .cis_logic import text_for_cis_mod
 
 cimport numpy as np
 import numpy
