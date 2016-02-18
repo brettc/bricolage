@@ -473,4 +473,21 @@ struct cOutputControlAnalyzer : public cBaseCausalAnalyzer
     void _analyse(cNetwork &net, info_array_type::reference sub);
 };
 
+struct cRelevantControlAnalyzer : public cBaseCausalAnalyzer
+{
+    cRelevantControlAnalyzer(cWorld_ptr &world, const cRatesVector &tr);
+    cRatesVector target_rates;
+    boost::multi_array<int, 2> categories;
+    boost::multi_array<double, 2> info;
+
+    // Note you need to delete the return values from these!
+    int categorize(const cRates rates);
+    cInformation *analyse_network(cNetwork &net);
+    cInformation *analyse_collection(const cNetworkVector &networks);
+
+
+    void _clear();
+    void _analyse(cNetwork &net, info_array_type::reference sub);
+};
+
 } // end namespace bricolage

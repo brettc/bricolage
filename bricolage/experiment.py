@@ -191,7 +191,6 @@ class Replicate(object):
                  knockouts=True,
                  target=None):
         ana = NetworkAnalysis(net)
-        print target.as_array()
         ana.annotate(target)
         g = get_graph_by_type(graph_type, ana)
         d = DotMaker(g)

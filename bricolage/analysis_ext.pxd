@@ -47,3 +47,8 @@ cdef class OutputControlAnalyzer:
     cdef:
         cOutputControlAnalyzer *_this;
         World world
+
+cdef class RelevantControlAnalyzer:
+    cdef:
+        cRelevantControlAnalyzer *_this;
+        World world

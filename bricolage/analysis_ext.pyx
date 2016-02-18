@@ -281,6 +281,42 @@ cdef class OutputControlAnalyzer:
         i = self.analyse_network(n)
         return numpy.asarray(i)
 
+
+cdef class RelevantControlAnalyzer:
+    def __cinit__(self, World w, cRatesVector tr = []):
+        self.world = w
+        self._this = new cRelevantControlAnalyzer(w._shared, tr)
+
+    def __dealloc__(self):
+        if self._this != NULL:
+            del self._this
+
+    def analyse_network(self, Network n):
+        info = Information()
+        cdef cInformation *c_info= NULL 
+        c_info = self._this.analyse_network(deref(n._this))
+        info.bind(c_info)
+        return info
+
+    def analyse_collection(self, CollectionBase coll):
+        info = Information()
+        cdef cInformation *c_info= NULL 
+        c_info = self._this.analyse_collection(deref(coll._collection))
+        info.bind(c_info)
+        return info
+
+    def numpy_info_from_collection(self, CollectionBase coll):
+        i = self.analyse_collection(coll)
+        arr = numpy.asarray(i)
+        arr.shape = arr.shape[:2]
+        return arr
+
+    def numpy_info_from_network(self, Network n):
+        i = self.analyse_network(n)
+        arr = numpy.asarray(i)
+        arr.shape = arr.shape[1],
+        return arr
+
 def _get_max_category_size():
     return get_max_category_size()
 
