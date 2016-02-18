@@ -132,7 +132,6 @@ class BaseLineage(object):
             row.append()
             self._h5.flush()
 
-
     def _new_database(self):
         # Create H5 table with high compression using blosc
         filters = tables.Filters(complib='blosc', complevel=5)

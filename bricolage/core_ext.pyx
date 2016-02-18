@@ -461,6 +461,7 @@ cdef class Gene:
         w = self.network.factory.world
         return "<Gene[{}]: {}>".format(self.sequence, w.name_for_channel(self.pub))
 
+
 cdef class CisModule:
     """A proxy to a CisModule.
     """
@@ -506,6 +507,7 @@ cdef class CisModule:
             w = self.gene.network.factory.world
             return [w.name_for_channel(c) for c in self.channels]
 
+
 cdef class SelectionModel:
     def __cinit__(self, World w):
         self.world = w
@@ -513,6 +515,7 @@ cdef class SelectionModel:
 
     def __dealloc__(self):
         del self._this
+
 
 cdef class CollectionBase:
     def __cinit__(self, Factory c, size_t size=0):
