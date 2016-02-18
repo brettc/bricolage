@@ -1,6 +1,6 @@
 from bricolage.experiment import Experiment, Treatment
 from pathlib import Path
-from bricolage.threshold3 import Parameters
+from bricolage.threshold3 import Parameters, Population, Collection
 
 def target1(a, b):
     if a and b:
@@ -14,16 +14,16 @@ class TestTreatment(Treatment):
         while lineage.generation < 100:
             lineage.next_generation()
 
+_params = Parameters(
+    cis_count=2,
+    reg_channels=1,
+    out_channels=1,
+    cue_channels=2,
+    population_size=100,
+    mutation_rate=.001,
+)
 
 def test_exp1(tmpdir):
-    p = Parameters(
-        cis_count=2,
-        reg_channels=1,
-        out_channels=1,
-        cue_channels=2,
-        population_size=100,
-        mutation_rate=.001,
-    )
     # tmpdir = pathlib.Path(str(tmpdir))
     pth = Path('.')
     treats = [TestTreatment('bob', p, 10)]
@@ -33,6 +33,25 @@ def test_exp1(tmpdir):
     #     print l.generation
     #     print l.population.worst_and_best()
 
+class TestCloningTreatment(Treatment):
+    def run_replicate(self, replicate, lineage):
+        if len(lineage.targets) == 0:
+            lineage.add_target(target1)
+        while lineage.generation < 100:
+            lineage.next_generation()
+
+    def make_initial_population(self, replicate, factory, size):
+        p = Population(factory)
+        n = factory.create_network()
+        p.fill(n, size)
+        return p
+
+
+def test_exp2(tmpdir):
+    tmpdir = Path(str(tmpdir))
+    treats = [TestCloningTreatment('bob', _params, 10)]
+    e = Experiment(tmpdir, treats, seed=1)
+    e.run()
 
 # def test_treatment(tmpdir, p_3x2):
 #     tmpdir = pathlib.Path(str(tmpdir))
