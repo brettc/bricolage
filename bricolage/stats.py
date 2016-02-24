@@ -427,3 +427,29 @@ class StatsLag(object):
         self.replicate.draw_net('first-control', first_ancestor, target=self.lineage.targets[0])
         return first_ancestor.generation
 
+
+class StatsGenerations(object):
+    def __init__(self, experiment):
+        self.experiment = experiment
+        self.session = experiment.database.session
+        self.max_gen = 'MAX_GENERATIONS'
+        self.done = {}
+
+        # TODO: should only load relevant ones
+        for srep in self.session.query(StatsReplicateRecord).all():
+            self.done[(srep.treatment_id, srep.replicate_id, srep.kind)] = srep
+
+    def is_done(self, rep, kind):
+        return (rep.treatment.seq, rep.seq, kind) in self.done
+
+    def visit_lineage(self, rep, lin):
+        log.info("{}".format(rep)).push().add()
+
+        # Analysis
+        if not self.is_done(rep, self.max_gen):
+            fgen = lin.generation
+            self.session.add(StatsReplicateRecord(rep, self.max_gen, fgen))
+            log.info("Final generation is {}".format(fgen))
+
+        self.session.commit()
+        log.pop()

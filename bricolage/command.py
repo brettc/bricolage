@@ -3,7 +3,7 @@ import click
 from logtools import set_logging, get_logger
 from bricolage.stats import (
     StatsFitness, StatsVisitor, StatsMutualInformation, StatsRelevantControl,
-    StatsAverageControl, StatsLag, StatsRobustness)
+    StatsAverageControl, StatsLag, StatsRobustness, StatsGenerations)
 from experiment import ExperimentError
 from bricolage.graph_maker import GraphType
 
@@ -147,6 +147,23 @@ def calc_lag(verbose, treatment, replicate):
 
     # First, let's find the best fitness
     NS.experiment.visit_lineages(StatsLag(NS.experiment),
+                                 only_treatment=the_t,
+                                 only_replicate=the_rep)
+
+@bricolage.command()
+@verbose_
+@treatment_
+@replicate_
+def calc_gens(verbose, treatment, replicate):
+    set_logging(verbose)
+
+    try:
+        the_t, the_rep = NS.experiment.find_matching(treatment, replicate)
+    except ExperimentError as e:
+        raise click.BadParameter(e.message)
+
+    # First, let's find the best fitness
+    NS.experiment.visit_lineages(StatsGenerations(NS.experiment),
                                  only_treatment=the_t,
                                  only_replicate=the_rep)
 
