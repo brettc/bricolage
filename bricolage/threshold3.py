@@ -1,11 +1,11 @@
 import core
 from core import MutateType
 
-from .core_ext import World, Target, Population, SelectionModel
+from .core_ext import World, Target, Population, SelectionModel, Collection
 from .analysis_ext import NetworkAnalysis
 from .threshold3_ext import Factory
 
-__all__ = ["World", "Factory", "Parameters", "MutateType", 
+__all__ = ["World", "Factory", "Parameters", "MutateType",
            "Population", "Target", "NetworkAnalysis", "SelectionModel"]
 
 class Parameters(core.Parameters):

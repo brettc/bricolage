@@ -570,6 +570,23 @@ cdef class CollectionBase:
         for i in range(other._collection.size()):
             self._collection.push_back(deref(other._collection)[i])
 
+    def fill(self, Network n, size_t size):
+        cdef size_t i
+        for i in range(size):
+            self._collection.push_back(n._this.clone())
+            self._collection.back().get().calc_attractors()
+
+    def fill_with_mutations(self, Network n, np.int_t[:] mutations):
+        cdef:
+            size_t i
+            size_t sz = mutations.shape[0]
+            cFactory *con = n._this.factory.get()
+
+        for i in range(sz):
+            self._collection.push_back(
+                con.clone_and_mutate_network(n._shared, mutations[i], 1))
+
+
     property fitnesses:
         def __get__(self):
             fits = numpy.zeros(self.size)
@@ -611,20 +628,6 @@ cdef class Collection(CollectionBase):
     def __dealloc__(self):
         del self._this
 
-    def fill(self, Network n, size_t size):
-        cdef size_t i
-        for i in range(size):
-            self._this.push_back(n._this.clone())
-
-    def fill_with_mutations(self, Network n, np.int_t[:] mutations):
-        cdef:
-            size_t i
-            size_t sz = mutations.shape[0]
-            cFactory *con = n._this.factory.get()
-
-        for i in range(sz):
-            self._this.push_back(
-                con.clone_and_mutate_network(n._shared, mutations[i], 1))
 
 cdef class Ancestry(CollectionBase):
     def __cinit__(self, Factory c, size_t size=0):

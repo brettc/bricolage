@@ -183,13 +183,20 @@ class BaseLineage(object):
         self._networks = h5.root.networks
         self._generations = h5.root.generations
 
-    def _create(self):
+    def _create(self, init_pop_fun=None):
         assert self.params is not None
         self.world = core_ext.World(self.params)
         self.factory = self.params.factory_class(self.world)
 
         self._size = self.params.population_size
-        self.population = core_ext.Population(self.factory, self._size)
+
+        if init_pop_fun is None:
+            self.population = core_ext.Population(self.factory, self._size)
+        else:
+            self.population = init_pop_fun(self.factory, self._size)
+            assert self.population.size == self._size
+            assert self.factory == self.population.factory
+
         self.selection_model = self.params.selection_class(self.world)
 
     def _load(self):
@@ -279,9 +286,7 @@ class SnapshotLineage(BaseLineage):
 
         # Calculate the indexes for the population
         indexes = numpy.arange(start, start + self._size, dtype=int)
-
         self._commit_generation(arr, indexes)
-
 
     def _load_generation(self, rec):
         gen = rec['generation']
@@ -325,13 +330,13 @@ class SnapshotLineage(BaseLineage):
 
 
 class FullLineage(BaseLineage):
-    def __init__(self, path, params=None, readonly=False):
+    def __init__(self, path, params=None, readonly=False, init_pop_fun=None):
         BaseLineage.__init__(self, path, params=params, readonly=readonly)
         if params is None:
             self._open_database()
             self._load()
         else:
-            self._create()
+            self._create(init_pop_fun)
             self._new_database()
             self.save_generation(initial=True)
 

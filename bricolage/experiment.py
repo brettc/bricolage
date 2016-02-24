@@ -153,7 +153,15 @@ class Replicate(object):
             self.fresh = False
 
         if self.fresh:
-            lin = self.treatment.experiment.lineage_class(db_path, self.params)
+            # We need to create a new lineage. Let's see if the treatment
+            # class has some special construction
+            if hasattr(self.treatment, 'make_initial_population'):
+                def init_pop_fun(factory, size):
+                    return self.treatment.make_initial_population(self, factory, size)
+            else:
+                init_pop_fun = None
+            lin = self.treatment.experiment.lineage_class(db_path, self.params,
+                                                          init_pop_fun=init_pop_fun)
             log.info("Created lineage {}".format(lin))
 
         return lin
