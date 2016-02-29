@@ -91,7 +91,7 @@ class Replicate(object):
 
         log.info("Running replicate {}".format(self.path))
         if not self.path.exists():
-            self.path.mkdir()
+            self.path.mkdir(parents=True)
         with self.get_lineage() as lin:
             try:
                 self.treatment.run_replicate(self, lin)
@@ -128,11 +128,11 @@ class Replicate(object):
             if readonly:
                 raise ExperimentError("Replicate doesn't exist, {}".format(self.path.name))
 
-            p.mkdir()
+            p.mkdir(parents=True)
 
         # We don't use this, but users of the class might depend on it
         if not self.analysis_path.exists():
-            self.analysis_path.mkdir()
+            self.analysis_path.mkdir(parents=True)
 
         db_path = self.lineage_name
 
@@ -186,20 +186,20 @@ class Replicate(object):
         # log.info("Writing stats for generation {}".format(gen))
         # self.session.bulk_save_objects(stats)
 
-    def draw_winners(self, lin, maxw=3):
+    def draw_winners(self, lin, maxw=1, graph_type=GraphType.GENE):
         winners = [(n.fitness, n.identifier, n) for n in lin.population]
         winners.sort(reverse=True)
         for i, (fit, ident, net) in enumerate(winners):
             if i == maxw:
                 break
-            self.draw_net('winner', net, target=lin.targets[0])
+            self.draw_net('winner', net, target=lin.targets[0], graph_type=graph_type)
 
     def draw_net(self, prefix, net,
                  graph_type=GraphType.GENE_SIGNAL,
                  knockouts=True,
                  target=None):
         ana = NetworkAnalysis(net)
-        ana.annotate(target)
+        # ana.annotate(target)
         g = get_graph_by_type(graph_type, ana)
         d = DotMaker(g)
         p = self.analysis_path / '{}-G{:07d}-N{:02d}-F{}.png'.format(
@@ -255,9 +255,9 @@ class Treatment(object):
         # Check paths...
         log.info("Running Treatment {}".format(self))
         if not self.path.exists():
-            self.path.mkdir()
+            self.path.mkdir(parents=True)
         if not self.analysis_path.exists():
-            self.analysis_path.mkdir()
+            self.analysis_path.mkdir(parents=True)
 
         for r in self.replicates:
             if only_replicate is not None and r is not only_replicate:
@@ -318,7 +318,7 @@ class Experiment(object):
             raise ExperimentError("No parent path: {}".format(str(path.parent)))
 
         log.info("Creating path {}".format(str(path)))
-        path.mkdir()
+        path.mkdir(parents=True)
 
     def _remove_paths(self):
         if self.path.exists():
@@ -326,7 +326,7 @@ class Experiment(object):
         if self.path is not self.analysis_path:
             if self.analysis_path.exists():
                 _remove_folder(self.analysis_path)
-            self.analysis_path.mkdir()
+            self.analysis_path.mkdir(parents=True)
 
     def _init_db(self):
         # Use merge to allow for nice things to happen
