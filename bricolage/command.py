@@ -3,7 +3,7 @@ import click
 from logtools import set_logging, get_logger
 from bricolage.stats import (
     StatsFitness, StatsVisitor, StatsMutualInformation, StatsRelevantControl,
-    StatsAverageControl, StatsLag, StatsRobustness, StatsGenerations)
+    StatsAverageControl, StatsLag, StatsRobustness, StatsGenerations, StatsBindings)
 from experiment import ExperimentError
 from bricolage.graph_maker import GraphType
 
@@ -75,7 +75,7 @@ def stats(every, treatment, replicate, verbose):
 
     visitor = StatsVisitor(NS.experiment,
                            [StatsRelevantControl, StatsFitness,
-                            StatsMutualInformation])
+                            StatsMutualInformation, StatsBindings])
     NS.experiment.visit_generations(visitor,
                                     only_treatment=the_t,
                                     only_replicate=the_rep,
