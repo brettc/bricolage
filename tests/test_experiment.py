@@ -1,13 +1,16 @@
 from bricolage.experiment import Experiment, Treatment
 from pathlib import Path
-from bricolage.threshold3 import Parameters, Population, Collection
+from bricolage.threshold3 import Parameters, Population
+
 
 def target1(a, b):
     if a and b:
         return 1.0
     return 0.0
 
+
 class TestTreatment(Treatment):
+
     def run_replicate(self, replicate, lineage):
         if len(lineage.targets) == 0:
             lineage.add_target(target1)
@@ -23,17 +26,20 @@ _params = Parameters(
     mutation_rate=.001,
 )
 
+
 def test_exp1(tmpdir):
     # tmpdir = pathlib.Path(str(tmpdir))
     pth = Path('.')
-    treats = [TestTreatment('bob', p, 10)]
+    treats = [TestTreatment('bob', pth, 10)]
     e = Experiment(pth, treats, seed=1, analysis_path="/Users/brett/Desktop")
 
     # with e.treatments[0].replicates[5].get_lineage(True) as l:
     #     print l.generation
     #     print l.population.worst_and_best()
 
+
 class TestCloningTreatment(Treatment):
+
     def run_replicate(self, replicate, lineage):
         if len(lineage.targets) == 0:
             lineage.add_target(target1)

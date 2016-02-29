@@ -409,6 +409,9 @@ class Experiment(object):
                             visitor.visit_generation(gen_num, pop)
                         gen_num += every
 
+                    if hasattr(visitor, 'leave_lineage'):
+                        visitor.leave_lineage(rep, lin)
+
     def find_matching(self, text, repnum):
         # Default to ALL
         matching_treatment = None

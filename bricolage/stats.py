@@ -18,6 +18,7 @@ class StatsVisitor(object):
         self.experiment = experiment
         self.session = experiment.database.session
         self.replicate = None
+        self.calc_count = 0
 
         self.todo = set()
         # Make sure there are not repeats
@@ -72,6 +73,17 @@ class StatsVisitor(object):
             ])
 
         self.session.commit()
+
+    #     if self.calc_count > 20:
+    #         log.info("Committing to database...")
+    #         self.session.commit()
+    #         self.calc_count = 0
+    #     else:
+    #         self.calc_count += 1
+    #
+    # def leave_lineage(self, gen_num, pop):
+    #     log.info("Committing to database...")
+    #     self.session.commit()
 
 
 class StatsAverageControl(object):
