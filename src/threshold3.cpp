@@ -19,8 +19,11 @@ cFactory::cFactory(const bricolage::cWorld_ptr &w, size_t cc,
 {
     for (size_t i = w->sub_range.first; i < w->sub_range.second; ++i)
         draw_from_subs.push_back(i);
-
     r_sub = random_int_range(0, draw_from_subs.size(), w);
+
+    for (size_t i = w->reg_range.first; i < w->reg_range.second; ++i)
+        draw_from_regs.push_back(i);
+    r_reg = random_int_range(0, draw_from_regs.size(), w);
 
 }
 
@@ -58,7 +61,11 @@ bricolage::cNetwork_ptr cFactory::construct(bool fill)
                 auto &m = g.modules.back();
                 for (size_t i = 0; i < 3; ++i)
                 {
-                    m.channels[i] = draw_from_subs[r_sub()];
+                    if (mutate_type == JUMP_LAYERED && pub >= world->out_range.first)
+                        m.channels[i] = draw_from_regs[r_reg()];
+                    else
+                        m.channels[i] = draw_from_subs[r_sub()];
+
                     m.binding[i] = r_binding();
                 }
             }
@@ -80,36 +87,44 @@ size_t cFactory::site_count(bricolage::cNetworkVector &networks)
 
 void cNetwork::mutate(size_t nmutations)
 {
-    auto &ctor = static_cast<const cFactory &>(*factory);
+    auto &fy = static_cast<const cFactory &>(*factory);
 
     // Select the genes that should be mutated
     while (nmutations > 0)
     {
         // Choose a gene and mutate it
-        size_t i = ctor.r_gene();
+        size_t i = fy.r_gene();
         auto &g = genes[i];
 
-        size_t j = ctor.r_module();
+        size_t j = fy.r_module();
         auto &c = g.modules[j];
-        c.mutate(ctor);
+        c.mutate(fy, g);
         --nmutations;
     }
 }
 
-cCisModule::cCisModule(const cFactory &c)
+cCisModule::cCisModule(const cFactory &fy)
 {
 }
 
 // This is where the action really is.
-void cCisModule::mutate(const cFactory &c)
+void cCisModule::mutate(const cFactory &fy, const cGene &gene)
 {
-    size_t site = c.r_site();
-    switch (c.mutate_type)
+    size_t site = fy.r_site();
+    switch (fy.mutate_type)
     {
+    case JUMP_LAYERED:
+        if (gene.pub >= fy.world->out_range.first)
+        {
+            channels[site] = fy.draw_from_regs[fy.r_reg()];
+            binding[site] = fy.r_binding();
+            break;
+        }
+        // Fall through if you are a regulatory gene
     case JUMP:
         {
-            channels[site] = c.draw_from_subs[c.r_sub()];
-            binding[site] = c.r_binding();
+            channels[site] = fy.draw_from_subs[fy.r_sub()];
+            binding[site] = fy.r_binding();
         }
         break;
     case PROGRESSIVE:
@@ -123,12 +138,12 @@ void cCisModule::mutate(const cFactory &c)
                 mutate = 1;
             else
                 // Make it either -1 or +1
-                mutate = c.r_direction() * 2 - 1;
+                mutate = fy.r_direction() * 2 - 1;
 
             // If we're at zero, possibly change into a different binding
             if (current == 0)
                 // Randomly draw from the provided list
-                channels[site] = c.draw_from_subs[c.r_sub()];
+                channels[site] = fy.draw_from_subs[fy.r_sub()];
 
             binding[site] += mutate;
         }
@@ -137,7 +152,7 @@ void cCisModule::mutate(const cFactory &c)
 }
 
 // This is where the action really is.
-// void cCisModule::mutate(const cFactory &c)
+// void cCisModule::mutate(const cFactory &fy)
 // {
 //     // TODO: mutation size is ....
 //     // 1 + poisson something?
@@ -157,8 +172,8 @@ bool cCisModule::is_active(bricolage::cChannelState const &state) const
     return sum >= 3;
 }
 
-cNetwork::cNetwork(const bricolage::cFactory_ptr &c)
-    : bricolage::cNetwork(c)
+cNetwork::cNetwork(const bricolage::cFactory_ptr &fy)
+    : bricolage::cNetwork(fy)
 {
 }
 
