@@ -25,7 +25,7 @@ cNetwork_ptr cFactory::clone_and_mutate_network(
 }
 
 cNetwork::cNetwork(const cFactory_ptr &c)
-    : factory(c) 
+    : factory(c)
     , world(c->world)
     , identifier(-1)
     , parent_identifier(-1)
@@ -36,11 +36,13 @@ cNetwork::cNetwork(const cFactory_ptr &c)
     // identifier = world->get_next_network_ident();
 }
 
-// This is the outer-inner loop, where we find the attractors. 
+// This is the outer-inner loop, where we find the attractors.
 void cNetwork::_calc_attractors(bool intervention)
 {
     attractors.clear();
     rates.clear();
+
+    InputType it = world->input_type;
 
     size_t attractor_begins_at;
     bool found;
@@ -53,7 +55,7 @@ void cNetwork::_calc_attractors(bool intervention)
         cChannelStateVector path;
         cChannelState current = env;
         path.push_back(current);
-        
+
         for (;;)
         {
             // Update the current state.
@@ -62,8 +64,9 @@ void cNetwork::_calc_attractors(bool intervention)
             else
                 cycle_with_intervention(current);
 
-            // Put back the environment (as this remains constant)
-            current |= env;
+            // Put back the environment if it is constant
+            if (it == INPUT_CONSTANT)
+                current |= env;
 
             // Have we already seen this?
             attractor_begins_at = 0;

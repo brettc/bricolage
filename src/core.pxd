@@ -34,6 +34,10 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         INTERVENE_ON = 1
         INTERVENE_OFF = 2
 
+    cdef enum InputType:
+        INPUT_CONSTANT = 0
+        INPUT_PULSE = 1
+
     cdef cppclass cWorld:
         cWorld(size_t seed, size_t cue, size_t reg, size_t out)
         mt19937 rand
@@ -46,6 +50,7 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         pair[size_t, size_t] sub_range
         pair[size_t, size_t] pub_range
         cChannelStateVector environments
+        InputType input_type
         double get_random_double(double low, double high)
         double get_random_int(int low, int high)
         string get_random_state()

@@ -25,6 +25,11 @@ class ScoringMethod(IntEnum):
     EXPONENTIAL_VEC = 2
 
 
+class InputType(IntEnum):
+    CONSTANT = 0
+    PULSE = 1
+
+
 class Parameters(object):
 
     def __init__(self, **kwargs):
@@ -42,6 +47,7 @@ class Parameters(object):
         self.score_method = ScoringMethod.LINEAR
         self.score_strength = 1.0
         self.add_zeros = 0
+        self.input_type = InputType.CONSTANT
 
         self._override(kwargs)
 
