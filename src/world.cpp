@@ -13,8 +13,9 @@ cWorld::cWorld(size_t seed, size_t cue, size_t reg, size_t out)
     , cue_channels(cue)
     , reg_channels(reg)
     , out_channels(out)
-    // Random 
+    // Random
     , rand(seed)
+    , input_type(INPUT_CONSTANT)
 {
     init_channels();
     init_environments();
@@ -34,7 +35,7 @@ void cWorld::init_environments()
         // Shift one, to account for channel 0
         cChannelState c = cChannelState(channel_count, i << reserved_channels);
         // Turn on bias channel
-        c.set(on_channel); 
+        c.set(on_channel);
         environments.push_back(c);
     }
 }
@@ -47,7 +48,7 @@ void cWorld::init_channels()
     //               1 = ALWAYS ON
     // reserved  [ 0 1 ]
     // cues          [ 2 3 ]
-    // regs              [ 4 5 ] 
+    // regs              [ 4 5 ]
     // outs                  [ 6 7 8 ]
     //
     // subs      [ 0 1 2 3 4 5 ]

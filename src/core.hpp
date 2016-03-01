@@ -78,6 +78,12 @@ enum InterventionState
     INTERVENE_OFF = 2,
 };
 
+enum InputType
+{
+    INPUT_CONSTANT = 0,
+    INPUT_PULSE = 1,
+};
+
 inline int bitset_cmp(cChannelState &a, cChannelState &b)
 {
     if (a < b) return -1;
@@ -160,6 +166,9 @@ public:
 
     // Randomising stuff
     random_engine_t rand;
+
+    // How the input is handled
+    InputType input_type;
 
     std::string get_random_state();
     void set_random_state(const std::string &s);

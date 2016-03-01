@@ -132,6 +132,9 @@ cdef class World:
         ))
         self._this = self._shared.get()
 
+        if hasattr(params, 'input_type'):
+            self._this.input_type = params.input_type
+
         self.reserved_signals = set([on_channel, off_channel])
         self.cue_signals = set(range(*self._this.cue_range))
         self.reg_signals = set(range(*self._this.reg_range))
@@ -249,6 +252,10 @@ cdef class World:
                 c + 1 - self._this.reg_range.first, sz)
         return "E{0:0{1:}d}".format(
             c + 1 - self._this.cue_range.first, sz)
+
+    property input_type:
+        def __get__(self):
+            return self._this.input_type
 
 cdef class Factory:
     def __cinit__(self, World w):
