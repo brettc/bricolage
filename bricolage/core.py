@@ -65,6 +65,8 @@ class Parameters(object):
                 d['score_method'] = ScoringMethod.LINEAR
             if 'score_strength' not in d:
                 d['score_strength'] = 1.0
+            if 'input_type' not in d:
+                d['input_type'] = InputType.CONSTANT
 
         if set(sdict.keys()) != set(odict.keys()):
             x = set(sdict.keys())

@@ -41,7 +41,8 @@ def compute_gene_function(gene):
             continue
         eq |= compute_cis_mod_function(mod)
 
-    return simplify_logic(eq)
+    return eq
+    # return simplify_logic(eq)
 
 
 def compute_cis_mod_function(mod):

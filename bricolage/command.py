@@ -30,6 +30,7 @@ verbose_ = click.option('--verbose', is_flag=True, default=False,
                         help="Show debug output.")
 every_ = click.option('--every', default=1000,
                       help="Only do every N generations")
+only_ = click.option('--only', help="Only do this generation")
 treatment_ = click.option('--treatment', default="",
                           help="Filter treatments by name.")
 replicate_ = click.option('--replicate', default=-1,
@@ -173,7 +174,8 @@ def calc_gens(verbose, treatment, replicate):
 @treatment_
 @replicate_
 @every_
-def pop_robustness(verbose, treatment, replicate, every):
+@only_
+def pop_robustness(verbose, treatment, replicate, every, only):
     set_logging(verbose)
 
     try:
@@ -187,7 +189,8 @@ def pop_robustness(verbose, treatment, replicate, every):
     NS.experiment.visit_generations(visitor,
                                     only_treatment=the_t,
                                     only_replicate=the_rep,
-                                    every=every)
+                                    every=every,
+                                    only=only)
 
 
 # def status(verbose):
