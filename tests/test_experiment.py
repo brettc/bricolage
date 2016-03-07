@@ -28,10 +28,11 @@ _params = Parameters(
 
 
 def test_exp1(tmpdir):
-    # tmpdir = pathlib.Path(str(tmpdir))
-    pth = Path('.')
-    treats = [TestTreatment('bob', pth, 10)]
-    e = Experiment(pth, treats, seed=1, analysis_path="/Users/brett/Desktop")
+    tmpdir = Path(str(tmpdir))
+    # pth = Path('.')
+    treats = [TestTreatment('bob', _params, 10)]
+    e = Experiment(tmpdir, treats, seed=1, analysis_path="/Users/brett/Desktop")
+    e.run()
 
     # with e.treatments[0].replicates[5].get_lineage(True) as l:
     #     print l.generation
