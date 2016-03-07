@@ -337,12 +337,12 @@ class StatsLag(object):
         self.session = experiment.database.session
         self.replicate = None
         self.lineage = None
-        self.ac_analyzer = None
-        self.mi_analyzer = None
+        self.rc_analyzer = None
         self.done = {}
 
         self.first_best = 'FIRST_BEST'
         self.first_control = 'FIRST_CONTROL'
+        self.first_master = 'FIRST_MASTER'
 
         # TODO: should only load relevant ones
         for srep in self.session.query(StatsReplicateRecord).all():
@@ -357,8 +357,9 @@ class StatsLag(object):
         # Setup
         self.replicate = rep
         self.lineage = lin
-        self.ac_analyzer = AverageControlAnalyzer(lin.world)
-        self.mi_analyzer = MutualInfoAnalyzer(lin.world, lin.targets[0].calc_categories())
+        targ = lin.targets[0]
+        tset = targ.calc_distinct_outputs()
+        self.rc_analyzer = RelevantControlAnalyzer(lin.world, tset)
 
         # Analysis
         if not self.is_done(rep, self.first_best):
@@ -366,8 +367,9 @@ class StatsLag(object):
             self.session.add(StatsReplicateRecord(rep, self.first_best, fgen))
 
         if not self.is_done(rep, self.first_control):
-            cgen = self.find_first_control()
+            cgen, mgen = self.find_first_control()
             self.session.add(StatsReplicateRecord(rep, self.first_control, cgen))
+            self.session.add(StatsReplicateRecord(rep, self.first_master, mgen))
 
         self.session.commit()
 
@@ -384,60 +386,61 @@ class StatsLag(object):
 
     def find_first_control(self):
         # Load last generation and check if we got a master gene
-        c_index = self.find_controlled(self.lineage.population)
+        _, c_index = self.find_controlled(self.lineage.population)
         if c_index is None:
-            log.debug("No control evolved")
-            return None
-        log.debug("We got a master gene at the last generation.")
+            log.info("No master evolved")
+            return None, None
+
+        log.info("We got a master gene at the last generation.")
 
         # Grab the first one and load the ancestry
         net = self.lineage.population[c_index]
-        first_control = self.get_ancestry_control(net)
+        first_control, first_master = self.get_ancestry_control(net)
 
         # Just one
-        log.info("First control is at generation {}.".format(first_control))
-        return first_control
+        log.info("First control is at generation {}.".format(first_master))
+        return first_control, first_master
 
     def find_controlled(self, collection):
-        output_size = self.lineage.params.out_channels
+        """Control requires fitness to be 1.0 too"""
+        # Get the fitnesses
+        self.lineage.targets[0].assess_collection(collection)
+        fitnesses = collection.fitnesses
 
-        mutual = self.mi_analyzer.numpy_info_from_collection(collection)
-        # Ditch the empty dimension
-        mutual.shape = mutual.shape[:-1]
+        rc = self.rc_analyzer.numpy_info_from_collection(collection)
+        indexes = np.where(rc == 1.0)[0]
+        if indexes.size > 0:
+            first_control = indexes[0]
+        else:
+            first_control = None
 
-        ai = self.ac_analyzer.numpy_info_from_collection(collection)
-        control = ai[:, :, :output_size]
-        entropy = ai[:, :, output_size:]
+        # Yes, there is a faster way...
+        first_master = None
+        for i in indexes:
+            if fitnesses[i] == 1.0:
+                first_master = i
+                break
 
-        for i, (m_net, c_net, e_net) in enumerate(zip(mutual, control, entropy)):
-            for j, (m_reg, c_reg, e_reg) in enumerate(zip(m_net, c_net, e_net)):
-                # It must have full information about the environment
-                if m_reg == 1.0:
-                    # And this must translate into control
-                    if (c_reg == 1.0).all():
-                            # The control must explain all of the entropy
-                            if (e_reg == c_reg).all():
-                                return i
-        return None
+        return first_control, first_master
 
     def get_ancestry_control(self, network):
         log.debug("loading ancestry of winner {}".format(network.identifier))
         anc = self.lineage.get_ancestry(network.identifier)
 
         log.debug("Calculating ancestry control of {} networks.".format(anc.size))
-        c_index = self.find_controlled(anc)
+        control, master = self.find_controlled(anc)
 
         # We know that at least the last one should be good!
-        assert c_index is not None
+        assert master is not None
 
-        first_ancestor = anc[c_index]
+        first_control = anc[control]
+        first_master = anc[master]
 
-        # Make sure the network has a fitnes
-        self.lineage.targets[0].assess(first_ancestor)
+        # Make sure the network has a fitness
         log.debug("First ancestor with master gene is at {}.".format(
-            first_ancestor.generation))
-        self.replicate.draw_net('first-control', first_ancestor, target=self.lineage.targets[0])
-        return first_ancestor.generation
+            first_master.generation))
+        self.replicate.draw_net('first-control', first_master, target=self.lineage.targets[0])
+        return first_control.generation, first_master.generation
 
 
 class StatsGenerations(object):

@@ -383,7 +383,7 @@ class Experiment(object):
                 with rep.get_lineage() as lin:
                     visitor.visit_lineage(rep, lin)
 
-    def visit_generations(self, visitor, every=1,
+    def visit_generations(self, visitor, every=1, only=None,
                           only_treatment=None,
                           only_replicate=None):
         """Try and visit everything with the least amount of loading"""
@@ -399,15 +399,21 @@ class Experiment(object):
                 with rep.get_lineage() as lin:
                     visitor.visit_lineage(rep, lin)
 
-                    # Now iterate through the generations
-                    gen_num = 0
-                    while gen_num <= lin.generation:
-                        # Check if the visitor wants this generation (as loading is
-                        # expensive)
-                        if visitor.wants_generation(gen_num):
-                            pop = lin.get_generation(gen_num)
-                            visitor.visit_generation(gen_num, pop)
-                        gen_num += every
+                    if only is not None:
+                        only = int(only)
+                        if visitor.wants_generation(only):
+                            pop = lin.get_generation(only)
+                            visitor.visit_generation(only, pop)
+                    else:
+                        # Now iterate through the generations
+                        gen_num = 0
+                        while gen_num <= lin.generation:
+                            # Check if the visitor wants this generation (as loading is
+                            # expensive)
+                            if visitor.wants_generation(gen_num):
+                                pop = lin.get_generation(gen_num)
+                                visitor.visit_generation(gen_num, pop)
+                            gen_num += every
 
                     if hasattr(visitor, 'leave_lineage'):
                         visitor.leave_lineage(rep, lin)
