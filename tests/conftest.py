@@ -36,6 +36,13 @@ def xor_network(xor_database):
     return xor_database.population.get_best()[0]
 
 
+@pytest.yield_fixture
+def perturb_database():
+    db = get_database('perturb', readonly=True)
+    yield db
+    db.close()
+
+
 class TestTreatment(Treatment):
     def __init__(self, name, params, count, target):
         super(TestTreatment, self).__init__(name, params, count)
