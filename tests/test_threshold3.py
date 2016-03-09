@@ -1,7 +1,7 @@
 import cPickle as pickle
 import numpy
 from bricolage.threshold3 import (
-    World, Parameters, Target, Factory, Population, SelectionModel)
+    World, Parameters, DefaultTarget, Factory, Population, SelectionModel)
 
 
 def xor_func(a, b):
@@ -49,7 +49,7 @@ def test_xor():
                         out_channels=1)
     world = World(params)
     factory = Factory(world)
-    target = Target(world, fitness_func1)
+    target = DefaultTarget(world, fitness_func1)
     select = SelectionModel(world)
     pop = Population(factory, 10000)
 

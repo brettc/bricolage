@@ -45,7 +45,7 @@ def test_target():
         out_channels=2,
     )
     w = T.World(p)
-    t = T.Target(w, make_target1)
+    t = T.DefaultTarget(w, make_target1)
     assert t.as_array().shape == (pow(2, 3), 2)
 
     # Default
@@ -89,11 +89,11 @@ def test_pickling_target(tmpdir):
     w = T.World(p)
 
     # Now ensure that pickling Targets works too
-    t1 = T.Target(w, make_target1, name='a')
+    t1 = T.DefaultTarget(w, make_target1, name='a')
     assert t1.scoring_method == T.ScoringMethod.LINEAR
     assert t1.strength == 0.0
 
-    t2 = T.Target(w, make_target2, name='b',
+    t2 = T.DefaultTarget(w, make_target2, name='b',
                   scoring_method=T.ScoringMethod.EXPONENTIAL, strength=4.0)
     t2.weighting = [1, 2]
 
@@ -125,11 +125,11 @@ def test_pickling_target(tmpdir):
 def test_scoring_methods(bowtie_database):
     pop = bowtie_database.population
     # Use different identifiers to force recalculation
-    targ1 = T.Target(pop.factory.world, bowtie_target, ident=2)
-    targ2 = T.Target(pop.factory.world, bowtie_target, ident=3,
+    targ1 = T.DefaultTarget(pop.factory.world, bowtie_target, ident=2)
+    targ2 = T.DefaultTarget(pop.factory.world, bowtie_target, ident=3,
                      scoring_method=T.ScoringMethod.EXPONENTIAL,
                      strength=1)
-    targ3 = T.Target(pop.factory.world, bowtie_target, ident=4,
+    targ3 = T.DefaultTarget(pop.factory.world, bowtie_target, ident=4,
                      scoring_method=T.ScoringMethod.EXPONENTIAL_VEC,
                      strength=1)
 

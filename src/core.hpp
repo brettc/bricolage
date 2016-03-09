@@ -224,6 +224,8 @@ public:
     void calc_attractors() { _calc_attractors(false); }
     void calc_attractors_with_intervention() { _calc_attractors(true); }
 
+    void calc_perturbation();
+
     cFactory_ptr factory;
     cWorld_ptr world;
     int_t identifier, parent_identifier;
@@ -231,9 +233,9 @@ public:
     // Optional -- the generation that this was created (default: 0)
     int_t generation;
 
-    // Calculated attractor and rates
-    cAttractors attractors;
-    cRatesVector rates;
+    // Calculated attractor and rates, and ones that have been perturbed
+    cAttractors attractors, pert_attractors;
+    cRatesVector rates, pert_rates;
 
     // Record the fitness and the target against which it was calculated.
     // This means we don't need to recalc the fitness if the target has not
@@ -257,24 +259,30 @@ enum ScoringMethod
     SCORE_EXPONENTIAL_VEC = 2
 };
 
-struct cTarget
+struct cBaseTarget
 {
-    cTarget(const cWorld_ptr &world, const std::string &name,
-            ScoringMethod method=SCORE_LINEAR, double strength=1.0,
-            int_t ident=-1);
+    cBaseTarget(const cWorld_ptr &world, const std::string &name, int_t id=-1);
+    virtual ~cBaseTarget() {}
     cWorld_ptr world;
     std::string name;
     int_t identifier;
-    cRatesVector optimal_rates;
     cRates weighting;
+
+    virtual double assess(const cNetwork &net) const=0;
+    void assess_networks(cNetworkVector &networks) const;
+    void set_weighting(const cRates &w);
+};
+
+struct cDefaultTarget : public cBaseTarget
+{
+    cDefaultTarget(const cWorld_ptr &world, const std::string &name, int_t ident=-1,
+            ScoringMethod method=SCORE_LINEAR, double strength=1.0);
+
+    cRatesVector optimal_rates;
     ScoringMethod scoring_method;
     double strength;
 
-    // TODO: per env weighting
-    // TODO: per output weighting
     double assess(const cNetwork &net) const;
-    void assess_networks(cNetworkVector &networks) const;
-    void set_weighting(const cRates &w);
 };
 
 
@@ -294,7 +302,7 @@ public:
     cPopulation(const cFactory_ptr &c, size_t n);
 
     size_t mutate(double site_rate, int_t generation);
-    void assess(const cTarget &target) const;
+    void assess(const cBaseTarget &target) const;
     bool select(const cSelectionModel &sm, size_t size);
     std::pair<double, double> worst_and_best() const;
     void best_indexes(cIndexes &best) const;

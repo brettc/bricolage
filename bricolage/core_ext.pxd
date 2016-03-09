@@ -30,11 +30,17 @@ cdef class Factory:
             World world
             object gene_class, module_class, network_class
 
-cdef class Target:
+cdef class BaseTarget:
     cdef:
-        cTarget *_this
+        cBaseTarget *_base
         readonly:
             World world
+
+cdef class DefaultTarget(BaseTarget):
+    cdef:
+        cDefaultTarget *_this
+    pass
+
 
 cdef class Network:
     cdef:
@@ -49,6 +55,8 @@ cdef class Network:
         object _genes, _attractors, _rates
 
     cdef bind_to(self, cNetwork_ptr ptr)
+    cdef _make_python_attractors(self, cAttractors &attrs)
+    cdef _make_python_rates(self, cRatesVector &rates)
 
 cdef class Gene:
     cdef:

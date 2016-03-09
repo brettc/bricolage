@@ -214,7 +214,7 @@ def target_3x2():
     return make_target
 
 def test_targets(c_3x2, target_3x2):
-    targ = T.Target(c_3x2.world, target_3x2)
+    targ = T.DefaultTarget(c_3x2.world, target_3x2)
     nc = T.Population(c_3x2, 1000)
     for net in nc:
         diffs = abs(targ.as_array() - net.rates)
@@ -240,7 +240,7 @@ def test_targets(c_3x2, target_3x2):
 # def test_selection(p_3x2, target_3x2):
 #     # TODO: Finish testing selection by python
 #     factory = T.Factory(p_3x2)
-#     target = T.Target(factory, target_3x2)
+#     target = T.DefaultTarget(factory, target_3x2)
 #     population = factory.create_collection(1000)
 #
 #     # What does c++ do?

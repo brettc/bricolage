@@ -5,28 +5,21 @@
 
 using namespace bricolage;
 
-cTarget::cTarget(const cWorld_ptr &w, const std::string &n,
-                 ScoringMethod m, double s, int_t id)
+cBaseTarget::cBaseTarget(const cWorld_ptr &w, const std::string &n, int_t id)
     : world(w)
     , name(n)
-    , scoring_method(m)
-    , strength(s)
 {
     if (id == -1)
         identifier = w->get_next_target_ident();
     else
         identifier = id;
 
-    cRates temp;
-    std::fill_n(std::back_inserter(temp), w->out_channels, 0.0);
-    std::fill_n(std::back_inserter(optimal_rates), w->environments.size(), temp);
-
     // Default is equal weighting
     std::fill_n(std::back_inserter(weighting), w->out_channels, 1.0 /
                 double(w->out_channels));
 }
 
-void cTarget::set_weighting(const cRates &wghts)
+void cBaseTarget::set_weighting(const cRates &wghts)
 {
     if (wghts.size() != weighting.size())
         throw std::runtime_error("weighting size and output size differ");
@@ -42,10 +35,26 @@ void cTarget::set_weighting(const cRates &wghts)
 
 }
 
-// TODO: per env weighting
-// TODO: Profiling -- make faster?
-// TODO: Maybe we should be use multi_array??
-double cTarget::assess(const cNetwork &net) const
+void cBaseTarget::assess_networks(cNetworkVector &networks) const
+{
+    for (auto net: networks)
+        net->fitness = assess(*net);
+}
+
+cDefaultTarget::cDefaultTarget(const cWorld_ptr &w, 
+                               const std::string &n, int_t id,
+                               ScoringMethod m, double s)
+    : cBaseTarget(w, n, id)
+    , scoring_method(m)
+    , strength(s)
+{
+    cRates temp;
+    std::fill_n(std::back_inserter(temp), w->out_channels, 0.0);
+    std::fill_n(std::back_inserter(optimal_rates), w->environments.size(), temp);
+
+}
+
+double cDefaultTarget::assess(const cNetwork &net) const
 {
     // We've already done it!
     if (net.target == identifier)
@@ -126,11 +135,6 @@ double cTarget::assess(const cNetwork &net) const
     return final_score;
 }
 
-void cTarget::assess_networks(cNetworkVector &networks) const
-{
-    for (auto net: networks)
-        net->fitness = assess(*net);
-}
 
 cSelectionModel::cSelectionModel(cWorld_ptr &w)
     : world(w)

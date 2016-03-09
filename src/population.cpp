@@ -41,7 +41,7 @@ void cPopulation::best_indexes(cIndexes &best) const
     }
 }
 
-void cPopulation::assess(const cTarget &target) const
+void cPopulation::assess(const cBaseTarget &target) const
 {
     for (size_t i = 0; i < networks.size(); ++i)
     {
