@@ -54,6 +54,10 @@ all: $(CY_EXTS)
 # This is useful for invoking via vim
 cython: $(CY_SRCS:.pyx=.cpp)
 
+
+shared: $(GRN_DYLIB)
+
+
 # Build the shared libary of all c++ code
 # NOTE: need to change the "install-name" of the dylib so that it loads
 # relative to the binaries that will be using it (the python extensions)
@@ -105,4 +109,4 @@ cleanall:
 	rm -f **/*.pyc
 	rm -f $(PYSRC)/*.cpp
 
-.PHONY: all clean cleanall
+.PHONY: all clean cleanall 
