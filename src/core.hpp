@@ -224,7 +224,7 @@ public:
     void calc_attractors() { _calc_attractors(false); }
     void calc_attractors_with_intervention() { _calc_attractors(true); }
 
-    void calc_perturbation();
+    void calc_perturbation() const;
 
     cFactory_ptr factory;
     cWorld_ptr world;
@@ -234,8 +234,11 @@ public:
     int_t generation;
 
     // Calculated attractor and rates, and ones that have been perturbed
-    cAttractors attractors, pert_attractors;
-    cRatesVector rates, pert_rates;
+    cAttractors attractors;
+    mutable cAttractors pert_attractors;
+    cRatesVector rates;
+    mutable cRatesVector pert_rates;
+
 
     // Record the fitness and the target against which it was calculated.
     // This means we don't need to recalc the fitness if the target has not
@@ -261,30 +264,50 @@ enum ScoringMethod
 
 struct cBaseTarget
 {
-    cBaseTarget(const cWorld_ptr &world, const std::string &name, int_t id=-1);
+    cBaseTarget(const cWorld_ptr &world, 
+                const std::string &name, 
+                int_t id,
+                ScoringMethod method,
+                double strength);
+
     virtual ~cBaseTarget() {}
     cWorld_ptr world;
     std::string name;
     int_t identifier;
+    cRatesVector optimal_rates;
+    ScoringMethod scoring_method;
+    double strength;
     cRates weighting;
 
     virtual double assess(const cNetwork &net) const=0;
     void assess_networks(cNetworkVector &networks) const;
     void set_weighting(const cRates &w);
+    double score_rates(const cRatesVector &rates) const;
+
+
 };
 
 struct cDefaultTarget : public cBaseTarget
 {
-    cDefaultTarget(const cWorld_ptr &world, const std::string &name, int_t ident=-1,
-            ScoringMethod method=SCORE_LINEAR, double strength=1.0);
-
-    cRatesVector optimal_rates;
-    ScoringMethod scoring_method;
-    double strength;
-
+    cDefaultTarget(const cWorld_ptr &world, 
+                   const std::string &name, 
+                   int_t ident=-1,
+                   ScoringMethod method=SCORE_LINEAR, 
+                   double strength=1.0);
     double assess(const cNetwork &net) const;
 };
 
+struct cNoisyTarget: public cBaseTarget
+{
+    cNoisyTarget(const cWorld_ptr &world, 
+                 const std::string &name, 
+                 int_t ident=-1, 
+                 ScoringMethod method=SCORE_LINEAR, 
+                 double strength=1.0,
+                 size_t perturb_count=5);
+    size_t perturb_count;
+    double assess(const cNetwork &net) const;
+};
 
 struct cSelectionModel
 {

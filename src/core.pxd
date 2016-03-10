@@ -130,7 +130,8 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         SCORE_EXPONENTIAL = 1
 
     cdef cppclass cBaseTarget:
-        cBaseTarget(cWorld_ptr &w, string name, int_t ident)
+        cBaseTarget(cWorld_ptr &w, string name, int_t ident,
+                       ScoringMethod meth, double strength)
 
         void assess_networks(cNetworkVector &networks)
         double assess(cNetwork &net)
@@ -139,13 +140,19 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         int_t identifier
         string name
         cRates weighting
+        cRatesVector optimal_rates
+        ScoringMethod scoring_method
+        double strength
 
     cdef cppclass cDefaultTarget(cBaseTarget):
         cDefaultTarget(cWorld_ptr &w, string name, int_t ident,
                        ScoringMethod meth, double strength)
-        cRatesVector optimal_rates
-        ScoringMethod scoring_method
-        double strength
+
+    cdef cppclass cNoisyTarget(cBaseTarget):
+        cNoisyTarget(cWorld_ptr &w, string name, int_t ident, 
+                     ScoringMethod meth, double strength, 
+                     int_t perturb_count)
+        size_t perturb_count
 
     cdef cppclass cSelectionModel:
         cSelectionModel(cWorld_ptr &factory)

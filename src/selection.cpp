@@ -5,9 +5,16 @@
 
 using namespace bricolage;
 
-cBaseTarget::cBaseTarget(const cWorld_ptr &w, const std::string &n, int_t id)
+cBaseTarget::cBaseTarget(const cWorld_ptr &w, 
+                         const std::string &n, 
+                         int_t id,
+                         ScoringMethod m,
+                         double s)
     : world(w)
     , name(n)
+    , scoring_method(m)
+    , strength(s)
+
 {
     if (id == -1)
         identifier = w->get_next_target_ident();
@@ -17,6 +24,10 @@ cBaseTarget::cBaseTarget(const cWorld_ptr &w, const std::string &n, int_t id)
     // Default is equal weighting
     std::fill_n(std::back_inserter(weighting), w->out_channels, 1.0 /
                 double(w->out_channels));
+
+    cRates temp;
+    std::fill_n(std::back_inserter(temp), w->out_channels, 0.0);
+    std::fill_n(std::back_inserter(optimal_rates), w->environments.size(), temp);
 }
 
 void cBaseTarget::set_weighting(const cRates &wghts)
@@ -35,40 +46,16 @@ void cBaseTarget::set_weighting(const cRates &wghts)
 
 }
 
-void cBaseTarget::assess_networks(cNetworkVector &networks) const
+
+double cBaseTarget::score_rates(const cRatesVector &rates) const
 {
-    for (auto net: networks)
-        net->fitness = assess(*net);
-}
-
-cDefaultTarget::cDefaultTarget(const cWorld_ptr &w, 
-                               const std::string &n, int_t id,
-                               ScoringMethod m, double s)
-    : cBaseTarget(w, n, id)
-    , scoring_method(m)
-    , strength(s)
-{
-    cRates temp;
-    std::fill_n(std::back_inserter(temp), w->out_channels, 0.0);
-    std::fill_n(std::back_inserter(optimal_rates), w->environments.size(), temp);
-
-}
-
-double cDefaultTarget::assess(const cNetwork &net) const
-{
-    // We've already done it!
-    if (net.target == identifier)
-        return net.fitness;
-
-    // TODO: check that factories are the same?
-    size_t nsize = net.rates.size();
+    size_t nsize = rates.size();
     size_t osize = world->out_channels;
 
     if (nsize != optimal_rates.size())
         throw std::runtime_error("optimal rates and networks rates differ in size");
 
     // We need to score each of the outputs individually
-
     double normalize = double(nsize);
     double final_score = 0.0;
 
@@ -81,7 +68,7 @@ double cDefaultTarget::assess(const cNetwork &net) const
             double dist = 0.0;
             for (size_t j = 0; j < osize; ++j)
             {
-                double diff = net.rates[i][j] - optimal_rates[i][j];
+                double diff = rates[i][j] - optimal_rates[i][j];
                 diff *= weighting[j];
                 dist += diff * diff;
 
@@ -101,7 +88,7 @@ double cDefaultTarget::assess(const cNetwork &net) const
 
         for (size_t i = 0; i < nsize; ++i)
             for (size_t j = 0; j < osize; ++j)
-                scores[j] += exp(-fabs(net.rates[i][j] - optimal_rates[i][j]) / strength)
+                scores[j] += exp(-fabs(rates[i][j] - optimal_rates[i][j]) / strength)
                                   / normalize;
         // Now apply the weighting
         for (size_t j = 0; j < osize; ++j)
@@ -118,21 +105,73 @@ double cDefaultTarget::assess(const cNetwork &net) const
 
         for (size_t i = 0; i < nsize; ++i)
             for (size_t j = 0; j < osize; ++j)
-                scores[j] += (1.0 - fabs(net.rates[i][j] - optimal_rates[i][j]))
+                scores[j] += (1.0 - fabs(rates[i][j] - optimal_rates[i][j]))
                             / normalize;
         // Now apply the weighting
         for (size_t j = 0; j < osize; ++j)
             final_score += scores[j] * weighting[j];
         }
     }
+    return final_score;
+}
+
+void cBaseTarget::assess_networks(cNetworkVector &networks) const
+{
+    for (auto net: networks)
+        net->fitness = assess(*net);
+}
+
+cDefaultTarget::cDefaultTarget(const cWorld_ptr &w, 
+                               const std::string &n, int_t id,
+                               ScoringMethod m, double s)
+    : cBaseTarget(w, n, id, m, s)
+{
+}
+
+double cDefaultTarget::assess(const cNetwork &net) const
+{
+    // We've already done it!
+    if (net.target == identifier)
+        return net.fitness;
+
+    double score = score_rates(net.rates);
 
     // Must be greater 0 >= n <= 1.0
-    net.fitness = final_score;
+    net.fitness = score;
 
     // Record the target we've been used to assess. We can skip doing every
     // time then.
     net.target = identifier;
-    return final_score;
+    return score;
+}
+
+cNoisyTarget::cNoisyTarget(const cWorld_ptr &w, 
+                           const std::string &n, int_t id,
+                           ScoringMethod m, double s,
+                           size_t perturb)
+    : cBaseTarget(w, n, id, m, s)
+{
+}
+
+double cNoisyTarget::assess(const cNetwork &net) const
+{
+    // Note: we need to reassess every time here, as there is it is not
+    // deterministic
+    double score = 0.0;
+    for (size_t i = 0; i < perturb_count; ++i)
+    {
+        net.calc_perturbation();
+        score += score_rates(net.pert_rates);
+    }
+    score /= double(perturb_count);
+
+    // Must be greater 0 >= n <= 1.0
+    net.fitness = score;
+
+    // Record the target we've been used to assess. We can skip doing every
+    // time then.
+    net.target = identifier;
+    return score;
 }
 
 

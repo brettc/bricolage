@@ -798,7 +798,8 @@ cdef class DefaultTarget(BaseTarget):
     def __cinit__(self, World w, init_func=None, name="", ident=-1,
                   scoring_method=0, strength=0.0):
         self.world = w
-        self._this = new cDefaultTarget(w._shared, name, ident, scoring_method, strength)
+        self._this = new cDefaultTarget(w._shared, name, ident, 
+                                        scoring_method, strength)
         self._base = self._this
         if init_func:
             self._construct_from_function(init_func)

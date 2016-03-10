@@ -123,7 +123,7 @@ inline random_int_t random_int_range(int a, int b, const bricolage::cWorld_ptr &
     return std::bind(std::uniform_int_distribution<>(a, b-1), std::ref(w->rand));
 }
 
-void cNetwork::calc_perturbation()
+void cNetwork::calc_perturbation() const
 {
     // We should already have initial attractors and rates.  This is NOT
     // deterministic (unlike the calculation of attractors, as we randomize
