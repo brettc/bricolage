@@ -587,7 +587,7 @@ cdef class CollectionBase:
             yield self.get_at(i)
 
     def assess(self, BaseTarget target):
-        target._base.assess_networks(deref(self._collection))
+        return target.assess_collection(self)
 
     def get_fitnesses(self, np.double_t[:] fits):
         assert fits.shape[0] == self.size
@@ -731,13 +731,13 @@ cdef class Population(CollectionBase):
     def mutate(self, double site_rate, int generation=0):
         return self._this.mutate(site_rate, generation)
 
-    def select(self, SelectionModel sm, size=None):
+    def select(self, SelectionModel sm, BaseTarget target, size=None):
         cdef size_t s
         if size is None:
             s = self._this.networks.size()
         else:
             s = size
-        return self._this.select(deref(sm._this), s)
+        return self._this.select(deref(sm._this), s, deref(target._base))
 
     property mutated:
         def __get__(self):
@@ -761,7 +761,22 @@ cdef class BaseTarget:
         return self._base.assess(deref(net._this));
 
     def assess_collection(self, CollectionBase coll):
-        self._base.assess_networks(deref(coll._collection));
+        cdef cRates fitnesses
+        self._base.assess_networks(
+            deref(coll._collection), fitnesses)
+
+        # Numpy conversion
+        # TODO: there must be a better way.
+        fits = numpy.zeros(fitnesses.size(), dtype=numpy.double)
+        cdef: 
+            np.npy_double[:] np_fits = fits
+            size_t i
+
+        for i in range(fitnesses.size()):
+            np_fits[i] = fitnesses[i]
+
+        return fits
+
 
     property weighting:
         def __get__(self):
@@ -777,6 +792,42 @@ cdef class BaseTarget:
     property name:
         def __get__(self):
             return self._base.name
+
+    def as_array(self):
+        return numpy.array(self._base.optimal_rates)
+
+    property scoring_method:
+        def __get__(self):
+            return self._base.scoring_method
+        def __set__(self, ScoringMethod method):
+            self._base.scoring_method = method
+
+    property strength:
+        def __get__(self):
+            return self._base.strength
+        def __set__(self, double s):
+            self._base.strength = s
+
+    def calc_categories(self):
+        """Categorise the targets"""
+        cat_dict = {}
+        cats = []
+        cat_n = 0
+        for et in self.as_array():
+            et = tuple(et)
+            if et in cat_dict:
+                cats.append(cat_dict[et])
+            else:
+                cat_dict[et] = cat_n
+                cats.append(cat_n)
+                cat_n += 1
+        return cats
+            
+    def calc_distinct_outputs(self):
+        out = set()
+        for et in self.as_array():
+            out.add(tuple(et))
+        return out
 
 
 # NOTE: allow weighting to be None for backward compatibility
@@ -836,39 +887,4 @@ cdef class DefaultTarget(BaseTarget):
                                    self._this.scoring_method,
                                    self._this.strength)
 
-    def as_array(self):
-        return numpy.array(self._this.optimal_rates)
-
-    property scoring_method:
-        def __get__(self):
-            return self._this.scoring_method
-        def __set__(self, ScoringMethod method):
-            self._this.scoring_method = method
-
-    property strength:
-        def __get__(self):
-            return self._this.strength
-        def __set__(self, double s):
-            self._this.strength = s
-
-    def calc_categories(self):
-        """Categorise the targets"""
-        cat_dict = {}
-        cats = []
-        cat_n = 0
-        for et in self.as_array():
-            et = tuple(et)
-            if et in cat_dict:
-                cats.append(cat_dict[et])
-            else:
-                cat_dict[et] = cat_n
-                cats.append(cat_n)
-                cat_n += 1
-        return cats
-            
-    def calc_distinct_outputs(self):
-        out = set()
-        for et in self.as_array():
-            out.add(tuple(et))
-        return out
             

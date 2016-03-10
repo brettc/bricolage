@@ -50,9 +50,10 @@ void cPopulation::assess(const cBaseTarget &target) const
     }
 }
 
-bool cPopulation::select(const cSelectionModel &sm, size_t size)
+bool cPopulation::select(const cSelectionModel &sm, size_t size, 
+                         const cBaseTarget &target)
 {
-    bool done = sm.select(networks, size, selected);
+    bool done = sm.select(networks, size, selected, target);
     if (!done)
         return false;
 

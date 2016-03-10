@@ -280,7 +280,7 @@ struct cBaseTarget
     cRates weighting;
 
     virtual double assess(const cNetwork &net) const=0;
-    void assess_networks(cNetworkVector &networks) const;
+    void assess_networks(const cNetworkVector &networks, std::vector<double> &scores) const;
     void set_weighting(const cRates &w);
     double score_rates(const cRatesVector &rates) const;
 
@@ -316,7 +316,8 @@ struct cSelectionModel
 
     // TODO: Make this virtual -- come up with different selection models
     bool select(const cNetworkVector &networks,
-                size_t number, cIndexes &selected) const;
+                size_t number, cIndexes &selected,
+                const cBaseTarget &target) const;
 };
 
 class cPopulation
@@ -326,7 +327,8 @@ public:
 
     size_t mutate(double site_rate, int_t generation);
     void assess(const cBaseTarget &target) const;
-    bool select(const cSelectionModel &sm, size_t size);
+    bool select(const cSelectionModel &sm, size_t size, 
+                const cBaseTarget &target);
     std::pair<double, double> worst_and_best() const;
     void best_indexes(cIndexes &best) const;
 

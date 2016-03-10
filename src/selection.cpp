@@ -46,7 +46,6 @@ void cBaseTarget::set_weighting(const cRates &wghts)
 
 }
 
-
 double cBaseTarget::score_rates(const cRatesVector &rates) const
 {
     size_t nsize = rates.size();
@@ -115,10 +114,12 @@ double cBaseTarget::score_rates(const cRatesVector &rates) const
     return final_score;
 }
 
-void cBaseTarget::assess_networks(cNetworkVector &networks) const
+void cBaseTarget::assess_networks(const cNetworkVector &networks, 
+                                  std::vector<double> &scores) const
 {
+    scores.clear();
     for (auto net: networks)
-        net->fitness = assess(*net);
+        scores.push_back(assess(*net));
 }
 
 cDefaultTarget::cDefaultTarget(const cWorld_ptr &w, 
@@ -181,18 +182,20 @@ cSelectionModel::cSelectionModel(cWorld_ptr &w)
 }
 
 bool cSelectionModel::select(
-    const cNetworkVector &networks, size_t number, cIndexes &selected) const
+    const cNetworkVector &networks, size_t number, cIndexes &selected,
+    const cBaseTarget &target) const
 {
     selected.clear();
 
-    std::vector<double> cum_scores;
+    std::vector<double> scores, cum_scores;
     cIndexes indexes;
     double score, cum_score = 0.0;
+    target.assess_networks(networks, scores);
     // First, score everyone
-    for (size_t i = 0; i < networks.size(); ++i)
+    for (size_t i = 0; i < scores.size(); ++i)
     {
         // NOTE: There must be a fitness assigned
-        score = networks[i]->fitness;
+        score = scores[i];
 
         // Zero fitness has no chance
         if (score <= 0.0)
