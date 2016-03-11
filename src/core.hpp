@@ -315,9 +315,8 @@ struct cSelectionModel
     cWorld_ptr world;
 
     // TODO: Make this virtual -- come up with different selection models
-    bool select(const cNetworkVector &networks,
-                size_t number, cIndexes &selected,
-                const cBaseTarget &target) const;
+    bool select(const cRates &scores,
+                size_t number, cIndexes &selected) const;
 };
 
 class cPopulation
@@ -326,16 +325,13 @@ public:
     cPopulation(const cFactory_ptr &c, size_t n);
 
     size_t mutate(double site_rate, int_t generation);
-    void assess(const cBaseTarget &target) const;
-    bool select(const cSelectionModel &sm, size_t size, 
-                const cBaseTarget &target);
+    void assess(const cBaseTarget &target);
+    bool select(const cSelectionModel &sm, size_t size);
+
     std::pair<double, double> worst_and_best() const;
     void best_indexes(cIndexes &best) const;
-
-    // cConstNetwork_ptr get_network(size_t index) const;
     size_t get_generation() const { return generation; }
 
-// protected:
     cFactory_ptr factory;
     cWorld_ptr world;
 
@@ -346,6 +342,7 @@ public:
     cIndexes mutated;
 
     cNetworkVector networks;
+    cRates fitnesses;
 };
 
 enum NodeType { NT_GENE=0, NT_MODULE, NT_CHANNEL };

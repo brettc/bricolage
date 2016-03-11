@@ -169,8 +169,7 @@ double cNoisyTarget::assess(const cNetwork &net) const
     // Must be greater 0 >= n <= 1.0
     net.fitness = score;
 
-    // Record the target we've been used to assess. We can skip doing every
-    // time then.
+    // Record the target we've been used to assess. 
     net.target = identifier;
     return score;
 }
@@ -181,16 +180,15 @@ cSelectionModel::cSelectionModel(cWorld_ptr &w)
 {
 }
 
-bool cSelectionModel::select(
-    const cNetworkVector &networks, size_t number, cIndexes &selected,
-    const cBaseTarget &target) const
+bool cSelectionModel::select(const cRates &scores,
+                             size_t number, 
+                             cIndexes &selected) const
 {
     selected.clear();
 
-    std::vector<double> scores, cum_scores;
+    cRates cum_scores;
     cIndexes indexes;
     double score, cum_score = 0.0;
-    target.assess_networks(networks, scores);
     // First, score everyone
     for (size_t i = 0; i < scores.size(); ++i)
     {

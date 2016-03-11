@@ -96,7 +96,7 @@ class BaseLineage(object):
         # the initial target was set, or from the previous call to
         # next_generation
         self.generation += 1
-        self.population.select(self.selection_model, self.current_target)
+        self.population.select(self.selection_model)
         n = self.population.mutate(self.params.mutation_rate, self.generation)
         log.debug("{} Mutations at generation {}".format(n, self.generation))
 

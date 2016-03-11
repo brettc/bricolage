@@ -39,8 +39,6 @@ def test_population():
     world = World(params)
     factory = Factory(world)
     popul = Population(factory, 1000)
-    f = numpy.zeros(1000)
-    popul.get_fitnesses(f)
     print popul[0].attractors[1]
 
 def test_xor():
@@ -56,19 +54,19 @@ def test_xor():
     while 1:
         pop.assess(target)
         pop.select(select)
-        fits = [n.fitness for n in pop]
+        fits = pop.fitnesses
         max_fit = max(fits)
         if max_fit == 1.0:
             break
         pop.mutate(.05)
 
     # print w.environments
-    for n in pop:
-        if n.fitness == 1.0:
-            print n
-            for g in n.genes:
-                for m in g.modules:
-                    print m.channels
-                    print m.bindings
-                    print m.operation
+    # for n in pop:
+    #     if n.fitness == 1.0:
+    #         print n
+    #         for g in n.genes:
+    #             for m in g.modules:
+    #                 print m.channels
+    #                 print m.bindings
+    #                 print m.operation
 

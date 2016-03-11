@@ -586,15 +586,6 @@ cdef class CollectionBase:
         for i in range(self._collection.size()):
             yield self.get_at(i)
 
-    def assess(self, BaseTarget target):
-        return target.assess_collection(self)
-
-    def get_fitnesses(self, np.double_t[:] fits):
-        assert fits.shape[0] == self.size
-        cdef size_t i
-        for i in range(self._collection.size()):
-            fits[i] = deref(self._collection)[i].get().fitness
-
     def extend(self, CollectionBase other):
         for i in range(other._collection.size()):
             self._collection.push_back(deref(other._collection)[i])
@@ -615,13 +606,6 @@ cdef class CollectionBase:
             self._collection.push_back(
                 con.clone_and_mutate_network(n._shared, mutations[i], 1))
 
-
-    property fitnesses:
-        def __get__(self):
-            fits = numpy.zeros(self.size)
-            self.get_fitnesses(fits)
-            return fits
-
     property generations:
         def __get__(self):
             gens = numpy.zeros(self.size, dtype=int)
@@ -632,6 +616,7 @@ cdef class CollectionBase:
                 c_gens[i] = deref(self._collection)[i].get().generation
             return gens
 
+    # TODO: turn this into a function (it is deceptive)
     property active_bindings:
         def __get__(self):
             bindings = numpy.zeros(self.size, dtype=int)
@@ -728,16 +713,19 @@ cdef class Population(CollectionBase):
     def __repr__(self):
         return "<Population: {}>".format(self.size)
 
-    def mutate(self, double site_rate, int generation=0):
-        return self._this.mutate(site_rate, generation)
+    def assess(self, BaseTarget target):
+        self._this.assess(deref(target._base))
 
-    def select(self, SelectionModel sm, BaseTarget target, size=None):
+    def select(self, SelectionModel sm, size=None):
         cdef size_t s
         if size is None:
             s = self._this.networks.size()
         else:
             s = size
-        return self._this.select(deref(sm._this), s, deref(target._base))
+        return self._this.select(deref(sm._this), s)
+
+    def mutate(self, double site_rate, int generation=0):
+        return self._this.mutate(site_rate, generation)
 
     property mutated:
         def __get__(self):
@@ -746,6 +734,10 @@ cdef class Population(CollectionBase):
     property selected:
         def __get__(self):
             return self._this.selected
+
+    property fitnesses:
+        def __get__(self):
+            return self._this.fitnesses
 
 
 cdef class BaseTarget:
@@ -776,7 +768,6 @@ cdef class BaseTarget:
             np_fits[i] = fitnesses[i]
 
         return fits
-
 
     property weighting:
         def __get__(self):

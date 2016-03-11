@@ -167,8 +167,7 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         cPopulation(const cFactory_ptr &c, size_t n)
         size_t mutate(double site_rate, int_t generation)
         void assess(const cBaseTarget &target)
-        bint select(const cSelectionModel &sm, size_t size,
-                    const cBaseTarget &target)
+        bint select(const cSelectionModel &sm, size_t size)
         pair[double, double] worst_and_best()
         void best_indexes(cIndexes &best)
         cFactory_ptr factory
@@ -180,6 +179,7 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
 
         cIndexes selected, mutated
         cNetworkVector networks
+        cRates fitnesses
 
     cdef cppclass cInfoE:
         cInfoE(const cWorld_ptr &world, size_t ncategories)

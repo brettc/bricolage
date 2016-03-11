@@ -133,12 +133,9 @@ def test_scoring_methods(bowtie_database):
                      scoring_method=T.ScoringMethod.EXPONENTIAL_VEC,
                      strength=1)
 
-    targ1.assess_collection(pop)
-    f1 = pop.fitnesses
-    targ2.assess_collection(pop)
-    f2 = pop.fitnesses
-    targ3.assess_collection(pop)
-    f3 = pop.fitnesses
+    f1 = targ1.assess_collection(pop)
+    f2 = targ2.assess_collection(pop)
+    f3 = targ3.assess_collection(pop)
     ones1 = numpy.where(f1 == 1.0)[0]
     ones2 = numpy.where(f2 == 1.0)[0]
     ones3 = numpy.where(f3 == 1.0)[0]
