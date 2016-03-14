@@ -224,7 +224,7 @@ public:
     void calc_attractors() { _calc_attractors(false); }
     void calc_attractors_with_intervention() { _calc_attractors(true); }
 
-    void calc_perturbation() const;
+    void calc_perturbation(bool env_only) const;
 
     cFactory_ptr factory;
     cWorld_ptr world;
@@ -304,8 +304,12 @@ struct cNoisyTarget: public cBaseTarget
                  int_t ident=-1, 
                  ScoringMethod method=SCORE_LINEAR, 
                  double strength=1.0,
-                 size_t perturb_count=5);
+                 size_t perturb_count=1,
+                 double perturb_prop=1.0,
+                 bool e_only=true);
     size_t perturb_count;
+    double perturb_prop;
+    bool env_only;
     double assess(const cNetwork &net) const;
 };
 

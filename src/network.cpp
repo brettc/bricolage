@@ -123,7 +123,7 @@ inline random_int_t random_int_range(int a, int b, const bricolage::cWorld_ptr &
     return std::bind(std::uniform_int_distribution<>(a, b-1), std::ref(w->rand));
 }
 
-void cNetwork::calc_perturbation() const
+void cNetwork::calc_perturbation(bool env_only) const
 {
     // We should already have initial attractors and rates.  This is NOT
     // deterministic (unlike the calculation of attractors, as we randomize
@@ -132,6 +132,9 @@ void cNetwork::calc_perturbation() const
     pert_attractors.clear();
     pert_rates.clear();
     random_int_t r_env_state(random_int_range(0, 2, world));
+    random_int_t r_reg_channel(random_int_range(world->cue_range.first, 
+                                                world->reg_range.second,
+                                                world));
 
     size_t attractor_begins_at;
     bool found;
@@ -142,10 +145,10 @@ void cNetwork::calc_perturbation() const
         cChannelStateVector path;
         // For each environmental attractor:
         // 1. Randomly select one state of the attractor.
-        // 2. Introduce a pulse of random env states.
+        // 2. Introduce a pulse of random states (maybe just in the env)
         // 3. Iterator until we get another atttractor.
         //
-        // 1.
+        // 1. Get starting point
         size_t state_i = 0;
         if (attr.size() > 1)
         {
@@ -154,11 +157,17 @@ void cNetwork::calc_perturbation() const
         }
         cChannelState current = attr[state_i];
 
-        // 2.
-        for (size_t k = world->cue_range.first; k < world->cue_range.second; ++k)
-            if (r_env_state())
-                current.set(k);
+        // 2. Random state
+        if (env_only)
+        {
+            for (size_t k = world->cue_range.first; k < world->cue_range.second; ++k)
+                if (r_env_state())
+                    current.set(k);
+        } else {
+            current.flip(r_reg_channel());
+        }
 
+        // 3. Equilibria
         path.push_back(current);
 
         for (;;)

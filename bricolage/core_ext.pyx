@@ -348,8 +348,8 @@ cdef class Network:
     def cycle_with_intervention(self, ChannelState c):
         self._this.cycle_with_intervention(c._this)
 
-    def calc_perturbation(self):
-        self._this.calc_perturbation()
+    def calc_perturbation(self, bint env_only):
+        self._this.calc_perturbation(env_only)
 
     def recalculate(self, with_intervention=False):
         if with_intervention:
@@ -820,33 +820,7 @@ cdef class BaseTarget:
             out.add(tuple(et))
         return out
 
-
-# NOTE: allow weighting to be None for backward compatibility
-def _default_target(World w, name, ident, rates, weighting=None,
-                      scoring_method=None, strength=None):
-    t = DefaultTarget(w, None, name, ident=ident)
-    # Manually construct these
-    t._this.optimal_rates = rates
-    if weighting is not None:
-        t.weighting = weighting
-    if scoring_method is not None:
-        t.scoring_method = scoring_method
-    if strength is not None:
-        t.strength = strength
-
-    return t
-
-cdef class DefaultTarget(BaseTarget):
-    def __cinit__(self, World w, init_func=None, name="", ident=-1,
-                  scoring_method=0, strength=0.0):
-        self.world = w
-        self._this = new cDefaultTarget(w._shared, name, ident, 
-                                        scoring_method, strength)
-        self._base = self._this
-        if init_func:
-            self._construct_from_function(init_func)
-
-    def _construct_from_function(self, init_func):
+    def _construct(self, init_func):
         a, b = self.world._this.cue_range
 
         # Slow and cumbersome, but it doesn't matter
@@ -866,16 +840,88 @@ cdef class DefaultTarget(BaseTarget):
                     % self.world.out_channels)
 
             for j, val in enumerate(outputs):
-                self._this.optimal_rates[i][j] = float(val)
+                self._base.optimal_rates[i][j] = float(val)
 
+
+# NOTE: allow weighting to be None for backward compatibility
+def _default_target(World w, name, ident, rates, weighting=None,
+                      scoring_method=None, strength=None):
+    t = DefaultTarget(w, None, name, ident=ident)
+    # Manually construct these
+    t._this.optimal_rates = rates
+    if weighting is not None:
+        t.weighting = weighting
+    if scoring_method is not None:
+        t.scoring_method = scoring_method
+    if strength is not None:
+        t.strength = strength
+    return t
+
+cdef class DefaultTarget(BaseTarget):
+    def __cinit__(self, World w, init_func=None, name="", ident=-1,
+                  scoring_method=0, strength=0.0):
+        self.world = w
+        self._this = new cDefaultTarget(w._shared, name, ident, 
+                                        scoring_method, strength)
+        self._base = self._this
+        if init_func:
+            self._construct(init_func)
 
     def __reduce__(self):
-        return _default_target, (self.world, 
-                                   self._this.name, 
-                                   self._this.identifier,
-                                   self._this.optimal_rates,
-                                   self._this.weighting,
-                                   self._this.scoring_method,
-                                   self._this.strength)
+        return _default_target, (
+            self.world, 
+            self._this.name, 
+            self._this.identifier,
+            self._this.optimal_rates,
+            self._this.weighting,
+            self._this.scoring_method,
+            self._this.strength)
+
+
+def _noisy_target(World w, name, ident, rates, weighting=None,
+                  scoring_method=None, strength=None, 
+                  perturb_count=None, perturb_prop=None, env_only=None):
+    t = NoisyTarget(w, None, name, ident=ident)
+    # Manually construct these
+    t._this.optimal_rates = rates
+    if weighting is not None:
+        t.weighting = weighting
+    if scoring_method is not None:
+        t.scoring_method = scoring_method
+    if strength is not None:
+        t.strength = strength
+    if perturb_count is not None:
+        t.perturb_count = perturb_count
+    if perturb_prop is not None:
+        t.perturb_prop = perturb_prop
+    if env_only is not None:
+        t.env_only = env_only
+    return t
 
             
+cdef class NoisyTarget(BaseTarget):
+    def __cinit__(self, World w, init_func=None, name="", ident=-1,
+                  scoring_method=0, strength=0.0, 
+                  perturb_count=1, perturb_prop=1.0, env_only=True):
+        self.world = w
+        self._this = new cNoisyTarget(
+            w._shared, name, ident, 
+            scoring_method, strength, perturb_count, perturb_prop, env_only)
+
+        self._base = self._this
+        if init_func:
+            self._construct(init_func)
+
+    def __reduce__(self):
+        return _noisy_target, (
+            self.world, 
+            self._this.name, 
+            self._this.identifier,
+            self._this.optimal_rates,
+            self._this.weighting,
+            self._this.scoring_method,
+            self._this.strength,
+            self._this.perturb_count,
+            self._this.perturb_prop,
+            self._this.env_only,
+        )

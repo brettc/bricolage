@@ -39,8 +39,10 @@ cdef class BaseTarget:
 cdef class DefaultTarget(BaseTarget):
     cdef:
         cDefaultTarget *_this
-    pass
 
+cdef class NoisyTarget(BaseTarget):
+    cdef:
+        cNoisyTarget *_this
 
 cdef class Network:
     cdef:

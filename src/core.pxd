@@ -91,7 +91,7 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         cGene *get_gene(size_t)
         void calc_attractors()
         void calc_attractors_with_intervention()
-        void calc_perturbation()
+        void calc_perturbation(bint)
         
         void *pyobject
         cFactory_ptr factory
@@ -152,8 +152,10 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
     cdef cppclass cNoisyTarget(cBaseTarget):
         cNoisyTarget(cWorld_ptr &w, string name, int_t ident, 
                      ScoringMethod meth, double strength, 
-                     int_t perturb_count)
+                     int_t perturb_count, double perturb_prop, bint env_only)
         size_t perturb_count
+        double perturb_prop
+        bint env_only
 
     cdef cppclass cSelectionModel:
         cSelectionModel(cWorld_ptr &factory)

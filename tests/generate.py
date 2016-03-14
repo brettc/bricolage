@@ -5,6 +5,7 @@ from folders import data_dir
 from bricolage import threshold3
 from bricolage.lineage import SnapshotLineage
 from bricolage.core import InputType
+from bricolage.core_ext import NoisyTarget
 
 
 class GenerateError(Exception):
@@ -122,11 +123,15 @@ def perturb(overwrite):
 
     p = threshold3.Parameters(
         seed=1, cis_count=2, reg_channels=8, out_channels=3, cue_channels=3,
-        population_size=1000, mutation_rate=.001, input_type=InputType.PULSE)
+        population_size=1000, mutation_rate=.00001, input_type=InputType.PULSE,
+        target_class=NoisyTarget,
+    )
 
     with SnapshotLineage(dbpath, params=p) as lin:
         if not lin.targets:
-            lin.add_target(perturb_target)
+            lin.targets.append(NoisyTarget(lin.world, perturb_target, perturb=1))
+            lin.current_target = lin.targets[0]
+            # lin.add_target(perturb_target)
 
         for g, b in select_till(lin, good_for=1000):
             click.secho("At generation {}, best is {}".format(g, b))

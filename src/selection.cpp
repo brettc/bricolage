@@ -149,28 +149,41 @@ double cDefaultTarget::assess(const cNetwork &net) const
 cNoisyTarget::cNoisyTarget(const cWorld_ptr &w, 
                            const std::string &n, int_t id,
                            ScoringMethod m, double s,
-                           size_t perturb)
+                           size_t perturb,
+                           double pert_prop,
+                           bool e_only)
     : cBaseTarget(w, n, id, m, s)
+    , perturb_count(perturb)
+    , perturb_prop(pert_prop)
+    , env_only(e_only)
 {
+    if (pert_prop < 0.0 or pert_prop > 1.0)
+        throw std::runtime_error("perturb prop must be >= 0.0 and <= 1.0");
 }
 
 double cNoisyTarget::assess(const cNetwork &net) const
 {
+    double base_score = score_rates(net.rates) * (1.0 - perturb_prop);
+
     // Note: we need to reassess every time here, as there is it is not
     // deterministic
     double score = 0.0;
     for (size_t i = 0; i < perturb_count; ++i)
     {
-        net.calc_perturbation();
+        net.calc_perturbation(env_only);
         score += score_rates(net.pert_rates);
     }
     score /= double(perturb_count);
+
+    // Add proportions
+    score = (score * perturb_prop) + base_score;
 
     // Must be greater 0 >= n <= 1.0
     net.fitness = score;
 
     // Record the target we've been used to assess. 
     net.target = identifier;
+
     return score;
 }
 
