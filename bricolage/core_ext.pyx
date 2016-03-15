@@ -878,24 +878,15 @@ cdef class DefaultTarget(BaseTarget):
             self._this.strength)
 
 
-def _noisy_target(World w, name, ident, rates, weighting=None,
-                  scoring_method=None, strength=None, 
-                  perturb_count=None, perturb_prop=None, env_only=None):
-    t = NoisyTarget(w, None, name, ident=ident)
+def _noisy_target(World w, name, ident, rates, weighting,
+                  scoring_method, strength, 
+                  perturb_count, perturb_prop, env_only):
+    t = NoisyTarget(w, None, name, ident, 
+                    scoring_method, strength,
+                    perturb_count, perturb_prop, env_only)
     # Manually construct these
-    t._this.optimal_rates = rates
-    if weighting is not None:
-        t.weighting = weighting
-    if scoring_method is not None:
-        t.scoring_method = scoring_method
-    if strength is not None:
-        t.strength = strength
-    if perturb_count is not None:
-        t.perturb_count = perturb_count
-    if perturb_prop is not None:
-        t.perturb_prop = perturb_prop
-    if env_only is not None:
-        t.env_only = env_only
+    t._base.optimal_rates = rates
+    t._base.weighting = weighting
     return t
 
             
@@ -925,3 +916,15 @@ cdef class NoisyTarget(BaseTarget):
             self._this.perturb_prop,
             self._this.env_only,
         )
+
+    property env_only:
+        def __get__(self):
+            return self._this.env_only
+
+    property perturb_count:
+        def __get__(self):
+            return self._this.perturb_count
+
+    property perturb_prop:
+        def __get__(self):
+            return self._this.perturb_prop

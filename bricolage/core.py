@@ -2,7 +2,7 @@ import logging
 log = logging.getLogger("core")
 
 from enum import IntEnum
-from .core_ext import SelectionModel, World, DefaultTarget
+from .core_ext import SelectionModel, World, DefaultTarget, NoisyTarget
 
 __all__ = ["World", "SelectionModel", "Parameters", "DefaultTarget"]
 

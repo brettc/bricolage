@@ -79,7 +79,7 @@ def test_pickling_world(tmpdir):
     assert w.next_target_id == w2.next_target_id
 
 
-def test_pickling_target(tmpdir):
+def test_pickling_default_target(tmpdir):
     tmpdir = pathlib.Path(str(tmpdir))
     p = T.Parameters(
         cue_channels=3,
@@ -120,6 +120,47 @@ def test_pickling_target(tmpdir):
 
     assert t1.strength == rt1.strength
     assert t2.strength == rt2.strength
+
+def test_pickling_noisy_target(tmpdir):
+    tmpdir = pathlib.Path(str(tmpdir))
+    p = T.Parameters(
+        cue_channels=3,
+        reg_channels=3,
+        out_channels=2,
+    )
+    w = T.World(p)
+
+    # Now ensure that pickling Targets works too
+    t1 = T.NoisyTarget(w, make_target1, name='a')
+    assert t1.scoring_method == T.ScoringMethod.LINEAR
+    assert t1.strength == 0.0
+    assert t1.perturb_count == 1
+    assert t1.perturb_prop == 1.0
+    assert t1.env_only == True
+
+    t2 = T.NoisyTarget(w, make_target2, name='b', 
+                         perturb_count=3, perturb_prop=.5, env_only=False)
+    assert t2.perturb_count == 3
+    assert t2.perturb_prop == .5
+    assert t2.env_only == False
+
+    with open(str(tmpdir / 'target1.pickle'), 'wb') as f:
+        pickle.dump((t1, t2), f, -1)
+
+    with open(str(tmpdir / 'target1.pickle'), 'rb') as f:
+        rt1, rt2 = pickle.load(f)
+
+    assert (t1.as_array() == rt1.as_array()).all()
+    assert (t2.as_array() == rt2.as_array()).all()
+
+    assert t1.env_only == rt1.env_only
+    assert t2.env_only == rt2.env_only
+
+    assert t1.perturb_count == rt1.perturb_count
+    assert t2.perturb_count == rt2.perturb_count
+
+    assert t1.perturb_prop == rt1.perturb_prop
+    assert t2.perturb_prop == rt2.perturb_prop
 
 
 def test_scoring_methods(bowtie_database):
