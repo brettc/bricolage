@@ -67,7 +67,7 @@ const size_t off_channel = 0;
 const size_t on_channel = 1;
 
 // Set this globally
-const size_t MAX_CHANNELS_PER_CIS = 4;
+const size_t MAX_CHANNELS_PER_CRM = 4;
 
 // Allows us to intervene on the state of genes and modules, forcing them on or
 // off to ascertain what causal role they have.
@@ -106,7 +106,7 @@ public:
     // Defines how many channels you'll actually use.
     virtual size_t site_count() const = 0;
     InterventionState intervene;
-    signal_t channels[MAX_CHANNELS_PER_CIS];
+    signal_t channels[MAX_CHANNELS_PER_CRM];
 };
 
 struct cGene
