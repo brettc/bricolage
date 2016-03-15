@@ -4,6 +4,8 @@ import click
 from folders import data_dir
 from bricolage import threshold3
 from bricolage.lineage import SnapshotLineage
+from bricolage.core import InputType
+from bricolage.core_ext import NoisyTarget
 
 
 class GenerateError(Exception):
@@ -13,7 +15,7 @@ class GenerateError(Exception):
 # A holder for the database.
 _data = dict([
     (nm, (data_dir / nm).with_suffix('.db'))
-    for nm in ['xor', 'bowtie']
+    for nm in ['xor', 'bowtie', 'perturb']
 ])
 
 
@@ -106,6 +108,33 @@ def bowtie(overwrite):
         for g, b in select_till(lin, good_for=1000):
             click.secho("At generation {}, best is {}".format(g, b))
 
+def perturb_target(a, b, c):
+    if (a and not c) or (b and c):
+        return [0, 1, 0]
+    return [1, 0, 1]
+
+
+@generate.command()
+@click.option('--overwrite', is_flag=True, default=False)
+def perturb(overwrite):
+    dbpath = get_dbpath('perturb', overwrite)
+    if dbpath is None:
+        return
+
+    p = threshold3.Parameters(
+        seed=1, cis_count=2, reg_channels=8, out_channels=3, cue_channels=3,
+        population_size=1000, mutation_rate=.00001, input_type=InputType.PULSE,
+        target_class=NoisyTarget,
+    )
+
+    with SnapshotLineage(dbpath, params=p) as lin:
+        if not lin.targets:
+            lin.targets.append(NoisyTarget(lin.world, perturb_target, perturb=1))
+            lin.current_target = lin.targets[0]
+            # lin.add_target(perturb_target)
+
+        for g, b in select_till(lin, good_for=1000):
+            click.secho("At generation {}, best is {}".format(g, b))
 
 if __name__ == "__main__":
     generate()

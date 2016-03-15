@@ -41,18 +41,19 @@ void cPopulation::best_indexes(cIndexes &best) const
     }
 }
 
-void cPopulation::assess(const cTarget &target) const
+// TODO: This should construct the fitnesses
+// The next step should select based on them....
+// How do we do the caching...?
+void cPopulation::assess(const cBaseTarget &target)
 {
-    for (size_t i = 0; i < networks.size(); ++i)
-    {
-        const cNetwork &net = *(networks[i]);
-        target.assess(net);
-    }
+    // Update the fitnesses based on the networks there.
+    target.assess_networks(networks, fitnesses);
 }
 
 bool cPopulation::select(const cSelectionModel &sm, size_t size)
 {
-    bool done = sm.select(networks, size, selected);
+    bool done = sm.select(fitnesses, size, selected);
+
     if (!done)
         return false;
 

@@ -1,7 +1,7 @@
 import cPickle as pickle
 import numpy
 from bricolage.threshold3 import (
-    World, Parameters, Target, Factory, Population, SelectionModel)
+    World, Parameters, DefaultTarget, Factory, Population, SelectionModel)
 
 
 def xor_func(a, b):
@@ -39,8 +39,6 @@ def test_population():
     world = World(params)
     factory = Factory(world)
     popul = Population(factory, 1000)
-    f = numpy.zeros(1000)
-    popul.get_fitnesses(f)
     print popul[0].attractors[1]
 
 def test_xor():
@@ -49,26 +47,26 @@ def test_xor():
                         out_channels=1)
     world = World(params)
     factory = Factory(world)
-    target = Target(world, fitness_func1)
+    target = DefaultTarget(world, fitness_func1)
     select = SelectionModel(world)
     pop = Population(factory, 10000)
 
     while 1:
         pop.assess(target)
         pop.select(select)
-        fits = [n.fitness for n in pop]
+        fits = pop.fitnesses
         max_fit = max(fits)
         if max_fit == 1.0:
             break
         pop.mutate(.05)
 
     # print w.environments
-    for n in pop:
-        if n.fitness == 1.0:
-            print n
-            for g in n.genes:
-                for m in g.modules:
-                    print m.channels
-                    print m.bindings
-                    print m.operation
+    # for n in pop:
+    #     if n.fitness == 1.0:
+    #         print n
+    #         for g in n.genes:
+    #             for m in g.modules:
+    #                 print m.channels
+    #                 print m.bindings
+    #                 print m.operation
 

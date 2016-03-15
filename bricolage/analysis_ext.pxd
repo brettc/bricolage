@@ -8,6 +8,7 @@ cdef class NetworkAnalysis:
         readonly:
             Network network
 
+
 cdef class JointProbabilities:
     cdef:
         readonly:
@@ -17,6 +18,7 @@ cdef class JointProbabilities:
         vector[Py_ssize_t] strides
         World world
     cdef bind(self, cJointProbabilities *j)
+
 
 cdef class Information:
     cdef:
@@ -28,25 +30,30 @@ cdef class Information:
         World world
     cdef bind(self, cInformation *i)
 
+
 cdef class CausalFlowAnalyzer:
     cdef:
         cCausalFlowAnalyzer *_this;
         World world
+
 
 cdef class AverageControlAnalyzer:
     cdef:
         cAverageControlAnalyzer *_this;
         World world
 
+
 cdef class MutualInfoAnalyzer:
     cdef:
         cMutualInfoAnalyzer *_this;
         World world
 
+
 cdef class OutputControlAnalyzer:
     cdef:
         cOutputControlAnalyzer *_this;
         World world
+
 
 cdef class RelevantControlAnalyzer:
     cdef:

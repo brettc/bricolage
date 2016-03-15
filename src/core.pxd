@@ -91,13 +91,14 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         cGene *get_gene(size_t)
         void calc_attractors()
         void calc_attractors_with_intervention()
+        void calc_perturbation(bint)
         
         void *pyobject
         cFactory_ptr factory
         cWorld_ptr world
         int_t identifier, parent_identifier, generation
-        cAttractors attractors
-        cRatesVector rates
+        cAttractors attractors, pert_attractors
+        cRatesVector rates, pert_rates
         int_t target
         double fitness
         
@@ -125,33 +126,49 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
     # ctypedef vector[cNetwork_ptr] cNetworkVector
     
     cdef enum ScoringMethod:
-        SCORE_LINEAR = 0,
-        SCORE_EXPONENTIAL = 1,
+        SCORE_LINEAR = 0
+        SCORE_EXPONENTIAL = 1
 
-    cdef cppclass cTarget:
-        cTarget(cWorld_ptr &w, string name, ScoringMethod meth, double strength, int_t id)
+    cdef cppclass cBaseTarget:
+        cBaseTarget(cWorld_ptr &w, string name, int_t ident,
+                       ScoringMethod meth, double strength)
+
+        void assess_networks(cNetworkVector &networks,
+                             cRates &fitnesses)
         double assess(cNetwork &net)
-        void assess_networks(cNetworkVector &networks)
         void set_weighting(const cRates &w);
         cWorld *factory
         int_t identifier
         string name
-        cRatesVector optimal_rates
         cRates weighting
+        cRatesVector optimal_rates
         ScoringMethod scoring_method
         double strength
+
+    cdef cppclass cDefaultTarget(cBaseTarget):
+        cDefaultTarget(cWorld_ptr &w, string name, int_t ident,
+                       ScoringMethod meth, double strength)
+
+    cdef cppclass cNoisyTarget(cBaseTarget):
+        cNoisyTarget(cWorld_ptr &w, string name, int_t ident, 
+                     ScoringMethod meth, double strength, 
+                     int_t perturb_count, double perturb_prop, bint env_only)
+        size_t perturb_count
+        double perturb_prop
+        bint env_only
 
     cdef cppclass cSelectionModel:
         cSelectionModel(cWorld_ptr &factory)
         cWorld_ptr factory
 
         bint select(
-            const cNetworkVector &networks, size_t number, cIndexes &selected)
+            const cNetworkVector &networks, size_t number, 
+            cIndexes &selected, const cBaseTarget &target)
 
     cdef cppclass cPopulation:
         cPopulation(const cFactory_ptr &c, size_t n)
         size_t mutate(double site_rate, int_t generation)
-        void assess(const cTarget &target)
+        void assess(const cBaseTarget &target)
         bint select(const cSelectionModel &sm, size_t size)
         pair[double, double] worst_and_best()
         void best_indexes(cIndexes &best)
@@ -164,6 +181,7 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
 
         cIndexes selected, mutated
         cNetworkVector networks
+        cRates fitnesses
 
     cdef cppclass cInfoE:
         cInfoE(const cWorld_ptr &world, size_t ncategories)

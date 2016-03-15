@@ -67,7 +67,7 @@ const size_t off_channel = 0;
 const size_t on_channel = 1;
 
 // Set this globally
-const size_t MAX_CHANNELS_PER_CIS = 4;
+const size_t MAX_CHANNELS_PER_CRM = 4;
 
 // Allows us to intervene on the state of genes and modules, forcing them on or
 // off to ascertain what causal role they have.
@@ -106,7 +106,7 @@ public:
     // Defines how many channels you'll actually use.
     virtual size_t site_count() const = 0;
     InterventionState intervene;
-    signal_t channels[MAX_CHANNELS_PER_CIS];
+    signal_t channels[MAX_CHANNELS_PER_CRM];
 };
 
 struct cGene
@@ -224,6 +224,8 @@ public:
     void calc_attractors() { _calc_attractors(false); }
     void calc_attractors_with_intervention() { _calc_attractors(true); }
 
+    void calc_perturbation(bool env_only) const;
+
     cFactory_ptr factory;
     cWorld_ptr world;
     int_t identifier, parent_identifier;
@@ -231,9 +233,12 @@ public:
     // Optional -- the generation that this was created (default: 0)
     int_t generation;
 
-    // Calculated attractor and rates
+    // Calculated attractor and rates, and ones that have been perturbed
     cAttractors attractors;
+    mutable cAttractors pert_attractors;
     cRatesVector rates;
+    mutable cRatesVector pert_rates;
+
 
     // Record the fitness and the target against which it was calculated.
     // This means we don't need to recalc the fitness if the target has not
@@ -257,26 +262,56 @@ enum ScoringMethod
     SCORE_EXPONENTIAL_VEC = 2
 };
 
-struct cTarget
+struct cBaseTarget
 {
-    cTarget(const cWorld_ptr &world, const std::string &name,
-            ScoringMethod method=SCORE_LINEAR, double strength=1.0,
-            int_t ident=-1);
+    cBaseTarget(const cWorld_ptr &world, 
+                const std::string &name, 
+                int_t id,
+                ScoringMethod method,
+                double strength);
+
+    virtual ~cBaseTarget() {}
     cWorld_ptr world;
     std::string name;
     int_t identifier;
     cRatesVector optimal_rates;
-    cRates weighting;
     ScoringMethod scoring_method;
     double strength;
+    cRates weighting;
 
-    // TODO: per env weighting
-    // TODO: per output weighting
-    double assess(const cNetwork &net) const;
-    void assess_networks(cNetworkVector &networks) const;
+    virtual double assess(const cNetwork &net) const=0;
+    void assess_networks(const cNetworkVector &networks, std::vector<double> &scores) const;
     void set_weighting(const cRates &w);
+    double score_rates(const cRatesVector &rates) const;
+
+
 };
 
+struct cDefaultTarget : public cBaseTarget
+{
+    cDefaultTarget(const cWorld_ptr &world, 
+                   const std::string &name, 
+                   int_t ident=-1,
+                   ScoringMethod method=SCORE_LINEAR, 
+                   double strength=1.0);
+    double assess(const cNetwork &net) const;
+};
+
+struct cNoisyTarget: public cBaseTarget
+{
+    cNoisyTarget(const cWorld_ptr &world, 
+                 const std::string &name, 
+                 int_t ident=-1, 
+                 ScoringMethod method=SCORE_LINEAR, 
+                 double strength=1.0,
+                 size_t perturb_count=1,
+                 double perturb_prop=1.0,
+                 bool e_only=true);
+    size_t perturb_count;
+    double perturb_prop;
+    bool env_only;
+    double assess(const cNetwork &net) const;
+};
 
 struct cSelectionModel
 {
@@ -284,7 +319,7 @@ struct cSelectionModel
     cWorld_ptr world;
 
     // TODO: Make this virtual -- come up with different selection models
-    bool select(const cNetworkVector &networks,
+    bool select(const cRates &scores,
                 size_t number, cIndexes &selected) const;
 };
 
@@ -294,15 +329,13 @@ public:
     cPopulation(const cFactory_ptr &c, size_t n);
 
     size_t mutate(double site_rate, int_t generation);
-    void assess(const cTarget &target) const;
+    void assess(const cBaseTarget &target);
     bool select(const cSelectionModel &sm, size_t size);
+
     std::pair<double, double> worst_and_best() const;
     void best_indexes(cIndexes &best) const;
-
-    // cConstNetwork_ptr get_network(size_t index) const;
     size_t get_generation() const { return generation; }
 
-// protected:
     cFactory_ptr factory;
     cWorld_ptr world;
 
@@ -313,6 +346,7 @@ public:
     cIndexes mutated;
 
     cNetworkVector networks;
+    cRates fitnesses;
 };
 
 enum NodeType { NT_GENE=0, NT_MODULE, NT_CHANNEL };

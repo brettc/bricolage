@@ -52,9 +52,8 @@ def test_population(bowtie_database):
     # mean = get_population_neighbourhood_fitness(popul, target,
     # sample_per_network=100)
     # fits = np.zeros(popul.size)
-    print popul.fitnesses.mean(), sum(popul.fitnesses == 1.0)
+    f1 = targ.assess_collection(popul)
+    print f1.mean(), sum(f1 == 1.0)
 
-    targ.assess_collection(nayb.neighbours)
-    print nayb.neighbours.fitnesses.mean(), sum(
-        nayb.neighbours.fitnesses == 1.0)
-    # print fits.mean(), mean
+    f2 = targ.assess_collection(nayb.neighbours)
+    print f2.mean(), sum(f2 == 1.0)

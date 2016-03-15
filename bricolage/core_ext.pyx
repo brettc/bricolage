@@ -88,6 +88,7 @@ cdef class ChannelStateFrozen:
     def __repr__(self):
         return "<ChannelsRO: {}>".format(self.__str__())
 
+
 cdef class ChannelState(ChannelStateFrozen):
 
     def __cinit__(self):
@@ -114,12 +115,14 @@ cdef class ChannelState(ChannelStateFrozen):
     def __repr__(self):
         return "<Channels: {}>".format(self.__str__())
 
+
 def _construct_world(params, net_id, target_id, r_state):
     w = World(params)
     w._this.next_network_identifier = net_id
     w._this.next_target_identifier = target_id
     w._this.set_random_state(r_state)
     return w
+
 
 cdef class World:
     def __cinit__(self, params):
@@ -257,6 +260,7 @@ cdef class World:
         def __get__(self):
             return self._this.input_type
 
+
 cdef class Factory:
     def __cinit__(self, World w):
         self.world = w
@@ -270,10 +274,12 @@ cdef class Factory:
         n.bind_to(self._this.construct(True))
         return n
 
+
 def _construct_network(Factory factory, array):
     c = Collection(factory)
     factory.from_numpy(array, c)
     return c[0]
+
 
 cdef class Network:
     def __cinit__(self, Factory c, int key=0):
@@ -342,6 +348,9 @@ cdef class Network:
     def cycle_with_intervention(self, ChannelState c):
         self._this.cycle_with_intervention(c._this)
 
+    def calc_perturbation(self, bint env_only):
+        self._this.calc_perturbation(env_only)
+
     def recalculate(self, with_intervention=False):
         if with_intervention:
             self._this.calc_attractors_with_intervention()
@@ -360,6 +369,48 @@ cdef class Network:
         self._this.mutate(nmutations)
         self.recalculate()
 
+    cdef _make_python_attractors(self, cAttractors &attrs):
+        cdef:
+            vector[cChannelStateVector].iterator cattr_iter
+            vector[cChannelState].iterator cstate_iter
+
+        py_attrs = []
+        cattr_iter = attrs.begin()
+        while cattr_iter != attrs.end():
+            attr = []
+            cstate_iter = deref(cattr_iter).begin()
+            while cstate_iter != deref(cattr_iter).end():
+                c = ChannelStateFrozen()
+                c.init(self.factory._this.world, deref(cstate_iter))
+                attr.append(c)
+                preinc(cstate_iter)
+
+            # Make everything a tuple -- you shouldn't be able to mess
+            # with it!
+            py_attrs.append(tuple(attr))
+            preinc(cattr_iter)
+
+        return tuple(py_attrs)
+
+    cdef _make_python_rates(self, cRatesVector &rates):
+        cdef cWorld *world = self.factory._this.world.get()
+
+        # Construct the numpy array via python
+        r = numpy.zeros((world.environments.size(), world.out_channels))
+
+        cdef:
+            np.npy_double[:,:] c_r = r
+            size_t i, j
+
+        # Copy in the goods using a memory array
+        for i in range(world.environments.size()):
+            for j in range(world.out_channels):
+                c_r[i, j] = rates[i][j]
+
+        # Don't mess with it!
+        r.flags.writeable = False
+        return r
+
     property attractors:
         """A tuple containing the attractors for each environment"""
         def __get__(self):
@@ -367,29 +418,12 @@ cdef class Network:
             if self._attractors is not None:
                 return self._attractors
 
-            cdef:
-                vector[cChannelStateVector].iterator cattr_iter
-                vector[cChannelState].iterator cstate_iter
-
-            attrs = []
-            cattr_iter = self._this.attractors.begin()
-            while cattr_iter != self._this.attractors.end():
-                attr = []
-                cstate_iter = deref(cattr_iter).begin()
-                while cstate_iter != deref(cattr_iter).end():
-                    c = ChannelStateFrozen()
-                    c.init(self.factory._this.world, deref(cstate_iter))
-                    attr.append(c)
-                    preinc(cstate_iter)
-
-                # Make everything a tuple -- you shouldn't be able to mess
-                # with it!
-                attrs.append(tuple(attr))
-                preinc(cattr_iter)
-
-            # Again: tuples, so you can't mess with it.
-            self._attractors = tuple(attrs)
+            self._attractors = self._make_python_attractors(self._this.attractors)
             return self._attractors
+
+    property pert_attractors:
+        def __get__(self):
+            return self._make_python_attractors(self._this.pert_attractors)
 
     property rates:
         """Return a readonly numpy array of the rates"""
@@ -397,25 +431,12 @@ cdef class Network:
             # Lazy evaluation
             if self._rates is not None:
                 return self._rates
-
-            cdef cWorld *world = self.factory._this.world.get()
-
-            # Construct the numpy array via python
-            r = numpy.zeros((world.environments.size(), world.out_channels))
-
-            cdef:
-                np.npy_double[:,:] c_r = r
-                size_t i, j
-
-            # Copy in the goods using a memory array
-            for i in range(world.environments.size()):
-                for j in range(world.out_channels):
-                    c_r[i, j] = self._this.rates[i][j]
-
-            # Don't mess with it!
-            r.flags.writeable = False
-            self._rates = r
+            self._rates = self._make_python_rates(self._this.rates)
             return self._rates
+
+    property pert_rates:
+        def __get__(self):
+            return self._make_python_rates(self._this.pert_rates)
 
     property fitness:
         def __get__(self):
@@ -427,6 +448,7 @@ cdef class Network:
 
     def __repr__(self):
         return "<Network id:{} pt:{}>".format(self.identifier, self.parent_identifier)
+
 
 cdef class Gene:
     """A proxy to a gene.
@@ -564,15 +586,6 @@ cdef class CollectionBase:
         for i in range(self._collection.size()):
             yield self.get_at(i)
 
-    def assess(self, Target target):
-        target._this.assess_networks(deref(self._collection))
-
-    def get_fitnesses(self, np.double_t[:] fits):
-        assert fits.shape[0] == self.size
-        cdef size_t i
-        for i in range(self._collection.size()):
-            fits[i] = deref(self._collection)[i].get().fitness
-
     def extend(self, CollectionBase other):
         for i in range(other._collection.size()):
             self._collection.push_back(deref(other._collection)[i])
@@ -593,13 +606,6 @@ cdef class CollectionBase:
             self._collection.push_back(
                 con.clone_and_mutate_network(n._shared, mutations[i], 1))
 
-
-    property fitnesses:
-        def __get__(self):
-            fits = numpy.zeros(self.size)
-            self.get_fitnesses(fits)
-            return fits
-
     property generations:
         def __get__(self):
             gens = numpy.zeros(self.size, dtype=int)
@@ -610,6 +616,7 @@ cdef class CollectionBase:
                 c_gens[i] = deref(self._collection)[i].get().generation
             return gens
 
+    # TODO: turn this into a function (it is deceptive)
     property active_bindings:
         def __get__(self):
             bindings = numpy.zeros(self.size, dtype=int)
@@ -666,6 +673,7 @@ cdef class Ancestry(CollectionBase):
     def __dealloc__(self):
         del self._this
 
+
 cdef class Population(CollectionBase):
     def __cinit__(self, Factory c, size_t size=0):
         self._this = new cPopulation(c._shared, size)
@@ -705,8 +713,8 @@ cdef class Population(CollectionBase):
     def __repr__(self):
         return "<Population: {}>".format(self.size)
 
-    def mutate(self, double site_rate, int generation=0):
-        return self._this.mutate(site_rate, generation)
+    def assess(self, BaseTarget target):
+        self._this.assess(deref(target._base))
 
     def select(self, SelectionModel sm, size=None):
         cdef size_t s
@@ -716,6 +724,9 @@ cdef class Population(CollectionBase):
             s = size
         return self._this.select(deref(sm._this), s)
 
+    def mutate(self, double site_rate, int generation=0):
+        return self._this.mutate(site_rate, generation)
+
     property mutated:
         def __get__(self):
             return self._this.mutated
@@ -724,100 +735,69 @@ cdef class Population(CollectionBase):
         def __get__(self):
             return self._this.selected
 
-# NOTE: allow weighting to be None for backward compatibility
-def _construct_target(World w, name, ident, rates, weighting=None,
-                      scoring_method=None, strength=None):
-    t = Target(w, None, name, ident=ident)
-    # Manually construct these
-    t._this.optimal_rates = rates
-    if weighting is not None:
-        t.weighting = weighting
-    if scoring_method is not None:
-        t.scoring_method = scoring_method
-    if strength is not None:
-        t.strength = strength
-
-    return t
-
-
-cdef class Target:
-    def __cinit__(self, World w, init_func=None, name="", 
-                  scoring_method=0, strength=0.0, ident=-1):
-        self.world = w
-        self._this = new cTarget(w._shared, name, scoring_method, strength, ident)
-        if init_func:
-            self._construct_from_function(init_func)
-
-    def _construct_from_function(self, init_func):
-        a, b = self.world._this.cue_range
-
-        # Slow and cumbersome, but it doesn't matter
-        for i, e in enumerate(self.world.environments):
-            # TODO: Clean up the refs here
-            outputs = init_func(*e.as_array()[a:b])
-            try:
-                s = len(outputs)
-            except TypeError:
-                # Must be a single value...
-                outputs = [outputs]
-                s = 1
-
-            if len(outputs) != self.world.out_channels:
-                raise RuntimeError(
-                    "return value of Target function must be length %s" \
-                    % self.world.out_channels)
-
-            for j, val in enumerate(outputs):
-                self._this.optimal_rates[i][j] = float(val)
-
-    property weighting:
+    property fitnesses:
         def __get__(self):
-            return self._this.weighting
+            return self._this.fitnesses
 
-        def __set__(self, vector[double] wghts):
-            self._this.set_weighting(wghts)
 
-    def __reduce__(self):
-        return _construct_target, (self.world, 
-                                   self._this.name, 
-                                   self._this.identifier,
-                                   self._this.optimal_rates,
-                                   self._this.weighting,
-                                   self._this.scoring_method,
-                                   self._this.strength)
+cdef class BaseTarget:
+    def __cinit__(self):
+        self._base = NULL
 
     def __dealloc__(self):
-        del self._this
+        if self._base != NULL:
+            del self._base
 
     def assess(self, Network net):
         # assert net.factory.world is self.world
-        return self._this.assess(deref(net._this));
+        return self._base.assess(deref(net._this));
 
     def assess_collection(self, CollectionBase coll):
-        self._this.assess_networks(deref(coll._collection));
+        cdef cRates fitnesses
+        self._base.assess_networks(
+            deref(coll._collection), fitnesses)
 
-    def as_array(self):
-        return numpy.array(self._this.optimal_rates)
+        # Numpy conversion
+        # TODO: there must be a better way.
+        fits = numpy.zeros(fitnesses.size(), dtype=numpy.double)
+        cdef: 
+            np.npy_double[:] np_fits = fits
+            size_t i
+
+        for i in range(fitnesses.size()):
+            np_fits[i] = fitnesses[i]
+
+        return fits
+
+    property weighting:
+        def __get__(self):
+            return self._base.weighting
+
+        def __set__(self, vector[double] wghts):
+            self._base.set_weighting(wghts)
 
     property identifier:
         def __get__(self):
-            return self._this.identifier
+            return self._base.identifier
 
     property name:
         def __get__(self):
-            return self._this.name
+            return self._base.name
+
+    def as_array(self):
+        return numpy.array(self._base.optimal_rates)
 
     property scoring_method:
         def __get__(self):
-            return self._this.scoring_method
+            return self._base.scoring_method
         def __set__(self, ScoringMethod method):
-            self._this.scoring_method = method
+            self._base.scoring_method = method
 
     property strength:
         def __get__(self):
-            return self._this.strength
+            return self._base.strength
         def __set__(self, double s):
-            self._this.strength = s
+            self._base.strength = s
 
     def calc_categories(self):
         """Categorise the targets"""
@@ -839,4 +819,112 @@ cdef class Target:
         for et in self.as_array():
             out.add(tuple(et))
         return out
+
+    def _construct(self, init_func):
+        a, b = self.world._this.cue_range
+
+        # Slow and cumbersome, but it doesn't matter
+        for i, e in enumerate(self.world.environments):
+            # TODO: Clean up the refs here
+            outputs = init_func(*e.as_array()[a:b])
+            try:
+                s = len(outputs)
+            except TypeError:
+                # Must be a single value...
+                outputs = [outputs]
+                s = 1
+
+            if len(outputs) != self.world.out_channels:
+                raise RuntimeError(
+                    "return value of Target function must be length %s" \
+                    % self.world.out_channels)
+
+            for j, val in enumerate(outputs):
+                self._base.optimal_rates[i][j] = float(val)
+
+
+# NOTE: allow weighting to be None for backward compatibility
+def _default_target(World w, name, ident, rates, weighting=None,
+                      scoring_method=None, strength=None):
+    t = DefaultTarget(w, None, name, ident=ident)
+    # Manually construct these
+    t._this.optimal_rates = rates
+    if weighting is not None:
+        t.weighting = weighting
+    if scoring_method is not None:
+        t.scoring_method = scoring_method
+    if strength is not None:
+        t.strength = strength
+    return t
+
+cdef class DefaultTarget(BaseTarget):
+    def __cinit__(self, World w, init_func=None, name="", ident=-1,
+                  scoring_method=0, strength=0.0):
+        self.world = w
+        self._this = new cDefaultTarget(w._shared, name, ident, 
+                                        scoring_method, strength)
+        self._base = self._this
+        if init_func:
+            self._construct(init_func)
+
+    def __reduce__(self):
+        return _default_target, (
+            self.world, 
+            self._this.name, 
+            self._this.identifier,
+            self._this.optimal_rates,
+            self._this.weighting,
+            self._this.scoring_method,
+            self._this.strength)
+
+
+def _noisy_target(World w, name, ident, rates, weighting,
+                  scoring_method, strength, 
+                  perturb_count, perturb_prop, env_only):
+    t = NoisyTarget(w, None, name, ident, 
+                    scoring_method, strength,
+                    perturb_count, perturb_prop, env_only)
+    # Manually construct these
+    t._base.optimal_rates = rates
+    t._base.weighting = weighting
+    return t
+
             
+cdef class NoisyTarget(BaseTarget):
+    def __cinit__(self, World w, init_func=None, name="", ident=-1,
+                  scoring_method=0, strength=0.0, 
+                  perturb_count=1, perturb_prop=1.0, env_only=True):
+        self.world = w
+        self._this = new cNoisyTarget(
+            w._shared, name, ident, 
+            scoring_method, strength, perturb_count, perturb_prop, env_only)
+
+        self._base = self._this
+        if init_func:
+            self._construct(init_func)
+
+    def __reduce__(self):
+        return _noisy_target, (
+            self.world, 
+            self._this.name, 
+            self._this.identifier,
+            self._this.optimal_rates,
+            self._this.weighting,
+            self._this.scoring_method,
+            self._this.strength,
+            self._this.perturb_count,
+            self._this.perturb_prop,
+            self._this.env_only,
+        )
+
+    property env_only:
+        def __get__(self):
+            return self._this.env_only
+
+    property perturb_count:
+        def __get__(self):
+            return self._this.perturb_count
+
+    property perturb_prop:
+        def __get__(self):
+            return self._this.perturb_prop

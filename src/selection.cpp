@@ -5,28 +5,32 @@
 
 using namespace bricolage;
 
-cTarget::cTarget(const cWorld_ptr &w, const std::string &n,
-                 ScoringMethod m, double s, int_t id)
+cBaseTarget::cBaseTarget(const cWorld_ptr &w, 
+                         const std::string &n, 
+                         int_t id,
+                         ScoringMethod m,
+                         double s)
     : world(w)
     , name(n)
     , scoring_method(m)
     , strength(s)
+
 {
     if (id == -1)
         identifier = w->get_next_target_ident();
     else
         identifier = id;
 
-    cRates temp;
-    std::fill_n(std::back_inserter(temp), w->out_channels, 0.0);
-    std::fill_n(std::back_inserter(optimal_rates), w->environments.size(), temp);
-
     // Default is equal weighting
     std::fill_n(std::back_inserter(weighting), w->out_channels, 1.0 /
                 double(w->out_channels));
+
+    cRates temp;
+    std::fill_n(std::back_inserter(temp), w->out_channels, 0.0);
+    std::fill_n(std::back_inserter(optimal_rates), w->environments.size(), temp);
 }
 
-void cTarget::set_weighting(const cRates &wghts)
+void cBaseTarget::set_weighting(const cRates &wghts)
 {
     if (wghts.size() != weighting.size())
         throw std::runtime_error("weighting size and output size differ");
@@ -42,24 +46,15 @@ void cTarget::set_weighting(const cRates &wghts)
 
 }
 
-// TODO: per env weighting
-// TODO: Profiling -- make faster?
-// TODO: Maybe we should be use multi_array??
-double cTarget::assess(const cNetwork &net) const
+double cBaseTarget::score_rates(const cRatesVector &rates) const
 {
-    // We've already done it!
-    if (net.target == identifier)
-        return net.fitness;
-
-    // TODO: check that factories are the same?
-    size_t nsize = net.rates.size();
+    size_t nsize = rates.size();
     size_t osize = world->out_channels;
 
     if (nsize != optimal_rates.size())
         throw std::runtime_error("optimal rates and networks rates differ in size");
 
     // We need to score each of the outputs individually
-
     double normalize = double(nsize);
     double final_score = 0.0;
 
@@ -72,7 +67,7 @@ double cTarget::assess(const cNetwork &net) const
             double dist = 0.0;
             for (size_t j = 0; j < osize; ++j)
             {
-                double diff = net.rates[i][j] - optimal_rates[i][j];
+                double diff = rates[i][j] - optimal_rates[i][j];
                 diff *= weighting[j];
                 dist += diff * diff;
 
@@ -92,7 +87,7 @@ double cTarget::assess(const cNetwork &net) const
 
         for (size_t i = 0; i < nsize; ++i)
             for (size_t j = 0; j < osize; ++j)
-                scores[j] += exp(-fabs(net.rates[i][j] - optimal_rates[i][j]) / strength)
+                scores[j] += exp(-fabs(rates[i][j] - optimal_rates[i][j]) / strength)
                                   / normalize;
         // Now apply the weighting
         for (size_t j = 0; j < osize; ++j)
@@ -109,47 +104,109 @@ double cTarget::assess(const cNetwork &net) const
 
         for (size_t i = 0; i < nsize; ++i)
             for (size_t j = 0; j < osize; ++j)
-                scores[j] += (1.0 - fabs(net.rates[i][j] - optimal_rates[i][j]))
+                scores[j] += (1.0 - fabs(rates[i][j] - optimal_rates[i][j]))
                             / normalize;
         // Now apply the weighting
         for (size_t j = 0; j < osize; ++j)
             final_score += scores[j] * weighting[j];
         }
     }
+    return final_score;
+}
+
+void cBaseTarget::assess_networks(const cNetworkVector &networks, 
+                                  std::vector<double> &scores) const
+{
+    scores.clear();
+    for (auto net: networks)
+        scores.push_back(assess(*net));
+}
+
+cDefaultTarget::cDefaultTarget(const cWorld_ptr &w, 
+                               const std::string &n, int_t id,
+                               ScoringMethod m, double s)
+    : cBaseTarget(w, n, id, m, s)
+{
+}
+
+double cDefaultTarget::assess(const cNetwork &net) const
+{
+    // We've already done it!
+    if (net.target == identifier)
+        return net.fitness;
+
+    double score = score_rates(net.rates);
 
     // Must be greater 0 >= n <= 1.0
-    net.fitness = final_score;
+    net.fitness = score;
 
     // Record the target we've been used to assess. We can skip doing every
     // time then.
     net.target = identifier;
-    return final_score;
+    return score;
 }
 
-void cTarget::assess_networks(cNetworkVector &networks) const
+cNoisyTarget::cNoisyTarget(const cWorld_ptr &w, 
+                           const std::string &n, int_t id,
+                           ScoringMethod m, double s,
+                           size_t perturb,
+                           double pert_prop,
+                           bool e_only)
+    : cBaseTarget(w, n, id, m, s)
+    , perturb_count(perturb)
+    , perturb_prop(pert_prop)
+    , env_only(e_only)
 {
-    for (auto net: networks)
-        net->fitness = assess(*net);
+    if (pert_prop < 0.0 or pert_prop > 1.0)
+        throw std::runtime_error("perturb prop must be >= 0.0 and <= 1.0");
 }
+
+double cNoisyTarget::assess(const cNetwork &net) const
+{
+    double base_score = score_rates(net.rates) * (1.0 - perturb_prop);
+
+    // Note: we need to reassess every time here, as there is it is not
+    // deterministic
+    double score = 0.0;
+    for (size_t i = 0; i < perturb_count; ++i)
+    {
+        net.calc_perturbation(env_only);
+        score += score_rates(net.pert_rates);
+    }
+    score /= double(perturb_count);
+
+    // Add proportions
+    score = (score * perturb_prop) + base_score;
+
+    // Must be greater 0 >= n <= 1.0
+    net.fitness = score;
+
+    // Record the target we've been used to assess. 
+    net.target = identifier;
+
+    return score;
+}
+
 
 cSelectionModel::cSelectionModel(cWorld_ptr &w)
     : world(w)
 {
 }
 
-bool cSelectionModel::select(
-    const cNetworkVector &networks, size_t number, cIndexes &selected) const
+bool cSelectionModel::select(const cRates &scores,
+                             size_t number, 
+                             cIndexes &selected) const
 {
     selected.clear();
 
-    std::vector<double> cum_scores;
+    cRates cum_scores;
     cIndexes indexes;
     double score, cum_score = 0.0;
     // First, score everyone
-    for (size_t i = 0; i < networks.size(); ++i)
+    for (size_t i = 0; i < scores.size(); ++i)
     {
         // NOTE: There must be a fitness assigned
-        score = networks[i]->fitness;
+        score = scores[i];
 
         // Zero fitness has no chance
         if (score <= 0.0)

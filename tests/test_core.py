@@ -45,7 +45,7 @@ def test_target():
         out_channels=2,
     )
     w = T.World(p)
-    t = T.Target(w, make_target1)
+    t = T.DefaultTarget(w, make_target1)
     assert t.as_array().shape == (pow(2, 3), 2)
 
     # Default
@@ -79,7 +79,7 @@ def test_pickling_world(tmpdir):
     assert w.next_target_id == w2.next_target_id
 
 
-def test_pickling_target(tmpdir):
+def test_pickling_default_target(tmpdir):
     tmpdir = pathlib.Path(str(tmpdir))
     p = T.Parameters(
         cue_channels=3,
@@ -89,11 +89,11 @@ def test_pickling_target(tmpdir):
     w = T.World(p)
 
     # Now ensure that pickling Targets works too
-    t1 = T.Target(w, make_target1, name='a')
+    t1 = T.DefaultTarget(w, make_target1, name='a')
     assert t1.scoring_method == T.ScoringMethod.LINEAR
     assert t1.strength == 0.0
 
-    t2 = T.Target(w, make_target2, name='b',
+    t2 = T.DefaultTarget(w, make_target2, name='b',
                   scoring_method=T.ScoringMethod.EXPONENTIAL, strength=4.0)
     t2.weighting = [1, 2]
 
@@ -121,24 +121,62 @@ def test_pickling_target(tmpdir):
     assert t1.strength == rt1.strength
     assert t2.strength == rt2.strength
 
+def test_pickling_noisy_target(tmpdir):
+    tmpdir = pathlib.Path(str(tmpdir))
+    p = T.Parameters(
+        cue_channels=3,
+        reg_channels=3,
+        out_channels=2,
+    )
+    w = T.World(p)
+
+    # Now ensure that pickling Targets works too
+    t1 = T.NoisyTarget(w, make_target1, name='a')
+    assert t1.scoring_method == T.ScoringMethod.LINEAR
+    assert t1.strength == 0.0
+    assert t1.perturb_count == 1
+    assert t1.perturb_prop == 1.0
+    assert t1.env_only == True
+
+    t2 = T.NoisyTarget(w, make_target2, name='b', 
+                         perturb_count=3, perturb_prop=.5, env_only=False)
+    assert t2.perturb_count == 3
+    assert t2.perturb_prop == .5
+    assert t2.env_only == False
+
+    with open(str(tmpdir / 'target1.pickle'), 'wb') as f:
+        pickle.dump((t1, t2), f, -1)
+
+    with open(str(tmpdir / 'target1.pickle'), 'rb') as f:
+        rt1, rt2 = pickle.load(f)
+
+    assert (t1.as_array() == rt1.as_array()).all()
+    assert (t2.as_array() == rt2.as_array()).all()
+
+    assert t1.env_only == rt1.env_only
+    assert t2.env_only == rt2.env_only
+
+    assert t1.perturb_count == rt1.perturb_count
+    assert t2.perturb_count == rt2.perturb_count
+
+    assert t1.perturb_prop == rt1.perturb_prop
+    assert t2.perturb_prop == rt2.perturb_prop
+
 
 def test_scoring_methods(bowtie_database):
     pop = bowtie_database.population
     # Use different identifiers to force recalculation
-    targ1 = T.Target(pop.factory.world, bowtie_target, ident=2)
-    targ2 = T.Target(pop.factory.world, bowtie_target, ident=3,
+    targ1 = T.DefaultTarget(pop.factory.world, bowtie_target, ident=2)
+    targ2 = T.DefaultTarget(pop.factory.world, bowtie_target, ident=3,
                      scoring_method=T.ScoringMethod.EXPONENTIAL,
                      strength=1)
-    targ3 = T.Target(pop.factory.world, bowtie_target, ident=4,
+    targ3 = T.DefaultTarget(pop.factory.world, bowtie_target, ident=4,
                      scoring_method=T.ScoringMethod.EXPONENTIAL_VEC,
                      strength=1)
 
-    targ1.assess_collection(pop)
-    f1 = pop.fitnesses
-    targ2.assess_collection(pop)
-    f2 = pop.fitnesses
-    targ3.assess_collection(pop)
-    f3 = pop.fitnesses
+    f1 = targ1.assess_collection(pop)
+    f2 = targ2.assess_collection(pop)
+    f3 = targ3.assess_collection(pop)
     ones1 = numpy.where(f1 == 1.0)[0]
     ones2 = numpy.where(f2 == 1.0)[0]
     ones3 = numpy.where(f3 == 1.0)[0]
