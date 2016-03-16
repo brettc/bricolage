@@ -206,6 +206,23 @@ public:
 
 typedef std::shared_ptr<cFactory> cFactory_ptr;
 
+
+class cDynamics
+{
+public:
+    cDynamics() {}
+
+    cAttractors attractors;
+    cAttractors transients;
+    cRatesVector rates;
+    void clear()
+    {
+        attractors.clear();
+        transients.clear();
+        rates.clear();
+    }
+};
+
 class cNetwork
 {
 public:
@@ -224,7 +241,11 @@ public:
     void calc_attractors() { _calc_attractors(false); }
     void calc_attractors_with_intervention() { _calc_attractors(true); }
 
-    void calc_perturbation(bool env_only) const;
+    void calc_perturbation(cDynamics &dynamics, bool env_only) const;
+    void stabilise(const cChannelState &initial,
+                             cChannelStateVector &attractor_,
+                             cChannelStateVector &transient_,
+                             cRates &rates_) const;
 
     cFactory_ptr factory;
     cWorld_ptr world;
@@ -233,20 +254,18 @@ public:
     // Optional -- the generation that this was created (default: 0)
     int_t generation;
 
-    // Calculated attractor and rates, and ones that have been perturbed
+    // Calculated attractor and rates
     cAttractors attractors;
-    mutable cAttractors pert_attractors;
     cRatesVector rates;
-    mutable cRatesVector pert_rates;
-
 
     // Record the fitness and the target against which it was calculated.
     // This means we don't need to recalc the fitness if the target has not
-    // changed.
+    // changed (ideally). 
     mutable int_t target;
     mutable double fitness;
 
-    // This is where we store the Python object for easy recall.
+    // This is where we store the Python object for easy recall. This ensures
+    // some degree of python object consistence.
     mutable void *pyobject;
 
 private:
@@ -310,6 +329,7 @@ struct cNoisyTarget: public cBaseTarget
     size_t perturb_count;
     double perturb_prop;
     bool env_only;
+    mutable cDynamics dynamics;
     double assess(const cNetwork &net) const;
 };
 
