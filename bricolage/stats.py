@@ -207,11 +207,11 @@ class StatsFitness(object):
         self.fits = np.zeros(lin.params.population_size)
 
     def calc_stats(self, pop):
-        pop.get_fitnesses(self.fits)
+        fits = np.asarray(pop.fitnesses)
         return [
-            ('MEAN', self.fits.mean()),
-            ('VAR', self.fits.var()),
-            ('MAX', self.fits.max()),
+            ('MEAN', fits.mean()),
+            ('VAR', fits.var()),
+            ('MAX', fits.max()),
         ]
 
 
@@ -404,8 +404,7 @@ class StatsLag(object):
     def find_controlled(self, collection):
         """Control requires fitness to be 1.0 too"""
         # Get the fitnesses
-        self.lineage.targets[0].assess_collection(collection)
-        fitnesses = collection.fitnesses
+        fitnesses = self.lineage.targets[0].assess_collection(collection)
 
         rc = self.rc_analyzer.numpy_info_from_collection(collection)
         indexes = np.where(rc == 1.0)[0]
