@@ -60,7 +60,8 @@ cdef class Network:
 
     cdef _make_python_attractor(self, cChannelStateVector &attr)
     cdef _make_python_attractors(self, cAttractors &attrs)
-    cdef _make_python_rates(self, cRatesVector &rates)
+    cdef _make_python_rates(self, cRatesVector &)
+    cdef _make_python_rate(self, cRates &rates)
 
 cdef class Gene:
     cdef:

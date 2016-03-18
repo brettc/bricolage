@@ -68,18 +68,17 @@ def test_xor():
 
 
 def fitness_func2(a, b):
-    return xor_func(a, b), b and not a
+    return xor_func(a, b)
 
 
 def test_stabilise():
     params = Parameters(seed=3, input_type=InputType.PULSE, cis_count=3,
-                        cue_channels=2, reg_channels=4, out_channels=2)
+                        cue_channels=2, reg_channels=4, out_channels=1)
     world = World(params)
     factory = Factory(world)
     target = DefaultTarget(world, fitness_func2,
                            scoring_method=ScoringMethod.EXPONENTIAL_VEC,
-                           strength=.1)
-    target.weighting = [1, .5]
+                           strength=.2)
     select = SelectionModel(world)
     pop = Population(factory, 5000)
     while 1:
@@ -90,12 +89,21 @@ def test_stabilise():
             break
         pop.select(select)
         pop.mutate(.002)
+
+    # Get a network!
     n = pop.get_best()[0]
-    print n.fitness
-    c = world.create_state()
-    print c
-    # c.set(3)
-    # c.set(2)
-    c.flip(5)
-    print c
-    print n.stabilise(c)
+
+    # Get an attractor state
+    orig = n.attractors[2][0]
+    perturbed = orig.copy()
+
+    # Flip it out of that state
+    # See if it goes back in to the attractor
+    perturbed.flip(5)
+    trans, attr, rates = n.stabilise(perturbed)
+    assert orig == attr[0]
+
+    # Push it HARDER
+    perturbed.flip(6)
+    trans, attr, rates = n.stabilise(perturbed)
+    assert orig != attr[0]
