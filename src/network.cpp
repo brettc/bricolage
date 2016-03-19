@@ -130,7 +130,7 @@ inline random_int_t random_int_range(int a, int b, const bricolage::cWorld_ptr &
 void cNetwork::calc_perturbation(cDynamics &dynamics, bool env_only) const
 {
     // We should already have initial attractors and rates.  This is NOT
-    // deterministic (unlike the calculation of attractors, as we randomize
+    // deterministic, unlike the calculation of attractors, as we randomize
     // the inputs. It also assumes we'd doing *pulses* of inputs rather than
     // constant inputs.
     dynamics.clear();
@@ -236,8 +236,9 @@ void cNetwork::stabilise(const cChannelState &initial,
             attractor_.push_back(c);
             // We construct the rates at the same time
             for (size_t i = 0; i < world->out_channels; ++i)
-                if (c.test(i))
-                    rates_[i] += 1.0;
+                rates_[i] += double(c[i + world->out_range.first]);
+                // if (c.test(i + world->out_range.first))
+                //     rates_[i] += 1.0;
         }
         else
             transient_.push_back(c);
