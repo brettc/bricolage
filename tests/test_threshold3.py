@@ -1,8 +1,11 @@
 import cPickle as pickle
 from bricolage.threshold3 import (
-    World, Parameters, DefaultTarget, Factory, Population, SelectionModel,
+    World, Parameters, DefaultTarget, Factory, Population,
+    SelectionModel,
 )
+
 from bricolage.core import InputType, ScoringMethod
+from bricolage.core_ext import NoisyTarget
 
 
 def xor_func(a, b):
@@ -72,17 +75,21 @@ def fitness_func2(a, b):
 
 
 def test_stabilise():
-    params = Parameters(seed=3, input_type=InputType.PULSE, cis_count=3,
+    # params = Parameters(seed=3, input_type=InputType.PULSE, cis_count=3,
+    params = Parameters(seed=5, input_type=InputType.PULSE, cis_count=3,
                         cue_channels=2, reg_channels=4, out_channels=1)
     world = World(params)
     factory = Factory(world)
     target = DefaultTarget(world, fitness_func2,
                            scoring_method=ScoringMethod.EXPONENTIAL_VEC,
                            strength=.2)
+    ntarget = NoisyTarget(world, fitness_func2,
+                           scoring_method=ScoringMethod.EXPONENTIAL_VEC,
+                           strength=.2, perturb_count=1, perturb_prop=.2)
     select = SelectionModel(world)
     pop = Population(factory, 5000)
     while 1:
-        pop.assess(target)
+        pop.assess(ntarget)
         w, b = pop.worst_and_best()
         print b
         if b == 1.0:
@@ -92,6 +99,9 @@ def test_stabilise():
 
     # Get a network!
     n = pop.get_best()[0]
+
+    print '-->', target.assess(n)
+    print '-->', ntarget.assess(n)
 
     # Get an attractor state
     orig = n.attractors[2][0]
