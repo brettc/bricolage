@@ -59,12 +59,13 @@ cdef class ChannelStateFrozen:
         # I think it is much easier to understand if we reverse it
         # Also, clip the reserved channels 
         # TODO: fix this nasty hack
-        s = cstr[::-1][2:]
-        env = s[:w.cue_channels]
-        reg = s[w.cue_channels:cuereg]
-        out = s[cuereg:]
+        s = cstr[::-1]
+        res = s[:2]
+        env = s[2:2+w.cue_channels]
+        reg = s[2+w.cue_channels:2+cuereg]
+        out = s[2+cuereg:]
 
-        return env + '|' + reg + '|' + out
+        return "|".join((res, env, reg, out))
 
     def __copy__(self):
         other = ChannelState()
@@ -348,8 +349,8 @@ cdef class Network:
     def cycle_with_intervention(self, ChannelState c):
         self._this.cycle_with_intervention(c._this)
 
-    def calc_perturbation(self, bint env_only):
-        self._this.calc_perturbation(env_only)
+    # def calc_perturbation(self, bint env_only):
+    #     self._this.calc_perturbation(env_only)
 
     def recalculate(self, with_intervention=False):
         if with_intervention:
@@ -369,30 +370,51 @@ cdef class Network:
         self._this.mutate(nmutations)
         self.recalculate()
 
+    cdef _make_python_attractor(self, cChannelStateVector &c_attr):
+        cdef:
+            vector[cChannelState].iterator cstate_iter
+        attr = []
+
+        cstate_iter = c_attr.begin()
+        while cstate_iter != c_attr.end():
+            c = ChannelStateFrozen()
+            c.init(self.factory._this.world, deref(cstate_iter))
+            attr.append(c)
+            preinc(cstate_iter)
+
+        return tuple(attr)
+
     cdef _make_python_attractors(self, cAttractors &attrs):
         cdef:
             vector[cChannelStateVector].iterator cattr_iter
-            vector[cChannelState].iterator cstate_iter
 
         py_attrs = []
         cattr_iter = attrs.begin()
         while cattr_iter != attrs.end():
-            attr = []
-            cstate_iter = deref(cattr_iter).begin()
-            while cstate_iter != deref(cattr_iter).end():
-                c = ChannelStateFrozen()
-                c.init(self.factory._this.world, deref(cstate_iter))
-                attr.append(c)
-                preinc(cstate_iter)
-
-            # Make everything a tuple -- you shouldn't be able to mess
-            # with it!
-            py_attrs.append(tuple(attr))
+            py_attrs.append(self._make_python_attractor(deref(cattr_iter)))
             preinc(cattr_iter)
 
         return tuple(py_attrs)
 
-    cdef _make_python_rates(self, cRatesVector &rates):
+    cdef _make_python_rate(self, cRates &rates):
+        cdef cWorld *world = self.factory._this.world.get()
+
+        # Construct the numpy array via python
+        r = numpy.zeros((world.out_channels))
+
+        cdef:
+            np.npy_double[:] c_r = r
+            size_t i
+
+        # Copy in the goods using a memory array
+        for i in range(world.out_channels):
+            c_r[i] = rates[i]
+
+        # Don't mess with it!
+        r.flags.writeable = False
+        return r
+
+    cdef _make_python_rates(self, cRatesVector &rates_vec):
         cdef cWorld *world = self.factory._this.world.get()
 
         # Construct the numpy array via python
@@ -405,11 +427,22 @@ cdef class Network:
         # Copy in the goods using a memory array
         for i in range(world.environments.size()):
             for j in range(world.out_channels):
-                c_r[i, j] = rates[i][j]
+                c_r[i, j] = rates_vec[i][j]
 
         # Don't mess with it!
         r.flags.writeable = False
         return r
+
+    def stabilise(self, ChannelState c):
+        cdef:
+            cChannelStateVector c_attr, c_trans
+            cRates c_rates
+
+        self._this.stabilise(c._this, c_attr, c_trans, c_rates)
+        attr = self._make_python_attractor(c_attr)
+        trans = self._make_python_attractor(c_trans)
+        rates = self._make_python_rate(c_rates)
+        return trans, attr, rates
 
     property attractors:
         """A tuple containing the attractors for each environment"""
@@ -421,9 +454,9 @@ cdef class Network:
             self._attractors = self._make_python_attractors(self._this.attractors)
             return self._attractors
 
-    property pert_attractors:
-        def __get__(self):
-            return self._make_python_attractors(self._this.pert_attractors)
+    # property pert_attractors:
+    #     def __get__(self):
+    #         return self._make_python_attractors(self._this.pert_attractors)
 
     property rates:
         """Return a readonly numpy array of the rates"""
@@ -434,10 +467,10 @@ cdef class Network:
             self._rates = self._make_python_rates(self._this.rates)
             return self._rates
 
-    property pert_rates:
-        def __get__(self):
-            return self._make_python_rates(self._this.pert_rates)
-
+    # property pert_rates:
+    #     def __get__(self):
+    #         return self._make_python_rates(self._this.pert_rates)
+    #
     property fitness:
         def __get__(self):
             return self._this.fitness
@@ -655,6 +688,7 @@ cdef class Ancestry(CollectionBase):
         return "<Ancestry: {}N, G{}-G{}>".format(
             self.size,
             self._this.front().get().generation,
+
             self._this.back().get().generation,
         )
 

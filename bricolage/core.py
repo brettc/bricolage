@@ -4,7 +4,7 @@ log = logging.getLogger("core")
 from enum import IntEnum
 from .core_ext import SelectionModel, World, DefaultTarget, NoisyTarget
 
-__all__ = ["World", "SelectionModel", "Parameters", "DefaultTarget"]
+__all__ = ["World", "SelectionModel", "Parameters", "DefaultTarget", "NoisyTarget"]
 
 
 class InterventionState(IntEnum):

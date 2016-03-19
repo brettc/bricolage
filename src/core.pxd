@@ -80,6 +80,11 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         signal_t pub
         InterventionState intervene
 
+    cdef cppclass cDynamics:
+        cAttractors attractors
+        cAttractors transients
+        cRatesVector rates
+
     cdef cppclass cNetwork:
         cNetwork(cFactory_ptr &)
 
@@ -91,14 +96,16 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         cGene *get_gene(size_t)
         void calc_attractors()
         void calc_attractors_with_intervention()
-        void calc_perturbation(bint)
-        
+        void calc_perturbation(cDynamics &, bint)
+        void stabilise(cChannelState &, cChannelStateVector &, cChannelStateVector &,
+                       cRates &)
+
         void *pyobject
         cFactory_ptr factory
         cWorld_ptr world
         int_t identifier, parent_identifier, generation
-        cAttractors attractors, pert_attractors
-        cRatesVector rates, pert_rates
+        cAttractors attractors
+        cRatesVector rates
         int_t target
         double fitness
         
