@@ -5,7 +5,7 @@ from folders import data_dir
 from bricolage import threshold3
 from bricolage.lineage import SnapshotLineage
 from bricolage.core import InputType
-from bricolage.core_ext import NoisyTarget
+from bricolage.core_ext import NoisyTarget, DefaultTarget
 
 
 class GenerateError(Exception):
@@ -108,10 +108,10 @@ def bowtie(overwrite):
         for g, b in select_till(lin, good_for=1000):
             click.secho("At generation {}, best is {}".format(g, b))
 
-def perturb_target(a, b, c):
-    if (a and not c) or (b and c):
-        return [0, 1, 0]
-    return [1, 0, 1]
+def perturb_target(a, b):
+    if (a or b) and not (a and b):
+        return 1
+    return 0
 
 
 @generate.command()
@@ -122,18 +122,19 @@ def perturb(overwrite):
         return
 
     p = threshold3.Parameters(
-        seed=1, cis_count=2, reg_channels=8, out_channels=3, cue_channels=3,
-        population_size=1000, mutation_rate=.00001, input_type=InputType.PULSE,
+        seed=1, cis_count=2, reg_channels=4, out_channels=1, cue_channels=2,
+        population_size=1000, mutation_rate=.002, input_type=InputType.PULSE,
         target_class=NoisyTarget,
     )
 
     with SnapshotLineage(dbpath, params=p) as lin:
         if not lin.targets:
-            lin.targets.append(NoisyTarget(lin.world, perturb_target, perturb=1))
-            lin.current_target = lin.targets[0]
-            # lin.add_target(perturb_target)
+            # lin.targets.append(NoisyTarget(lin.world, perturb_target,
+            #                                perturb_count=1, perturb_prop=.2))
+            lin.targets.append(DefaultTarget(lin.world, perturb_target))
+            lin.set_target(0)
 
-        for g, b in select_till(lin, good_for=1000):
+        for g, b in select_till(lin, good_for=10):
             click.secho("At generation {}, best is {}".format(g, b))
 
 if __name__ == "__main__":
