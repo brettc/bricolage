@@ -164,19 +164,23 @@ cNoisyTarget::cNoisyTarget(const cWorld_ptr &w,
 double cNoisyTarget::assess(const cNetwork &net) const
 {
     double base_score = score_rates(net.rates) * (1.0 - perturb_prop);
+    double score = 0.0;
 
     // Note: we need to reassess every time here, as there is it is not
     // deterministic
-    double score = 0.0;
-    for (size_t i = 0; i < perturb_count; ++i)
+    if (perturb_count > 0)
     {
-        net.calc_perturbation(dynamics, env_only);
-        score += score_rates(dynamics.rates);
+        double mult = 1.0 / double(perturb_count);
+        for (size_t i = 0; i < perturb_count; ++i)
+        {
+            net.calc_perturbation(dynamics, env_only);
+            score += mult * score_rates(dynamics.rates);
+        }
+        score *= perturb_prop;
     }
-    score /= double(perturb_count);
 
     // Add proportions
-    score = (score * perturb_prop) + base_score;
+    score += base_score;
 
     // Must be greater 0 >= n <= 1.0
     net.fitness = score;
