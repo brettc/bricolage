@@ -14,7 +14,7 @@ cdef extern from "<src/threshold3.hpp>" namespace "thresh3":
     cdef cppclass cCisModule(core.cCisModule):
         cCisModule(cFactory &c); 
         void mutate(cFactory &c)
-        bint is_active(core.cChannelState &state)
+        bint is_active(core.cChannels &state)
         core.int_t binding[3];
         core.signal_t channels[3];
 

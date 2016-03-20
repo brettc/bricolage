@@ -12,14 +12,14 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
     ctypedef random_engine_t
     ctypedef uniform_int_distribution[size_t] randint_t
 
-    ctypedef dynamic_bitset[size_t] cChannelState
-    ctypedef vector[cChannelState] cChannelStateVector
-    ctypedef vector[cChannelStateVector] cAttractors
+    ctypedef dynamic_bitset[size_t] cChannels
+    ctypedef vector[cChannels] cAttractor
+    ctypedef vector[cAttractor] cAttractors
     ctypedef vector[size_t] cIndexes
     ctypedef vector[double] cRates
     ctypedef vector[cRates] cRatesVector
 
-    cdef int bitset_cmp(cChannelState &, cChannelState &)
+    cdef int bitset_cmp(cChannels &, cChannels &)
     cdef int c_sgn(int)
     cdef int c_cmp(int, int)
 
@@ -49,7 +49,7 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         pair[size_t, size_t] reg_range
         pair[size_t, size_t] sub_range
         pair[size_t, size_t] pub_range
-        cChannelStateVector environments
+        cAttractor environments
         InputType input_type
         double get_random_double(double low, double high)
         double get_random_int(int low, int high)
@@ -88,8 +88,8 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
     cdef cppclass cNetwork:
         cNetwork(cFactory_ptr &)
 
-        void cycle(cChannelState c)
-        void cycle_with_intervention(cChannelState c)
+        void cycle(cChannels c)
+        void cycle_with_intervention(cChannels c)
         size_t gene_count()
         void mutate(size_t)
         cNetwork_ptr clone()
@@ -97,7 +97,7 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         void calc_attractors()
         void calc_attractors_with_intervention()
         void calc_perturbation(cDynamics &, bint)
-        void stabilise(cChannelState &, cChannelStateVector &, cChannelStateVector &,
+        void stabilise(cChannels &, cAttractor &, cAttractor &,
                        cRates &)
 
         void *pyobject

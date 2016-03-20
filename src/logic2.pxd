@@ -15,7 +15,7 @@ cdef extern from "<src/logic2.hpp>" namespace "logic2":
     cdef cppclass cCisModule(core.cCisModule):
         cCisModule(cFactory &c)
         void mutate(cFactory &c)
-        bint is_active(core.cChannelState &state)
+        bint is_active(core.cChannels &state)
         bint test(unsigned int a, unsigned int b)
         operand_t op
 

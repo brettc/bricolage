@@ -3,9 +3,9 @@ from core cimport *
 
 cdef class ChannelStateFrozen:
     cdef:
-        cChannelState _this
+        cChannels _this
         cWorld_ptr world
-    cdef init(self, cWorld_ptr &f, cChannelState &p)
+    cdef init(self, cWorld_ptr &f, cChannels &p)
 
 cdef class ChannelState(ChannelStateFrozen):
     pass
@@ -58,7 +58,7 @@ cdef class Network:
 
     cdef bind_to(self, cNetwork_ptr ptr)
 
-    cdef _make_python_attractor(self, cChannelStateVector &attr)
+    cdef _make_python_attractor(self, cAttractor &attr)
     cdef _make_python_attractors(self, cAttractors &attrs)
     cdef _make_python_rates(self, cRatesVector &)
     cdef _make_python_rate(self, cRates &rates)

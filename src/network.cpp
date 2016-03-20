@@ -54,8 +54,8 @@ void cNetwork::_calc_attractors(bool intervention)
     {
         // Set the state to current environment, and set it as the start of the
         // path to the attractor.
-        cChannelStateVector path;
-        cChannelState current = env;
+        cAttractor path;
+        cChannels current = env;
         path.push_back(current);
 
         for (;;)
@@ -76,7 +76,7 @@ void cNetwork::_calc_attractors(bool intervention)
             // Have we already seen this?
             attractor_begins_at = 0;
             found = false;
-            for (cChannelState &prev : path)
+            for (cChannels &prev : path)
             {
                 if (prev == current)
                 {
@@ -95,7 +95,7 @@ void cNetwork::_calc_attractors(bool intervention)
         }
         // Add a new attractor for this environment.
         attractors.emplace_back();
-        cChannelStateVector &this_attr = attractors.back();
+        cAttractor &this_attr = attractors.back();
 
         rates.emplace_back();
         cRates &this_rate = rates.back();
@@ -105,7 +105,7 @@ void cNetwork::_calc_attractors(bool intervention)
         // Copy the part the path that is the attractor, ignoring the transient
         for (size_t copy_at=attractor_begins_at; copy_at < path.size(); ++copy_at)
         {
-            cChannelState &c = path[copy_at];
+            cChannels &c = path[copy_at];
             this_attr.push_back(c);
 
             // We construct the rates at the same time
@@ -142,7 +142,7 @@ void cNetwork::calc_perturbation(cDynamics &dynamics, bool env_only) const
     // Go through each environment.
     for (auto &attr : attractors)
     {
-        cChannelStateVector path;
+        cAttractor path;
         // For each environmental attractor:
         // 1. Randomly select one state of the attractor.
         // 2. Introduce a pulse of random states (maybe just in the env)
@@ -155,7 +155,7 @@ void cNetwork::calc_perturbation(cDynamics &dynamics, bool env_only) const
             random_int_t r_state(random_int_range(0, attr.size(), world));
             state_i = r_state();
         }
-        cChannelState start_state = attr[state_i];
+        cChannels start_state = attr[state_i];
 
         // 2. Random state
         if (env_only)
@@ -179,13 +179,13 @@ void cNetwork::calc_perturbation(cDynamics &dynamics, bool env_only) const
     }
 }
 
-void cNetwork::stabilise(const cChannelState &initial,
-                         cChannelStateVector &attractor_,
-                         cChannelStateVector &transient_,
+void cNetwork::stabilise(const cChannels &initial,
+                         cAttractor &attractor_,
+                         cAttractor &transient_,
                          cRates &rates_) const
 {
-    cChannelStateVector path;
-    cChannelState current = initial;
+    cAttractor path;
+    cChannels current = initial;
 
     // Make sure the on channel is on
     current.set(on_channel);
@@ -204,7 +204,7 @@ void cNetwork::stabilise(const cChannelState &initial,
         // Have we already seen this?
         attractor_begins_at = 0;
         found = false;
-        for (cChannelState &prev : path)
+        for (cChannels &prev : path)
         {
             if (prev == current)
             {
@@ -230,7 +230,7 @@ void cNetwork::stabilise(const cChannelState &initial,
     // Copy the part the path that is the attractor, ignoring the transient
     for (size_t copy_at = 0; copy_at < path.size(); ++copy_at)
     {
-        cChannelState &c = path[copy_at];
+        cChannels &c = path[copy_at];
         if (copy_at >= attractor_begins_at)
         {
             attractor_.push_back(c);

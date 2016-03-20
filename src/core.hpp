@@ -6,6 +6,7 @@
 #include <set>
 #include <map>
 #include <memory>
+#include <climits> // For CHAR_BIT
 
 // #include <tr1/memory> Another shared_ptr?
 // #include <boost/shared_ptr.hpp>
@@ -54,9 +55,9 @@ typedef unsigned int sequence_t;
 
 // TODO: Maybe change dynamic_bitset for something a little lighter (Do we really
 // need anything bigger than 64bits?)
-typedef boost::dynamic_bitset<size_t> cChannelState;
-typedef std::vector<cChannelState> cChannelStateVector;
-typedef std::vector<cChannelStateVector> cAttractors;
+typedef boost::dynamic_bitset<size_t> cChannels;
+typedef std::vector<cChannels> cAttractor;
+typedef std::vector<cAttractor> cAttractors;
 typedef std::vector<size_t> cIndexes;
 typedef std::vector<double> cRates;
 typedef std::vector<cRates> cRatesVector;
@@ -84,7 +85,7 @@ enum InputType
     INPUT_PULSE = 1,
 };
 
-inline int bitset_cmp(cChannelState &a, cChannelState &b)
+inline int bitset_cmp(cChannels &a, cChannels &b)
 {
     if (a < b) return -1;
     if (a == b) return 0;
@@ -162,7 +163,7 @@ public:
     std::pair<size_t, size_t> pub_range;
 
     // Once all the values are in place we call this
-    cChannelStateVector environments;
+    cAttractor environments;
 
     // Randomising stuff
     random_engine_t rand;
@@ -234,17 +235,17 @@ public:
     virtual size_t gene_count() const=0;
     virtual cGene *get_gene(size_t i)=0;
 
-    virtual void cycle(cChannelState &c) const=0;
-    virtual void cycle_with_intervention(cChannelState &c) const=0;
+    virtual void cycle(cChannels &c) const=0;
+    virtual void cycle_with_intervention(cChannels &c) const=0;
 
     void _calc_attractors(bool intervention);
     void calc_attractors() { _calc_attractors(false); }
     void calc_attractors_with_intervention() { _calc_attractors(true); }
 
     void calc_perturbation(cDynamics &dynamics, bool env_only) const;
-    void stabilise(const cChannelState &initial,
-                             cChannelStateVector &attractor_,
-                             cChannelStateVector &transient_,
+    void stabilise(const cChannels &initial,
+                             cAttractor &attractor_,
+                             cAttractor &transient_,
                              cRates &rates_) const;
 
     cFactory_ptr factory;

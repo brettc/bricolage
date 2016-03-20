@@ -25,7 +25,7 @@ cdef class ChannelStateFrozen:
     def __cinit__(self):
         pass
 
-    cdef init(self, cWorld_ptr &w, cChannelState &p):
+    cdef init(self, cWorld_ptr &w, cChannels &p):
         self.world = w
         self._this = p
 
@@ -166,7 +166,7 @@ cdef class World:
             if self._environments is not None:
                 return self._environments
 
-            cdef vector[cChannelState].iterator i =  self._this.environments.begin()
+            cdef vector[cChannels].iterator i =  self._this.environments.begin()
             envs = []
             while i != self._this.environments.end():
                 p = ChannelStateFrozen()
@@ -331,7 +331,7 @@ cdef class Network:
         def __get__(self):
             r = numpy.zeros(self._this.attractors.size())
             cdef:
-                vector[cChannelStateVector].iterator cattr_iter
+                vector[cAttractor].iterator cattr_iter
                 np.npy_double[:] c_r = r
                 size_t i = 0
 
@@ -370,9 +370,9 @@ cdef class Network:
         self._this.mutate(nmutations)
         self.recalculate()
 
-    cdef _make_python_attractor(self, cChannelStateVector &c_attr):
+    cdef _make_python_attractor(self, cAttractor &c_attr):
         cdef:
-            vector[cChannelState].iterator cstate_iter
+            vector[cChannels].iterator cstate_iter
         attr = []
 
         cstate_iter = c_attr.begin()
@@ -386,7 +386,7 @@ cdef class Network:
 
     cdef _make_python_attractors(self, cAttractors &attrs):
         cdef:
-            vector[cChannelStateVector].iterator cattr_iter
+            vector[cAttractor].iterator cattr_iter
 
         py_attrs = []
         cattr_iter = attrs.begin()
@@ -435,7 +435,7 @@ cdef class Network:
 
     def stabilise(self, ChannelState c):
         cdef:
-            cChannelStateVector c_attr, c_trans
+            cAttractor c_attr, c_trans
             cRates c_rates
 
         self._this.stabilise(c._this, c_attr, c_trans, c_rates)

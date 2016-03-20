@@ -7,14 +7,14 @@ namespace algo {
 // Requirements:
 // * Network must have .genes
 // * Module must have .modules
-// * Module must have .is_active(cChannelState &)
+// * Module must have .is_active(cChannels &)
 template<typename Network> 
 struct Cycle
 {
     void cycle_with_intervention(const Network &network, 
-                                 bricolage::cChannelState &c) const
+                                 bricolage::cChannels &c) const
     {
-        bricolage::cChannelState next(c.size());
+        bricolage::cChannels next(c.size());
         for (auto &g : network.genes)
             switch (g.intervene)
             {
@@ -43,9 +43,9 @@ struct Cycle
     }
 
     void cycle(const Network &network, 
-               bricolage::cChannelState &c) const
+               bricolage::cChannels &c) const
     {
-        bricolage::cChannelState next(c.size());
+        bricolage::cChannels next(c.size());
         for (auto &g : network.genes)
             for (auto &m : g.modules)
                 if (m.is_active(c))

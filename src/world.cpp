@@ -33,7 +33,7 @@ void cWorld::init_environments()
     for (size_t i = 0; i < env_count; ++i)
     {
         // Shift one, to account for channel 0
-        cChannelState c = cChannelState(channel_count, i << reserved_channels);
+        cChannels c = cChannels(channel_count, i << reserved_channels);
         // Turn on bias channel
         c.set(on_channel);
         environments.push_back(c);

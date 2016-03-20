@@ -41,7 +41,7 @@ public:
     // Overrides
     size_t site_count() const { return 3; }
     void mutate(const cFactory &fc, const cGene &gene);
-    bool is_active(bricolage::cChannelState const &state) const;
+    bool is_active(bricolage::cChannels const &state) const;
 
     bricolage::int_t binding[3];
 };
@@ -70,8 +70,8 @@ public:
     virtual cGene *get_gene(size_t i) { return &genes[i]; }
     virtual void mutate(size_t nmutations);
     bricolage::cNetwork_ptr clone() const;
-    void cycle(bricolage::cChannelState &c) const;
-    void cycle_with_intervention(bricolage::cChannelState &c) const;
+    void cycle(bricolage::cChannels &c) const;
+    void cycle_with_intervention(bricolage::cChannels &c) const;
 };
 
 }

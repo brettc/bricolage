@@ -158,7 +158,7 @@ void cCisModule::mutate(const cFactory &fy, const cGene &gene)
 //     // 1 + poisson something?
 // }
 
-bool cCisModule::is_active(bricolage::cChannelState const &state) const
+bool cCisModule::is_active(bricolage::cChannels const &state) const
 {
     // Calculate the weighted sum. Unrolled.
     bricolage::int_t sum = 0;
@@ -192,14 +192,14 @@ bricolage::cNetwork_ptr cNetwork::clone() const
 }
 
 // This is the outer-inner loop!
-void cNetwork::cycle(bricolage::cChannelState &c) const
+void cNetwork::cycle(bricolage::cChannels &c) const
 {
     static algo::Cycle<cNetwork> cycler;
     cycler.cycle(*this, c);
 }
 
 // A slower version with the ability intervene
-void cNetwork::cycle_with_intervention(bricolage::cChannelState &c) const
+void cNetwork::cycle_with_intervention(bricolage::cChannels &c) const
 {
     static algo::Cycle<cNetwork> cycler;
     cycler.cycle_with_intervention(*this, c);
