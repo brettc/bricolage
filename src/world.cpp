@@ -5,6 +5,20 @@
 
 using namespace bricolage;
 
+std::string cChannels::to_string(index_t sz)
+{
+    // Note: This is the OPPOSITE of what might be expected, as the least
+    // significant bits are first. But this is the way that it makes sense to
+    // write our channels.
+    _check_size(sz);
+    std::string rep(sz, '0');
+    for (size_t i = 0; i < sz; ++i)
+        if (test(i, sz))
+            rep[i] = '1';
+
+    return rep;
+}
+
 cWorld::cWorld(size_t seed, size_t cue, size_t reg, size_t out)
     // Key stuff
     : next_network_identifier(0)
@@ -32,10 +46,11 @@ void cWorld::init_environments()
 
     for (size_t i = 0; i < env_count; ++i)
     {
-        // Shift one, to account for channel 0
-        cChannels c = cChannels(channel_count, i << reserved_channels);
+        cChannels c;
+        // Shift to account for reserved channels
+        c.bits = i << reserved_channels;
         // Turn on bias channel
-        c.set(on_channel);
+        c.unchecked_set(on_channel);
         environments.push_back(c);
     }
 }

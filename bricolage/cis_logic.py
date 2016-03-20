@@ -1,6 +1,6 @@
 from sympy.logic import SOPform, simplify_logic
 from sympy.printing.latex import latex
-from bricolage.core import InterventionState
+from bricolage.core import InterventionState, Channels
 import itertools
 
 
@@ -60,10 +60,10 @@ def compute_cis_mod_function(mod):
 
     # What if there's nothing here...?
     if not unique:
-        st = wrld.create_state()
+        st = Channels(wrld)
 
         # Set our fixed channel
-        st[1] = 1
+        st.set(1)
         act = mod.is_active(st)
         if act:
             return True
@@ -72,11 +72,11 @@ def compute_cis_mod_function(mod):
     # Generate all possible states for this many channels
     all_states = [_ for _ in itertools.product([0, 1], repeat=len(unique))]
     for state in all_states:
-        channel_state = wrld.create_state()
-        channel_state[1] = 1
+        channel_state = Channels(wrld)
+        channel_state.set(1)
         for i, channel in enumerate(state):
             if channel:
-                channel_state[unique[i]] = 1
+                channel_state.set(unique[i])
 
         # Now, ASK the module whether this state turns it on...
         act = mod.is_active(channel_state)

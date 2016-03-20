@@ -51,7 +51,8 @@ public:
 
     inline bool is_active(bricolage::cChannels const &state) const 
     {
-        return test(state.test(channels[0]), state.test(channels[1]));
+        return test(state.unchecked_test(channels[0]), 
+                    state.unchecked_test(channels[1]));
     }
 
     operand_t op;

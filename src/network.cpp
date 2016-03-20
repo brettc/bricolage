@@ -68,10 +68,10 @@ void cNetwork::_calc_attractors(bool intervention)
 
             if (it == INPUT_CONSTANT)
                 // Put back the environment if it is constant
-                current |= env;
+                current.unchecked_union(env);
             else
                 // Otherwise make sure the on channel is on
-                current.set(on_channel);
+                current.unchecked_set(on_channel);
 
             // Have we already seen this?
             attractor_begins_at = 0;
@@ -110,7 +110,7 @@ void cNetwork::_calc_attractors(bool intervention)
 
             // We construct the rates at the same time
             for (size_t i=0; i < world->out_channels; ++i)
-                this_rate[i] += double(c[i + world->out_range.first]);
+                this_rate[i] += double(c.unchecked_test(i + world->out_range.first));
 
         }
         // Now normalise the rates
@@ -162,9 +162,9 @@ void cNetwork::calc_perturbation(cDynamics &dynamics, bool env_only) const
         {
             for (size_t k = world->cue_range.first; k < world->cue_range.second; ++k)
                 if (r_env_state())
-                    start_state.set(k);
+                    start_state.unchecked_set(k);
         } else {
-            start_state.flip(r_reg_channel());
+            start_state.unchecked_flip(r_reg_channel());
         }
 
         // Add a new attractor for this environment.
@@ -188,7 +188,7 @@ void cNetwork::stabilise(const cChannels &initial,
     cChannels current = initial;
 
     // Make sure the on channel is on
-    current.set(on_channel);
+    current.unchecked_set(on_channel);
 
     path.push_back(current);
 
@@ -199,7 +199,7 @@ void cNetwork::stabilise(const cChannels &initial,
     {
         cycle(current);
         // Make sure the on channel is on
-        current.set(on_channel);
+        current.unchecked_set(on_channel);
 
         // Have we already seen this?
         attractor_begins_at = 0;
@@ -236,7 +236,7 @@ void cNetwork::stabilise(const cChannels &initial,
             attractor_.push_back(c);
             // We construct the rates at the same time
             for (size_t i = 0; i < world->out_channels; ++i)
-                rates_[i] += double(c[i + world->out_range.first]);
+                rates_[i] += double(c.unchecked_test(i + world->out_range.first));
                 // if (c.test(i + world->out_range.first))
                 //     rates_[i] += 1.0;
         }

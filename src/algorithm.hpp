@@ -14,13 +14,13 @@ struct Cycle
     void cycle_with_intervention(const Network &network, 
                                  bricolage::cChannels &c) const
     {
-        bricolage::cChannels next(c.size());
+        bricolage::cChannels next;
         for (auto &g : network.genes)
             switch (g.intervene)
             {
             case bricolage::INTERVENE_ON:
                 // If it is forced ON, don't both checking anything
-                next.set(g.pub);
+                next.unchecked_set(g.pub);
                 break;
             case bricolage::INTERVENE_NONE:
                 for (auto &m : g.modules)
@@ -30,7 +30,7 @@ struct Cycle
                     if (m.intervene == bricolage::INTERVENE_ON || 
                         (m.intervene == bricolage::INTERVENE_NONE && m.is_active(c)))
                     {
-                        next.set(g.pub);
+                        next.unchecked_set(g.pub);
                         // The gene is active, no use looking further
                         break;
                     }
@@ -39,24 +39,24 @@ struct Cycle
                 ;
             }
         // Update the "return" value.
-        c.swap(next);
+        c.bits = next.bits;
     }
 
     void cycle(const Network &network, 
                bricolage::cChannels &c) const
     {
-        bricolage::cChannels next(c.size());
+        bricolage::cChannels next;
         for (auto &g : network.genes)
             for (auto &m : g.modules)
                 if (m.is_active(c))
                     {
-                        next.set(g.pub);
+                        next.unchecked_set(g.pub);
                         // The gene is active, no use looking further
                         break;
                     }
 
         // Update the "return" value.
-        c.swap(next);
+        c.bits = next.bits;
     }
 };
 

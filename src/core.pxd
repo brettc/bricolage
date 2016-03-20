@@ -11,12 +11,43 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
     ctypedef int int_t
     ctypedef random_engine_t
     ctypedef uniform_int_distribution[size_t] randint_t
+    ctypedef unsigned long bits_t
+    ctypedef unsigned char index_t
 
-    ctypedef dynamic_bitset[size_t] cChannels
+    cdef cppclass cChannels:
+        cChannels()
+        bint test(index_t i, index_t sz) except +
+        void set(index_t i, index_t sz) except +
+        void clear(index_t i, index_t sz) except +
+        void flip(index_t i, index_t sz) except +
+        string to_string(index_t size) except +
+        void unchecked_union(cChannels &other)
+        index_t max() 
+
+        bits_t bits
+
     ctypedef vector[cChannels] cAttractor
-    ctypedef vector[cAttractor] cAttractors
+    ctypedef vector[bits_t] cAttractorBits
+
+    # Cast between these two
+    cAttractorBits* to_cAttractorBits\
+        "reinterpret_cast<bricolage::cAttractorBits *>" (cAttractor *) except NULL
+
+    ctypedef vector[cAttractor] cAttractorSet
+    ctypedef vector[cAttractorBits] cAttractorSetBits
+
+    cAttractorSetBits* to_cAttractorSetBits\
+        "reinterpret_cast<bricolage::cAttractorSetBits *>" (cAttractorSet *) except NULL
+
+
     ctypedef vector[size_t] cIndexes
     ctypedef vector[double] cRates
+
+    ctypedef std_map[cChannels, cRates] cChannelsRatesMap
+    ctypedef std_map[bits_t, cRates] cChannelsRatesMapBits
+
+    cChannelsRatesMapBits* to_cChannelRatesMapBits\
+        "reinterpret_cast<briocolage::cChannelsRatesMapBits *>" (cChannelsRatesMap *) except NULL
     ctypedef vector[cRates] cRatesVector
 
     cdef int bitset_cmp(cChannels &, cChannels &)
@@ -81,8 +112,8 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         InterventionState intervene
 
     cdef cppclass cDynamics:
-        cAttractors attractors
-        cAttractors transients
+        cAttractorSet attractors
+        cAttractorSet transients
         cRatesVector rates
 
     cdef cppclass cNetwork:
@@ -104,7 +135,7 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         cFactory_ptr factory
         cWorld_ptr world
         int_t identifier, parent_identifier, generation
-        cAttractors attractors
+        cAttractorSet attractors
         cRatesVector rates
         int_t target
         double fitness

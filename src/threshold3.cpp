@@ -162,11 +162,11 @@ bool cCisModule::is_active(bricolage::cChannels const &state) const
 {
     // Calculate the weighted sum. Unrolled.
     bricolage::int_t sum = 0;
-    if (state[channels[0]])
+    if (state.unchecked_test(channels[0]))
         sum += binding[0];
-    if (state[channels[1]])
+    if (state.unchecked_test(channels[1]))
         sum += binding[1];
-    if (state[channels[2]])
+    if (state.unchecked_test(channels[2]))
         sum += binding[2];
     // Thresholded
     return sum >= 3;

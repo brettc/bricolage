@@ -165,7 +165,7 @@ cdef class CisModule(core_ext.CisModule):
         cdef cCisModule *cm = dynamic_cast_cCisModule(self._this) 
         return cm.test(a, b)
 
-    def is_active(self, core_ext.ChannelState state):
+    def is_active(self, core_ext.Channels state):
         cdef cCisModule *cm = dynamic_cast_cCisModule(self._this) 
         return cm.is_active(state._this)
 
