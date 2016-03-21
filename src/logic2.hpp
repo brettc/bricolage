@@ -49,9 +49,10 @@ public:
         return op & (8 >> ((a << 1) | b)); 
     }
 
-    inline bool is_active(bricolage::cChannelState const &state) const 
+    inline bool is_active(bricolage::cChannels const &state) const 
     {
-        return test(state.test(channels[0]), state.test(channels[1]));
+        return test(state.unchecked_test(channels[0]), 
+                    state.unchecked_test(channels[1]));
     }
 
     operand_t op;
@@ -80,8 +81,8 @@ public:
     virtual cGene *get_gene(size_t i) { return &genes[i]; }
     virtual void mutate(size_t nmutations);
     bricolage::cNetwork_ptr clone() const;
-    void cycle(bricolage::cChannelState &c) const;
-    void cycle_with_intervention(bricolage::cChannelState &c) const;
+    void cycle(bricolage::cChannels &c) const;
+    void cycle_with_intervention(bricolage::cChannels &c) const;
 };
 
 

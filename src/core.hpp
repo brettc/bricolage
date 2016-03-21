@@ -6,6 +6,7 @@
 #include <set>
 #include <map>
 #include <memory>
+#include <climits> // For CHAR_BIT
 
 // #include <tr1/memory> Another shared_ptr?
 // #include <boost/shared_ptr.hpp>
@@ -14,24 +15,6 @@
 #include <boost/multi_array.hpp>
 #include <tuple>
 #include <random>
-
-// Failed attempt to templatize. Let's deal with this later.
-// template <typename T, std::size_t NumDims>
-// struct multi_array_wrapper
-// {
-//     multi_array_wrapper::multi_array_wrapper(const extent_gen &ranges)
-//     typedef boost::multi_array<T, NumDims> array_type;
-//     array_type _array;
-//
-//     // These provide information for constructing a buffer interface from
-//     // python, allowing us to operate on the array via numpy
-//     size_t stride_n(size_t n) { return _array.strides()[n]; }
-//     size_t shape_n(size_t n) { return _array.shape()[n]; }
-//     size_t dimensions() { return _array.num_dimensions(); }
-//     size_t element_size() { return sizeof(array_type::element); }
-//     size_t total_size() { return element_size() * _array.num_elements(); }
-//     void *data() { return _array.data(); }
-// };
 
 namespace bricolage
 {
@@ -51,15 +34,115 @@ template <typename T> inline int c_cmp(T a, T b)
 typedef int_fast8_t signal_t;
 typedef signed int int_t;
 typedef unsigned int sequence_t;
+typedef unsigned long bits_t;
+typedef int_fast8_t index_t;
 
-// TODO: Maybe change dynamic_bitset for something a little lighter (Do we really
-// need anything bigger than 64bits?)
-typedef boost::dynamic_bitset<size_t> cChannelState;
-typedef std::vector<cChannelState> cChannelStateVector;
-typedef std::vector<cChannelStateVector> cAttractors;
+#define MAX_CHANNELS (sizeof(bits_t) * CHAR_BIT)
+
+struct cChannels
+{
+    bits_t bits;
+
+    cChannels()
+        : bits(0)
+    {
+    }
+
+    bool operator<(const cChannels &other) const
+    {
+        return bits < other.bits;
+    }
+
+    bool operator==(const cChannels &other) const
+    {
+        return bits == other.bits;
+    }
+
+    index_t max() 
+    {
+        return MAX_CHANNELS;
+    }
+
+    std::string to_string(index_t with_size);
+
+    void _check_size(index_t sz) const
+    {
+        if (sz >= MAX_CHANNELS)
+            throw std::runtime_error("channel size is too big");
+    }
+
+    void _check_index(index_t i, index_t size) const
+    {
+        _check_size(size);
+        if (i >= size)
+            throw std::runtime_error("channel index is too big");
+    }
+
+    void set(index_t i, index_t size)
+    {
+        _check_index(i, size);
+        unchecked_set(i);
+    }
+
+    void clear(index_t i, index_t size)
+    {
+        _check_index(i, size);
+        unchecked_clear(i);
+    }
+
+    void flip(index_t i, index_t size)
+    {
+        _check_index(i, size);
+        unchecked_flip(i);
+    }
+
+    bool test(index_t i, index_t size) const
+    {
+        _check_index(i, size);
+        return unchecked_test(i);
+    }
+
+    // The ones to use if you know what you're doing
+    void unchecked_set(index_t i)
+    {
+        bits |= 1 << i;
+    }
+
+    void unchecked_clear(index_t i)
+    {
+        bits &= ~(1 << i);
+    }
+
+    void unchecked_flip(index_t i)
+    {
+        bits ^= (1 << i);
+    }
+
+    bool unchecked_test(index_t i) const
+    {
+        return bits & (1 << i);
+    }
+
+    void unchecked_union(const cChannels &other)
+    {
+        bits |= other.bits;
+    }
+
+
+};
+
+typedef std::vector<cChannels> cAttractor;
+typedef std::vector<bits_t> cAttractorBits;
+
+typedef std::vector<cAttractor> cAttractorSet;
+typedef std::vector<cAttractorBits> cAttractorSetBits;
+
 typedef std::vector<size_t> cIndexes;
 typedef std::vector<double> cRates;
 typedef std::vector<cRates> cRatesVector;
+
+typedef std::map<cChannels, cRates> cChannelsRatesMap;
+typedef std::map<bits_t, cRates> cChannelsRatesMapBits;
 
 // TODO: Do these need implementation? I forget my C++.
 const size_t reserved_channels = 2;
@@ -84,7 +167,7 @@ enum InputType
     INPUT_PULSE = 1,
 };
 
-inline int bitset_cmp(cChannelState &a, cChannelState &b)
+inline int bitset_cmp(cChannels &a, cChannels &b)
 {
     if (a < b) return -1;
     if (a == b) return 0;
@@ -162,7 +245,7 @@ public:
     std::pair<size_t, size_t> pub_range;
 
     // Once all the values are in place we call this
-    cChannelStateVector environments;
+    cAttractor environments;
 
     // Randomising stuff
     random_engine_t rand;
@@ -212,8 +295,8 @@ class cDynamics
 public:
     cDynamics() {}
 
-    cAttractors attractors;
-    cAttractors transients;
+    cAttractorSet attractors;
+    cAttractorSet transients;
     cRatesVector rates;
     void clear()
     {
@@ -234,17 +317,17 @@ public:
     virtual size_t gene_count() const=0;
     virtual cGene *get_gene(size_t i)=0;
 
-    virtual void cycle(cChannelState &c) const=0;
-    virtual void cycle_with_intervention(cChannelState &c) const=0;
+    virtual void cycle(cChannels &c) const=0;
+    virtual void cycle_with_intervention(cChannels &c) const=0;
 
     void _calc_attractors(bool intervention);
     void calc_attractors() { _calc_attractors(false); }
     void calc_attractors_with_intervention() { _calc_attractors(true); }
 
     void calc_perturbation(cDynamics &dynamics, bool env_only) const;
-    void stabilise(const cChannelState &initial,
-                             cChannelStateVector &attractor_,
-                             cChannelStateVector &transient_,
+    void stabilise(const cChannels &initial,
+                             cAttractor &attractor_,
+                             cAttractor &transient_,
                              cRates &rates_) const;
 
     cFactory_ptr factory;
@@ -255,7 +338,7 @@ public:
     int_t generation;
 
     // Calculated attractor and rates
-    cAttractors attractors;
+    cAttractorSet attractors;
     cRatesVector rates;
 
     // Record the fitness and the target against which it was calculated.

@@ -351,7 +351,7 @@ void cBaseCausalAnalyzer::_calc_natural(cNetwork &net)
             // See what is on or off
             for (size_t i = 0; i < world->reg_channels; ++i)
             {
-                if (cs.test(reg_base + i))
+                if (cs.unchecked_test(reg_base + i))
                     natural_probabilities[i] += p_state;
             }
         }
@@ -634,7 +634,7 @@ void cMutualInfoAnalyzer::_analyse(
             for (size_t ci = 0; ci < world->reg_channels; ++ci)
             {
                 // Is this gene on or off?
-                size_t on_off = att.test(reg_base+ci);
+                size_t on_off = att.unchecked_test(reg_base + ci);
                 // What information does this carry about the particular
                 // category assigned to this environment
                 sub[ci][0][on_off][cat] += p_event;

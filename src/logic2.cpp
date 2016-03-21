@@ -108,14 +108,14 @@ bricolage::cNetwork_ptr cNetwork::clone() const
 
 // This is the outer-inner loop!
 // TODO: This should be part of a template
-void cNetwork::cycle(bricolage::cChannelState &c) const
+void cNetwork::cycle(bricolage::cChannels &c) const
 {
     static algo::Cycle<cNetwork> cycler;
     cycler.cycle(*this, c);
 }
 
 // A slower version with the ability intervene
-void cNetwork::cycle_with_intervention(bricolage::cChannelState &c) const
+void cNetwork::cycle_with_intervention(bricolage::cChannels &c) const
 {
     static algo::Cycle<cNetwork> cycler;
     cycler.cycle_with_intervention(*this, c);

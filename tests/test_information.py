@@ -52,7 +52,7 @@ def calc_mutual_info(n, categories):
             p_event /= len(attrs)
 
             for a in attrs:
-                val = a[channel]  # 0 or 1
+                val = a.test(channel)
                 probs[i, feat, val] += p_event
 
     info = numpy.zeros(channel_dim)

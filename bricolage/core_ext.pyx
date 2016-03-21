@@ -21,55 +21,67 @@ reserved_channels = 2
 off_channel = 0
 on_channel = 1
 
-cdef class ChannelStateFrozen:
-    def __cinit__(self):
-        pass
-
-    cdef init(self, cWorld_ptr &w, cChannelState &p):
+cdef class Channels:
+    def __cinit__(self, World w, bits_t init=0):
         self.world = w
-        self._this = p
+        self._this.bits = init
+        self.size = w._this.channel_count
 
-    def test(self, size_t i):
-        return self._this.test(i)
+    # cdef _assign(self, bits_t bits):
+    #     self._this.bits = bits
 
-    def __getitem__(self, size_t i):
-        return self._this.test(i)
+    def max(self):
+        return self._this.max()
 
-    def __cmp__(self, ChannelStateFrozen other):
-        return bitset_cmp(self._this, other._this)
+    def set(self, index_t i):
+        self._this.set(i, self.size)
 
-    property size:
-        def __get__(self):
-            return self._this.size()
+    def clear(self, index_t i):
+        self._this.clear(i, self.size)
+
+    def flip(self, index_t i):
+        self._this.flip(i, self.size)
+
+    def test(self, index_t i):
+        return self._this.test(i, self.size)
 
     def __str__(self):
-        # TODO: Clean this function up---it is really crappy
-        cdef:
-            string cstr
-            cWorld *w = self.world.get()
+        return self._this.to_string(self.size)
 
-        if w == NULL:
-            # TODO: Some proper exceptions would be good...
-            raise RuntimeError
+    def __repr__(self):
+        bit_string = self._this.to_string(self.size)
+        return "<Channels: {}>".format(bit_string)
 
-        cdef size_t cuereg = w.cue_channels + w.reg_channels
+    def __cmp__(self, Channels other):
+        return bitset_cmp(self._this, other._this)
 
-        to_string(self._this, cstr)
-
-        # I think it is much easier to understand if we reverse it
-        # Also, clip the reserved channels 
-        # TODO: fix this nasty hack
-        s = cstr[::-1]
-        res = s[:2]
-        env = s[2:2+w.cue_channels]
-        reg = s[2+w.cue_channels:2+cuereg]
-        out = s[2+cuereg:]
-
-        return "|".join((res, env, reg, out))
+    # def __str__(self):
+    #     # TODO: Clean this function up---it is really crappy
+    #     cdef:
+    #         string cstr
+    #         cWorld *w = self.world.get()
+    #
+    #     if w == NULL:
+    #         # TODO: Some proper exceptions would be good...
+    #         raise RuntimeError
+    #
+    #     cdef size_t cuereg = w.cue_channels + w.reg_channels
+    #
+    #     to_string(self._this, cstr)
+    #
+    #     # I think it is much easier to understand if we reverse it
+    #     # Also, clip the reserved channels 
+    #     # TODO: fix this nasty hack
+    #     s = cstr[::-1]
+    #     res = s[:2]
+    #     env = s[2:2+w.cue_channels]
+    #     reg = s[2+w.cue_channels:2+cuereg]
+    #     out = s[2+cuereg:]
+    #
+    #     return "|".join((res, env, reg, out))
 
     def __copy__(self):
-        other = ChannelState()
-        other.init(self.world, self._this)
+        other = Channels(self.world, self._this.bits)
         return other
 
     def copy(self):
@@ -81,40 +93,14 @@ cdef class ChannelStateFrozen:
             np.npy_int32[:] v = vals
             size_t i
 
-        for i in range(self._this.size()):
-            v[i] = self._this.test(i)
+        for i in range(self.size):
+            v[i] = self._this.test(i, self.size)
 
         return vals
 
-    def __repr__(self):
-        return "<ChannelsRO: {}>".format(self.__str__())
-
-
-cdef class ChannelState(ChannelStateFrozen):
-
-    def __cinit__(self):
-        pass
-
-    def set(self, size_t i):
-        self._this.set(i)
-
-    def reset(self, size_t i):
-        self._this.reset(i)
-
-    def flip(self, size_t i):
-        self._this.flip(i)
-
-    def __setitem__(self, size_t i, bint b):
-        if b:
-            self._this.set(i)
-        else:
-            self._this.reset(i)
-
-    def merge(self, ChannelStateFrozen other):
-        self._this |= other._this
-
-    def __repr__(self):
-        return "<Channels: {}>".format(self.__str__())
+    def merge(self, Channels other):
+        assert self.size == other.size
+        self._this.unchecked_union(other._this)
 
 
 def _construct_world(params, net_id, target_id, r_state):
@@ -155,27 +141,16 @@ cdef class World:
         def __get__(self):
             return copy.deepcopy(self._params)
 
-    def create_state(self):
-        c = ChannelState()
-        c._this.resize(self._this.channel_count)
-        c.world = self._shared
-        return c
+    # def create_state(self):
+    #     c = Channels()
+    #     c._this.resize(self._this.channel_count)
+    #     c.world = self._shared
+    #     return c
 
     property environments:
         def __get__(self):
-            if self._environments is not None:
-                return self._environments
-
-            cdef vector[cChannelState].iterator i =  self._this.environments.begin()
-            envs = []
-            while i != self._this.environments.end():
-                p = ChannelStateFrozen()
-                p.init(self._shared, deref(i))
-                envs.append(p)
-                preinc(i)
-
-            self._environments = envs
-            return envs
+            intvec = deref(to_cAttractorBits(&self._this.environments))
+            return [Channels(self, x) for x in intvec]
 
     # Some routines just for testing, mainly for testing (NOT fast)
     def seed_random_engine(self, int s):
@@ -331,7 +306,7 @@ cdef class Network:
         def __get__(self):
             r = numpy.zeros(self._this.attractors.size())
             cdef:
-                vector[cChannelStateVector].iterator cattr_iter
+                vector[cAttractor].iterator cattr_iter
                 np.npy_double[:] c_r = r
                 size_t i = 0
 
@@ -343,10 +318,10 @@ cdef class Network:
 
             return r
 
-    def cycle(self, ChannelState c):
+    def cycle(self, Channels c):
         self._this.cycle(c._this)
 
-    def cycle_with_intervention(self, ChannelState c):
+    def cycle_with_intervention(self, Channels c):
         self._this.cycle_with_intervention(c._this)
 
     # def calc_perturbation(self, bint env_only):
@@ -370,31 +345,15 @@ cdef class Network:
         self._this.mutate(nmutations)
         self.recalculate()
 
-    cdef _make_python_attractor(self, cChannelStateVector &c_attr):
-        cdef:
-            vector[cChannelState].iterator cstate_iter
-        attr = []
+    cdef _make_python_attractor(self, cAttractor &c_attr):
+        w = self.factory.world
+        intvec = deref(to_cAttractorBits(&c_attr))
+        return [Channels(w, x) for x in intvec]
 
-        cstate_iter = c_attr.begin()
-        while cstate_iter != c_attr.end():
-            c = ChannelStateFrozen()
-            c.init(self.factory._this.world, deref(cstate_iter))
-            attr.append(c)
-            preinc(cstate_iter)
-
-        return tuple(attr)
-
-    cdef _make_python_attractors(self, cAttractors &attrs):
-        cdef:
-            vector[cChannelStateVector].iterator cattr_iter
-
-        py_attrs = []
-        cattr_iter = attrs.begin()
-        while cattr_iter != attrs.end():
-            py_attrs.append(self._make_python_attractor(deref(cattr_iter)))
-            preinc(cattr_iter)
-
-        return tuple(py_attrs)
+    cdef _make_python_attractors(self, cAttractorSet &attrs):
+        w = self.factory.world
+        intvecvec = deref(to_cAttractorSetBits(&attrs))
+        return [[Channels(w, x) for x in intvec] for intvec in intvecvec]
 
     cdef _make_python_rate(self, cRates &rates):
         cdef cWorld *world = self.factory._this.world.get()
@@ -433,9 +392,9 @@ cdef class Network:
         r.flags.writeable = False
         return r
 
-    def stabilise(self, ChannelState c):
+    def stabilise(self, Channels c):
         cdef:
-            cChannelStateVector c_attr, c_trans
+            cAttractor c_attr, c_trans
             cRates c_rates
 
         self._this.stabilise(c._this, c_attr, c_trans, c_rates)

@@ -1,15 +1,6 @@
 from utility cimport *
 from core cimport *
 
-cdef class ChannelStateFrozen:
-    cdef:
-        cChannelState _this
-        cWorld_ptr world
-    cdef init(self, cWorld_ptr &f, cChannelState &p)
-
-cdef class ChannelState(ChannelStateFrozen):
-    pass
-
 cdef class World:
     cdef:
         cWorld_ptr _shared
@@ -20,6 +11,13 @@ cdef class World:
             object cue_signals, reg_signals, out_signals
             object reserved_signals
         object _environments
+
+cdef class Channels:
+    cdef:
+        cChannels _this
+        readonly:
+            World world
+            index_t size
 
 cdef class Factory:
     cdef:
@@ -58,8 +56,8 @@ cdef class Network:
 
     cdef bind_to(self, cNetwork_ptr ptr)
 
-    cdef _make_python_attractor(self, cChannelStateVector &attr)
-    cdef _make_python_attractors(self, cAttractors &attrs)
+    cdef _make_python_attractor(self, cAttractor &attr)
+    cdef _make_python_attractors(self, cAttractorSet &attrs)
     cdef _make_python_rates(self, cRatesVector &)
     cdef _make_python_rate(self, cRates &rates)
 

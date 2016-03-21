@@ -160,7 +160,7 @@ cdef class CisModule(core_ext.CisModule):
             w = self.gene.network.factory.world
             return text_for_cis_mod(self)
 
-    def is_active(self, core_ext.ChannelState c):
+    def is_active(self, core_ext.Channels c):
         cdef cCisModule *cm = dynamic_cast_cCisModule(self._this) 
         return cm.is_active(c._this)
 

@@ -3,6 +3,7 @@ import pytest
 import numpy
 from bricolage import logic2 as T
 from bricolage import operand
+from bricolage.core import Channels
 
 @pytest.fixture
 def c_one_unit():
@@ -112,11 +113,11 @@ def test_population_mutation(c_3x2):
 
 def network_cycle(network, curstate):
     """A Python version of what the C++ cycle does."""
-    nextstate = network.factory.world.create_state()
+    nextstate = Channels(network.factory.world)
     for g in network.genes:
         for m in g.modules:
             a, b = m.channels
-            if operand.calculate(m.op, curstate[a], curstate[b]):
+            if operand.calculate(m.op, curstate.test(a), curstate.test(b)):
                 nextstate.set(g.pub)
                 break
     return nextstate
@@ -131,7 +132,7 @@ def construct_attractor(net, env):
         cur.merge(env)
         for i, prev in enumerate(path):
             if cur == prev:
-                return tuple(path[i:])
+                return path[i:]
         path.append(cur)
 
 def test_attractors(c_3x2):
@@ -140,7 +141,7 @@ def test_attractors(c_3x2):
         pattractors = [construct_attractor(net, env) 
                        for env in c_3x2.world.environments]
         # Make sure the attractors created in C++ are the same
-        assert tuple(pattractors) == net.attractors
+        assert pattractors == net.attractors
 
 def test_rates(c_3x2):
     network = c_3x2.create_network()
