@@ -332,7 +332,9 @@ public:
     void calc_attractors() { _calc_attractors(false); }
     void calc_attractors_with_intervention() { _calc_attractors(true); }
 
-    void calc_perturbation(cDynamics &dynamics, bool env_only) const;
+    void calc_perturbation(cRatesVector &rates_vec, bool env_only) const;
+    void get_rates(const cChannels &initial, cRates &rates, bool use_cache) const;
+    void clear_rate_cache() const { cached_mappings.clear(); }
     void stabilise(const cChannels &initial,
                    bool intervention,
                    cAttractor &attractor_,
@@ -353,7 +355,7 @@ public:
 
     // This is a cached map of all computed channels and the resulting rates
     // they lead to (anything in a transient or attractor -> rates).
-    cChannelsRatesMap cached_mappings;
+    mutable cChannelsRatesMap cached_mappings;
 
     // Record the fitness and the target against which it was calculated.
     // This means we don't need to recalc the fitness if the target has not
@@ -426,7 +428,7 @@ struct cNoisyTarget: public cBaseTarget
     size_t perturb_count;
     double perturb_prop;
     bool env_only;
-    mutable cDynamics dynamics;
+    mutable cRatesVector rates_vec;
     double assess(const cNetwork &net) const;
 };
 

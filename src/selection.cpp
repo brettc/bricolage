@@ -173,8 +173,8 @@ double cNoisyTarget::assess(const cNetwork &net) const
         double mult = 1.0 / double(perturb_count);
         for (size_t i = 0; i < perturb_count; ++i)
         {
-            net.calc_perturbation(dynamics, env_only);
-            score += mult * score_rates(dynamics.rates);
+            net.calc_perturbation(rates_vec, env_only);
+            score += mult * score_rates(rates_vec);
         }
         score *= perturb_prop;
     }

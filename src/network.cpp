@@ -69,13 +69,13 @@ inline random_int_t random_int_range(int a, int b, const bricolage::cWorld_ptr &
     return std::bind(std::uniform_int_distribution<>(a, b-1), std::ref(w->rand));
 }
 
-void cNetwork::calc_perturbation(cDynamics &dynamics, bool env_only) const
+void cNetwork::calc_perturbation(cRatesVector &rates_vec, bool env_only) const
 {
     // We should already have initial attractors and rates.  This is NOT
     // deterministic, unlike the calculation of attractors, as we randomize
     // the inputs. It also assumes we'd doing *pulses* of inputs rather than
     // constant inputs.
-    dynamics.clear();
+    rates_vec.clear();
     random_int_t r_env_state(random_int_range(0, 2, world));
     random_int_t r_reg_channel(random_int_range(world->cue_range.first,
                                                 world->reg_range.second,
@@ -109,12 +109,10 @@ void cNetwork::calc_perturbation(cDynamics &dynamics, bool env_only) const
         }
 
         // Add a new attractor for this environment.
-        dynamics.add();
-        auto &this_attractor = dynamics.attractors.back();
-        auto &this_transient = dynamics.transients.back();
-        auto &this_rate = dynamics.rates.back();
+        rates_vec.emplace_back();
+        auto &this_rate = rates_vec.back();
 
-        stabilise(start_state, false, this_attractor, this_transient, this_rate);
+        get_rates(start_state, this_rate, true);
     }
 }
 
@@ -193,5 +191,33 @@ void cNetwork::stabilise(const cChannels &initial,
     double norm = 1.0 / double(attractor_.size());
     for (size_t i = 0; i < world->out_channels; ++i)
         rates_[i] *= norm;
+    
+    // Fill cache (if we're not interventing) -- everything in transient and
+    // attractor map to rates
+    if (!intervention)
+    {
+        for (auto &ch: path)
+        {
+            cached_mappings[ch] = rates_;
+            // auto ret = cached_mappings.insert(std::make_pair(initial, rates_));
+
+        }
+    }
 }
 
+
+void cNetwork::get_rates(const cChannels &initial, cRates &rates, bool use_cache) const
+{
+    if (use_cache)
+    {
+        auto found = cached_mappings.find(initial);
+        if (found != cached_mappings.end())
+        {
+            rates = found->second;
+            return;
+        }
+    }
+
+    cAttractor attr, trans;
+    stabilise(initial, false, attr, trans, rates);
+}
