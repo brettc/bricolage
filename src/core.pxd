@@ -128,7 +128,7 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         void calc_attractors()
         void calc_attractors_with_intervention()
         void calc_perturbation(cDynamics &, bint)
-        void stabilise(cChannels &, cAttractor &, cAttractor &,
+        void stabilise(cChannels &, bint intervene, cAttractor &, cAttractor &,
                        cRates &)
 
         void *pyobject
@@ -136,7 +136,8 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         cWorld_ptr world
         int_t identifier, parent_identifier, generation
         cAttractorSet attractors
-        cRatesVector rates
+        cRatesVector rates, transients
+        cChannelsRatesMap cached_mappings
         int_t target
         double fitness
         

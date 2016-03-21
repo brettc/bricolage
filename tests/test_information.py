@@ -5,6 +5,7 @@ from bricolage.analysis_ext import (
     OutputControlAnalyzer, RelevantControlAnalyzer, Information,
     _set_max_category_size, _get_max_category_size)
 from bricolage.core import InterventionState
+from bricolage import dot_layout
 import numpy
 numpy.set_printoptions(linewidth=120)
 
@@ -64,14 +65,12 @@ def calc_mutual_info(n, categories):
 
 def test_persistence(bowtie_network):
     net = bowtie_network
-    # graph.save_network_as_fullgraph(net, name='unbob', simplify=False)
-    # graph.save_network_as_fullgraph(net, name='bob')
 
-    # We know from inspection that gene 5 is at the bottleneck
-    net.genes[5].intervene = InterventionState.INTERVENE_OFF
+    # We know from inspection that gene 8 / index 7 is at the bottleneck
+    net.genes[7].intervene = InterventionState.INTERVENE_OFF
     for r in net.rates:
         assert numpy.allclose(r, numpy.array([0, 0, 0]))
-    net.genes[5].intervene = InterventionState.INTERVENE_ON
+    net.genes[7].intervene = InterventionState.INTERVENE_ON
     for r in net.rates:
         assert numpy.allclose(r, numpy.array([1, .5, .25]))
 

@@ -41,82 +41,24 @@ cNetwork::cNetwork(const cFactory_ptr &c)
 // This is the outer-inner loop, where we find the attractors.
 void cNetwork::_calc_attractors(bool intervention)
 {
+    transients.clear();
     attractors.clear();
     rates.clear();
-
-    InputType it = world->input_type;
-
-    size_t attractor_begins_at;
-    bool found;
 
     // Go through each environment.
     for (auto &env : world->environments)
     {
         // Set the state to current environment, and set it as the start of the
         // path to the attractor.
-        cAttractor path;
-        cChannels current = env;
-        path.push_back(current);
-
-        for (;;)
-        {
-            // Update the current state.
-            if (!intervention)
-                cycle(current);
-            else
-                cycle_with_intervention(current);
-
-            if (it == INPUT_CONSTANT)
-                // Put back the environment if it is constant
-                current.unchecked_union(env);
-            else
-                // Otherwise make sure the on channel is on
-                current.unchecked_set(on_channel);
-
-            // Have we already seen this?
-            attractor_begins_at = 0;
-            found = false;
-            for (cChannels &prev : path)
-            {
-                if (prev == current)
-                {
-                    found = true;
-                    break;
-                }
-                attractor_begins_at++;
-            }
-
-            // If we have seen this state, we've found the attractor.
-            if (found)
-                break;
-
-            // Add the current to our attractor.
-            path.push_back(current);
-        }
         // Add a new attractor for this environment.
         attractors.emplace_back();
         cAttractor &this_attr = attractors.back();
-
         rates.emplace_back();
         cRates &this_rate = rates.back();
-        for (size_t i=0; i < world->out_channels; ++i)
-            this_rate.push_back(0.0);
+        transients.emplace_back();
+        cAttractor &this_trans = transients.back();
 
-        // Copy the part the path that is the attractor, ignoring the transient
-        for (size_t copy_at=attractor_begins_at; copy_at < path.size(); ++copy_at)
-        {
-            cChannels &c = path[copy_at];
-            this_attr.push_back(c);
-
-            // We construct the rates at the same time
-            for (size_t i=0; i < world->out_channels; ++i)
-                this_rate[i] += double(c.unchecked_test(i + world->out_range.first));
-
-        }
-        // Now normalise the rates
-        for (size_t i=0; i < world->out_channels; ++i)
-            this_rate[i] /= double(this_attr.size());
-
+        stabilise(env, intervention, this_attr, this_trans, this_rate);
     }
 }
 
@@ -142,7 +84,6 @@ void cNetwork::calc_perturbation(cDynamics &dynamics, bool env_only) const
     // Go through each environment.
     for (auto &attr : attractors)
     {
-        cAttractor path;
         // For each environmental attractor:
         // 1. Randomly select one state of the attractor.
         // 2. Introduce a pulse of random states (maybe just in the env)
@@ -168,18 +109,17 @@ void cNetwork::calc_perturbation(cDynamics &dynamics, bool env_only) const
         }
 
         // Add a new attractor for this environment.
-        dynamics.attractors.emplace_back();
+        dynamics.add();
         auto &this_attractor = dynamics.attractors.back();
-        dynamics.transients.emplace_back();
         auto &this_transient = dynamics.transients.back();
-        dynamics.rates.emplace_back();
         auto &this_rate = dynamics.rates.back();
 
-        stabilise(start_state, this_attractor, this_transient, this_rate);
+        stabilise(start_state, false, this_attractor, this_transient, this_rate);
     }
 }
 
 void cNetwork::stabilise(const cChannels &initial,
+                         bool intervention,
                          cAttractor &attractor_,
                          cAttractor &transient_,
                          cRates &rates_) const
@@ -197,7 +137,12 @@ void cNetwork::stabilise(const cChannels &initial,
 
     for (;;)
     {
-        cycle(current);
+        // Update the current state.
+        if (!intervention)
+            cycle(current);
+        else
+            cycle_with_intervention(current);
+
         // Make sure the on channel is on
         current.unchecked_set(on_channel);
 
@@ -227,7 +172,7 @@ void cNetwork::stabilise(const cChannels &initial,
     for (size_t i = 0; i < world->out_channels; ++i)
         rates_.push_back(0.0);
 
-    // Copy the part the path that is the attractor, ignoring the transient
+    // Copy the attractor and transient
     for (size_t copy_at = 0; copy_at < path.size(); ++copy_at)
     {
         cChannels &c = path[copy_at];
@@ -236,15 +181,15 @@ void cNetwork::stabilise(const cChannels &initial,
             attractor_.push_back(c);
             // We construct the rates at the same time
             for (size_t i = 0; i < world->out_channels; ++i)
-                rates_[i] += double(c.unchecked_test(i + world->out_range.first));
-                // if (c.test(i + world->out_range.first))
-                //     rates_[i] += 1.0;
+                if (c.unchecked_test(i + world->out_range.first))
+                    rates_[i] += 1.0;
         }
         else
             transient_.push_back(c);
     }
 
-    // Now normalise the rates
+    // Now normalise the rates. We want the *average* rate across the
+    // attractor; the stable state expression rate.
     double norm = 1.0 / double(attractor_.size());
     for (size_t i = 0; i < world->out_channels; ++i)
         rates_[i] *= norm;

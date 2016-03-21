@@ -6,6 +6,7 @@ from bricolage.threshold3 import (
 
 from bricolage.core import InputType, ScoringMethod
 from bricolage.core_ext import NoisyTarget
+from bricolage import dot_layout
 
 
 def xor_func(a, b):
@@ -52,7 +53,7 @@ def test_population():
 
 def test_xor():
     """We should be able to find xor!"""
-    params = Parameters(seed=2, cis_count=2, cue_channels=2, reg_channels=0,
+    params = Parameters(seed=2, cis_count=2, cue_channels=2, reg_channels=1,
                         out_channels=1)
     world = World(params)
     factory = Factory(world)
@@ -68,6 +69,10 @@ def test_xor():
         if max_fit == 1.0:
             break
         pop.mutate(.05)
+
+    # net = pop.get_best()[0]
+    # dot_layout.save_network_as_fullgraph(net, name='xor')
+
 
 
 def fitness_func2(a, b):

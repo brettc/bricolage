@@ -298,11 +298,19 @@ public:
     cAttractorSet attractors;
     cAttractorSet transients;
     cRatesVector rates;
+
     void clear()
     {
         attractors.clear();
         transients.clear();
         rates.clear();
+    }
+
+    void add()
+    {
+        attractors.emplace_back();
+        transients.emplace_back();
+        rates.emplace_back();
     }
 };
 
@@ -326,9 +334,10 @@ public:
 
     void calc_perturbation(cDynamics &dynamics, bool env_only) const;
     void stabilise(const cChannels &initial,
-                             cAttractor &attractor_,
-                             cAttractor &transient_,
-                             cRates &rates_) const;
+                   bool intervention,
+                   cAttractor &attractor_,
+                   cAttractor &transient_,
+                   cRates &rates_) const;
 
     cFactory_ptr factory;
     cWorld_ptr world;
@@ -339,7 +348,12 @@ public:
 
     // Calculated attractor and rates
     cAttractorSet attractors;
+    cAttractorSet transients;
     cRatesVector rates;
+
+    // This is a cached map of all computed channels and the resulting rates
+    // they lead to (anything in a transient or attractor -> rates).
+    cChannelsRatesMap cached_mappings;
 
     // Record the fitness and the target against which it was calculated.
     // This means we don't need to recalc the fitness if the target has not
