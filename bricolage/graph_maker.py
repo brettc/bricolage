@@ -194,13 +194,11 @@ class GeneGraph(GeneSignalGraph):
         self.remove_nodes(NodeType.CHANNEL, internal_only=True)
 
     def get_gene_label(self, i):
-        glabel = FullGraph.get_gene_label(self, i)
         g = self.network.genes[i]
         equation = text_for_gene(g)
         w = self.network.factory.world
-        # return "{}: {} => {}".format(glabel, equation,
-        #                              w.name_for_channel(g.pub))
-        return "{} => {}".format(equation, w.name_for_channel(g.pub))
+        ann = self.format_annotations(i)
+        return "{} => {} [{}]".format(equation, w.name_for_channel(g.pub), ann)
 
 
 class SignalFlowGraph(FullGraph):
