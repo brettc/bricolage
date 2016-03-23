@@ -116,6 +116,7 @@ void cNetwork::calc_perturbation(cRatesVector &rates_vec, bool env_only) const
     }
 }
 
+// This is the core calculation for everything (at the moment)
 void cNetwork::stabilise(const cChannels &initial,
                          bool intervention,
                          cAttractor &attractor_,
@@ -199,7 +200,8 @@ void cNetwork::stabilise(const cChannels &initial,
         for (auto &ch: path)
         {
             cached_mappings[ch] = rates_;
-            // auto ret = cached_mappings.insert(std::make_pair(initial, rates_));
+            // auto ret = cached_mappings.insert(std::make_pair(initial,
+            // rates_));
 
         }
     }
