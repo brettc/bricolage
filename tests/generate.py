@@ -1,11 +1,13 @@
 #!env python
 import click
+import numpy
 
 from folders import data_dir
 from bricolage import threshold3
 from bricolage.lineage import SnapshotLineage
-from bricolage.core import InputType
+from bricolage.core import InputType, SelectionModel, ScoringMethod
 from bricolage.core_ext import NoisyTarget, DefaultTarget
+import cPickle as pickle
 
 
 class GenerateError(Exception):
@@ -18,6 +20,11 @@ _data = dict([
     for nm in ['xor', 'bowtie', 'perturb']
 ])
 
+_numpy_dumps = dict([
+    (nm, (data_dir / nm).with_suffix('.npy'))
+    for nm in ['noisy']
+])
+
 
 # For external use
 def get_database(name, readonly=False):
@@ -25,6 +32,10 @@ def get_database(name, readonly=False):
     assert dbpath.exists()
     return SnapshotLineage(dbpath, readonly=readonly)
 
+def get_numpy_dump(name, readonly=False):
+    pth = _numpy_dumps[name]
+    assert pth.exists()
+    return numpy.load(str(pth))
 
 @click.group(chain=True)
 def generate():
@@ -136,6 +147,37 @@ def perturb(overwrite):
 
         for g, b in select_till(lin, good_for=10):
             click.secho("At generation {}, best is {}".format(g, b))
+
+
+def xor_func(a, b):
+    return (a or b) and not (a and b)
+
+def fit_func1(a, b):
+    return xor_func(a, b)
+
+
+def make_noisy():
+    p = threshold3.Parameters(
+        seed=1, cis_count=4, reg_channels=8, out_channels=3, cue_channels=3,
+    )
+    world = threshold3.World(p)
+    factory = threshold3.Factory(world)
+    ntarget = NoisyTarget(world, bowtie_target, perturb_count=3, perturb_prop=.2)
+    pop = threshold3.Population(factory, 1000)
+    select = SelectionModel(world)
+    for i in range(20):
+        pop.select(select)
+        pop.mutate(.002)
+        pop.assess(ntarget)
+
+    fits = pop.fitnesses
+    return fits
+
+
+@generate.command()
+@click.option('--overwrite', is_flag=True, default=False)
+def noisy_fitnesses(overwrite):
+    numpy.save(str(_numpy_dumps['noisy']), make_noisy())
 
 if __name__ == "__main__":
     generate()
