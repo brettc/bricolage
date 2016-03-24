@@ -309,15 +309,12 @@ class StatsRobustness(object):
 
     def calc_stats(self, pop):
         self.target.assess_collection(pop)
-        p_fit = pop.fitnesses
+        p_fit = np.asarray(pop.fitnesses)
         pop_mean = p_fit.mean()
 
         nay = PopulationNeighbourhood(pop, 100)
         nay_coll = nay.neighbours
-        self.target.assess_collection(nay_coll)
-
-        # How many
-        nay_fit = nay_coll.fitnesses
+        nay_fit = np.asarray(self.target.assess_collection(nay_coll))
         better_than_mean = np.where(nay_fit >= pop_mean)[0].size
         prop_better = float(better_than_mean) / float(nay_coll.size)
         perfect = float(np.where(pop.fitnesses == 1.0)[0].size) / float(pop.size)
