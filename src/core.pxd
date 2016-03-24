@@ -47,7 +47,7 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
     ctypedef std_map[bits_t, cRates] cChannelsRatesMapBits
 
     cChannelsRatesMapBits* to_cChannelRatesMapBits\
-        "reinterpret_cast<briocolage::cChannelsRatesMapBits *>" (cChannelsRatesMap *) except NULL
+        "reinterpret_cast<bricolage::cChannelsRatesMapBits *>" (cChannelsRatesMap *) except NULL
     ctypedef vector[cRates] cRatesVector
 
     cdef int bitset_cmp(cChannels &, cChannels &)
@@ -127,16 +127,18 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         cGene *get_gene(size_t)
         void calc_attractors()
         void calc_attractors_with_intervention()
-        void calc_perturbation(cDynamics &, bint)
-        void stabilise(cChannels &, cAttractor &, cAttractor &,
+        void stabilise(cChannels &, bint intervene, cAttractor &, cAttractor &,
                        cRates &)
+        void get_rates(cChannels &initial, cRates &rates, bint use_cache)
+        void clear_rate_cache()
 
         void *pyobject
         cFactory_ptr factory
         cWorld_ptr world
         int_t identifier, parent_identifier, generation
         cAttractorSet attractors
-        cRatesVector rates
+        cRatesVector rates, transients
+        cChannelsRatesMap cached_mappings
         int_t target
         double fitness
         

@@ -392,16 +392,22 @@ cdef class Network:
         r.flags.writeable = False
         return r
 
-    def stabilise(self, Channels c):
+    def stabilise(self, Channels c, intervention=False):
         cdef:
             cAttractor c_attr, c_trans
             cRates c_rates
 
-        self._this.stabilise(c._this, c_attr, c_trans, c_rates)
+        self._this.stabilise(c._this, intervention, c_attr, c_trans, c_rates)
         attr = self._make_python_attractor(c_attr)
         trans = self._make_python_attractor(c_trans)
         rates = self._make_python_rate(c_rates)
         return trans, attr, rates
+
+    def get_rates(self, Channels c, bint use_cache=True):
+        cdef:
+            cRates c_rates
+        self._this.get_rates(c._this, c_rates, use_cache)
+        return c_rates
 
     property attractors:
         """A tuple containing the attractors for each environment"""
@@ -413,10 +419,6 @@ cdef class Network:
             self._attractors = self._make_python_attractors(self._this.attractors)
             return self._attractors
 
-    # property pert_attractors:
-    #     def __get__(self):
-    #         return self._make_python_attractors(self._this.pert_attractors)
-
     property rates:
         """Return a readonly numpy array of the rates"""
         def __get__(self):
@@ -426,10 +428,15 @@ cdef class Network:
             self._rates = self._make_python_rates(self._this.rates)
             return self._rates
 
-    # property pert_rates:
-    #     def __get__(self):
-    #         return self._make_python_rates(self._this.pert_rates)
-    #
+    property rates_cache:
+        def __get__(self):
+            themap = deref(to_cChannelRatesMapBits(&self._this.cached_mappings))
+            return dict([(Channels(self.factory.world, k), v) 
+                         for k, v in themap.items()])
+
+    def clear_rate_cache(self):
+        self._this.clear_rate_cache()
+
     property fitness:
         def __get__(self):
             return self._this.fitness

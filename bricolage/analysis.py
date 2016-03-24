@@ -19,31 +19,23 @@ class NetworkAnalysis(analysis_ext.NetworkAnalysis):
             self.network.factory.world,
             target.calc_categories())
 
-        # TODO: This should be done in the function!
         info = analyzer.numpy_info_from_network(self.network)
         info.shape = info.shape[1],
         self.mutual_info = info
-
-        base = self.network.factory.world.reg_range[0]
-
         for i, mi in enumerate(info):
-            a = self.annotations.setdefault(base + i, {})
+            a = self.annotations.setdefault(i, {})
             a['M'] = mi
 
     def calc_output_control(self, target):
-        analyzer = analysis_ext.OutputControlAnalyzer(
+        analyzer = analysis_ext.RelevantControlAnalyzer(
             self.network.factory.world, target.calc_distinct_outputs())
         info = analyzer.numpy_info_from_network(self.network)
-        info.shape = info.shape[1:]
-        self.output_control = info
+        self.relevant_control = info
 
-        base = self.network.factory.world.reg_range[0]
-        for i, oi in enumerate(info):
-            a = self.annotations.setdefault(base + i, {})
+        for i, ri in enumerate(info):
+            a = self.annotations.setdefault(i, {})
             # Make it available via the channel too
-            a['C'] = oi[0]
-            a['E'] = oi[1]
-            a['W'] = oi[2]
+            a['R'] = ri
 
 
 # WIP

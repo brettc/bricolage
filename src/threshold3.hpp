@@ -6,12 +6,6 @@ namespace thresh3 {
 
 enum MutateType { JUMP=0, PROGRESSIVE=1, JUMP_LAYERED=2 };
 
-typedef std::function<int()> random_int_t;
-inline random_int_t random_int_range(int a, int b, const bricolage::cWorld_ptr &w)
-{
-    return std::bind(std::uniform_int_distribution<>(a, b-1), std::ref(w->rand));
-}
-
 class cFactory : public bricolage::cFactory
 {
 public:
@@ -21,9 +15,8 @@ public:
     MutateType mutate_type;
     bricolage::cIndexes draw_from_subs; // A vector of sub values that is used to draw from
     bricolage::cIndexes draw_from_regs; // A vector of only regulatory (no environmental inputs)
-    random_int_t r_gene, r_module, r_site;
-    random_int_t r_binding, r_direction;
-    random_int_t r_sub, r_reg;
+    bricolage::random_int_t r_gene, r_module, r_site, r_binding, r_direction,
+        r_sub, r_reg;
 
     void set_draw_from_subs(const bricolage::cIndexes &d);
 

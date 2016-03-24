@@ -125,11 +125,13 @@ def network_cycle(network, curstate):
 def construct_attractor(net, env):
     """Make an attractor by cycling repeatedly"""
     cur = env.copy()
+    cur.set(1)
     path = []
     path.append(cur)
     while 1:
         cur = network_cycle(net, cur)
-        cur.merge(env)
+        cur.set(1)
+        # cur.merge(env)
         for i, prev in enumerate(path):
             if cur == prev:
                 return path[i:]

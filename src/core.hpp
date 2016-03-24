@@ -13,6 +13,8 @@
 //
 #include <boost/dynamic_bitset.hpp>
 #include <boost/multi_array.hpp>
+#include <boost/function.hpp>
+#include <boost/bind.hpp>
 #include <tuple>
 #include <random>
 
@@ -270,6 +272,14 @@ public:
 };
 typedef std::shared_ptr<cWorld> cWorld_ptr;
 
+
+// Helper function for generating random ranges
+typedef std::function<int()> random_int_t;
+inline random_int_t random_int_range(int a, int b, const bricolage::cWorld_ptr &w)
+{
+    return std::bind(std::uniform_int_distribution<>(a, b-1), std::ref(w->rand));
+}
+
 // Base class for overriding world operations
 class cFactory : public std::enable_shared_from_this<cFactory>
 {
@@ -298,11 +308,19 @@ public:
     cAttractorSet attractors;
     cAttractorSet transients;
     cRatesVector rates;
+
     void clear()
     {
         attractors.clear();
         transients.clear();
         rates.clear();
+    }
+
+    void add()
+    {
+        attractors.emplace_back();
+        transients.emplace_back();
+        rates.emplace_back();
     }
 };
 
@@ -324,11 +342,13 @@ public:
     void calc_attractors() { _calc_attractors(false); }
     void calc_attractors_with_intervention() { _calc_attractors(true); }
 
-    void calc_perturbation(cDynamics &dynamics, bool env_only) const;
+    void get_rates(const cChannels &initial, cRates &rates, bool use_cache) const;
+    void clear_rate_cache() const { cached_mappings.clear(); }
     void stabilise(const cChannels &initial,
-                             cAttractor &attractor_,
-                             cAttractor &transient_,
-                             cRates &rates_) const;
+                   bool intervention,
+                   cAttractor &attractor_,
+                   cAttractor &transient_,
+                   cRates &rates_) const;
 
     cFactory_ptr factory;
     cWorld_ptr world;
@@ -339,7 +359,12 @@ public:
 
     // Calculated attractor and rates
     cAttractorSet attractors;
+    cAttractorSet transients;
     cRatesVector rates;
+
+    // This is a cached map of all computed channels and the resulting rates
+    // they lead to (anything in a transient or attractor -> rates).
+    mutable cChannelsRatesMap cached_mappings;
 
     // Record the fitness and the target against which it was calculated.
     // This means we don't need to recalc the fitness if the target has not
@@ -412,8 +437,9 @@ struct cNoisyTarget: public cBaseTarget
     size_t perturb_count;
     double perturb_prop;
     bool env_only;
-    mutable cDynamics dynamics;
+    mutable cRatesVector rates_vec;
     double assess(const cNetwork &net) const;
+    void calc_perturbation(const cNetwork &net, bool env_only) const;
 };
 
 struct cSelectionModel

@@ -309,15 +309,12 @@ class StatsRobustness(object):
 
     def calc_stats(self, pop):
         self.target.assess_collection(pop)
-        p_fit = pop.fitnesses
+        p_fit = np.asarray(pop.fitnesses)
         pop_mean = p_fit.mean()
 
         nay = PopulationNeighbourhood(pop, 100)
         nay_coll = nay.neighbours
-        self.target.assess_collection(nay_coll)
-
-        # How many
-        nay_fit = nay_coll.fitnesses
+        nay_fit = np.asarray(self.target.assess_collection(nay_coll))
         better_than_mean = np.where(nay_fit >= pop_mean)[0].size
         prop_better = float(better_than_mean) / float(nay_coll.size)
         perfect = float(np.where(pop.fitnesses == 1.0)[0].size) / float(pop.size)
@@ -338,6 +335,7 @@ class StatsLag(object):
         self.replicate = None
         self.lineage = None
         self.rc_analyzer = None
+        self.mi_analyzer = None
         self.done = {}
 
         self.first_best = 'FIRST_BEST'
@@ -360,6 +358,7 @@ class StatsLag(object):
         targ = lin.targets[0]
         tset = targ.calc_distinct_outputs()
         self.rc_analyzer = RelevantControlAnalyzer(lin.world, tset)
+        self.mi_analyzer = MutualInfoAnalyzer(lin.world, targ.calc_categories())
 
         # Analysis
         if not self.is_done(rep, self.first_best):
@@ -386,15 +385,15 @@ class StatsLag(object):
 
     def find_first_control(self):
         # Load last generation and check if we got a master gene
-        _, c_index = self.find_controlled(self.lineage.population)
-        if c_index is None:
+        _, m_index = self.find_controlled(self.lineage.population)
+        if m_index is None:
             log.info("No master evolved")
             return None, None
 
         log.info("We got a master gene at the last generation.")
 
         # Grab the first one and load the ancestry
-        net = self.lineage.population[c_index]
+        net = self.lineage.population[m_index]
         first_control, first_master = self.get_ancestry_control(net)
 
         # Just one
@@ -402,23 +401,25 @@ class StatsLag(object):
         return first_control, first_master
 
     def find_controlled(self, collection):
-        """Control requires fitness to be 1.0 too"""
-        # Get the fitnesses
-        fitnesses = self.lineage.targets[0].assess_collection(collection)
-
+        """Control requires both be 1.0 too"""
         rc = self.rc_analyzer.numpy_info_from_collection(collection)
-        indexes = np.where(rc == 1.0)[0]
-        if indexes.size > 0:
-            first_control = indexes[0]
+        rc_indexes = np.where(rc == 1.0)[0]
+        if rc_indexes.size > 0:
+            first_control = rc_indexes[0]
         else:
             first_control = None
 
         # Yes, there is a faster way...
-        first_master = None
-        for i in indexes:
-            if fitnesses[i] == 1.0:
-                first_master = i
-                break
+        mi = self.mi_analyzer.numpy_info_from_collection(collection)
+
+        # TODO: fix this stupidity
+        mi.shape = mi.shape[:2]
+        mi_and_rc = mi * rc
+        master_indexes = np.where(mi_and_rc == 1.0)[0]
+        if master_indexes.size > 0:
+            first_master = master_indexes[0]
+        else:
+            first_master = None
 
         return first_control, first_master
 

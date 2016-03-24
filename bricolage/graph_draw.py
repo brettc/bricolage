@@ -18,14 +18,19 @@ RE_STRUCT = re.compile(r"P(\d+)")
 
 # EEEK. Truly awful.
 def latexify(l):
-    l = l.replace("~", r"\lnot{}")
-    l = l.replace(" & ", r" \land{} ")
-    l = l.replace(" | ", r" \lor{} ")
-    l = l.replace("=>", r"\to{}")
-    l = RE_ENV.sub(r"e_{\1}", l)
-    l = RE_TRANS.sub(r"t_{\1}", l)
-    l = RE_STRUCT.sub(r"p_{\1}", l)
-    return "$" + l + "$"
+    # l = l.replace("~", r"\lnot{}")
+    # l = l.replace("~", r"\sim{}")
+    l = l.replace(" & ", r" \& ")
+    # l = l.replace(" & ", r" \land{} ")
+    # l = l.replace(" | ", r" \lor{} ")
+    l = l.replace("=>", r" $\Rightarrow{} $")
+    # l = l.replace("=>", r" $\to{} $")
+    # l = RE_ENV.sub(r"e$_{\1}$", l)
+    # l = RE_TRANS.sub(r"t$_{\1}$", l)
+    # l = RE_STRUCT.sub(r"p$_{\1}$", l)
+    return re.sub('[\s+]', ' ', l)
+
+    # return "$" + l + "$"
 
 
 class ColorScheme(object):

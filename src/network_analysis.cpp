@@ -819,6 +819,7 @@ void cOutputControlAnalyzer::_analyse(
 
 }
 
+// --------------------------------------------------------------------------
 cRelevantControlAnalyzer::cRelevantControlAnalyzer(cWorld_ptr &world, const cRatesVector &tr)
     : cBaseCausalAnalyzer(world)
     , target_rates(tr)
