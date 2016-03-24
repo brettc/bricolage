@@ -13,6 +13,8 @@
 //
 #include <boost/dynamic_bitset.hpp>
 #include <boost/multi_array.hpp>
+#include <boost/function.hpp>
+#include <boost/bind.hpp>
 #include <tuple>
 #include <random>
 
@@ -270,6 +272,14 @@ public:
 };
 typedef std::shared_ptr<cWorld> cWorld_ptr;
 
+
+// Helper function for generating random ranges
+typedef std::function<int()> random_int_t;
+inline random_int_t random_int_range(int a, int b, const bricolage::cWorld_ptr &w)
+{
+    return std::bind(std::uniform_int_distribution<>(a, b-1), std::ref(w->rand));
+}
+
 // Base class for overriding world operations
 class cFactory : public std::enable_shared_from_this<cFactory>
 {
@@ -332,7 +342,6 @@ public:
     void calc_attractors() { _calc_attractors(false); }
     void calc_attractors_with_intervention() { _calc_attractors(true); }
 
-    void calc_perturbation(cRatesVector &rates_vec, bool env_only) const;
     void get_rates(const cChannels &initial, cRates &rates, bool use_cache) const;
     void clear_rate_cache() const { cached_mappings.clear(); }
     void stabilise(const cChannels &initial,
@@ -430,6 +439,7 @@ struct cNoisyTarget: public cBaseTarget
     bool env_only;
     mutable cRatesVector rates_vec;
     double assess(const cNetwork &net) const;
+    void calc_perturbation(const cNetwork &net, bool env_only) const;
 };
 
 struct cSelectionModel

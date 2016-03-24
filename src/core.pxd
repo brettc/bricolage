@@ -127,7 +127,6 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         cGene *get_gene(size_t)
         void calc_attractors()
         void calc_attractors_with_intervention()
-        void calc_perturbation(cRatesVector&, bint)
         void stabilise(cChannels &, bint intervene, cAttractor &, cAttractor &,
                        cRates &)
         void get_rates(cChannels &initial, cRates &rates, bint use_cache)

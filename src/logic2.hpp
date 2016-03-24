@@ -11,19 +11,13 @@ typedef std::vector<operand_t> cOperands;
 typedef std::pair<bricolage::signal_t, bricolage::signal_t> signal_pair_t;
 // typedef std::map<signal_pair_t, operand_t> binding_map_t;
 
-typedef std::function<int()> random_int_t;
-inline random_int_t random_int_range(int a, int b, const bricolage::cWorld_ptr &w)
-{ 
-    return std::bind(std::uniform_int_distribution<>(a, b-1), std::ref(w->rand));
-}
-
 struct cFactory : public bricolage::cFactory
 {
     cFactory(const bricolage::cWorld_ptr &w, size_t module_count, 
                  const cOperands &ops);
     size_t gene_count, module_count;
     cOperands operands;
-    random_int_t r_gene, r_module, r_operand, r_site, r_input;
+    bricolage::random_int_t r_gene, r_module, r_operand, r_site, r_input;
     // binding_map_t bindings;
 
     // Overrides

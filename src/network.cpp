@@ -2,8 +2,6 @@
 #include "algorithm.hpp"
 #include <cmath>
 #include <stdexcept>
-#include <boost/function.hpp>
-#include <boost/bind.hpp>
 
 using namespace bricolage;
 
@@ -62,59 +60,7 @@ void cNetwork::_calc_attractors(bool intervention)
     }
 }
 
-// TODO: move to main file
-typedef std::function<int()> random_int_t;
-inline random_int_t random_int_range(int a, int b, const bricolage::cWorld_ptr &w)
-{
-    return std::bind(std::uniform_int_distribution<>(a, b-1), std::ref(w->rand));
-}
 
-void cNetwork::calc_perturbation(cRatesVector &rates_vec, bool env_only) const
-{
-    // We should already have initial attractors and rates.  This is NOT
-    // deterministic, unlike the calculation of attractors, as we randomize
-    // the inputs. It also assumes we'd doing *pulses* of inputs rather than
-    // constant inputs.
-    rates_vec.clear();
-    random_int_t r_env_state(random_int_range(0, 2, world));
-    random_int_t r_reg_channel(random_int_range(world->cue_range.first,
-                                                world->reg_range.second,
-                                                world));
-
-    // Go through each environment.
-    for (auto &attr : attractors)
-    {
-        // For each environmental attractor:
-        // 1. Randomly select one state of the attractor.
-        // 2. Introduce a pulse of random states (maybe just in the env)
-        // 3. Find new attractor
-        //
-        // 1. Get starting point
-        size_t state_i = 0;
-        if (attr.size() > 1)
-        {
-            random_int_t r_state(random_int_range(0, attr.size(), world));
-            state_i = r_state();
-        }
-        cChannels start_state = attr[state_i];
-
-        // 2. Random state
-        if (env_only)
-        {
-            for (size_t k = world->cue_range.first; k < world->cue_range.second; ++k)
-                if (r_env_state())
-                    start_state.unchecked_set(k);
-        } else {
-            start_state.unchecked_flip(r_reg_channel());
-        }
-
-        // Add a new attractor for this environment.
-        rates_vec.emplace_back();
-        auto &this_rate = rates_vec.back();
-
-        get_rates(start_state, this_rate, true);
-    }
-}
 
 // This is the core calculation for everything (at the moment)
 void cNetwork::stabilise(const cChannels &initial,

@@ -173,7 +173,7 @@ double cNoisyTarget::assess(const cNetwork &net) const
         double mult = 1.0 / double(perturb_count);
         for (size_t i = 0; i < perturb_count; ++i)
         {
-            net.calc_perturbation(rates_vec, env_only);
+            calc_perturbation(net, env_only);
             score += mult * score_rates(rates_vec);
         }
         score *= perturb_prop;
@@ -189,6 +189,54 @@ double cNoisyTarget::assess(const cNetwork &net) const
     net.target = identifier;
 
     return score;
+}
+
+
+void cNoisyTarget::calc_perturbation(const cNetwork &net, bool env_only) const
+{
+    // We should already have initial attractors and rates.  This is NOT
+    // deterministic, unlike the calculation of attractors, as we randomize
+    // the inputs. It also assumes we'd doing *pulses* of inputs rather than
+    // constant inputs.
+    rates_vec.clear();
+    random_int_t r_env_state(random_int_range(0, 2, world));
+    random_int_t r_reg_channel(random_int_range(world->cue_range.first,
+                                                world->reg_range.second,
+                                                world));
+
+    // Go through each environment.
+    for (auto &attr : net.attractors)
+    {
+        // For each environmental attractor:
+        // 1. Randomly select one state of the attractor.
+        // 2. Introduce a pulse of random states (maybe just in the env)
+        // 3. Find new attractor
+        //
+        // 1. Get starting point
+        size_t state_i = 0;
+        if (attr.size() > 1)
+        {
+            random_int_t r_state(random_int_range(0, attr.size(), world));
+            state_i = r_state();
+        }
+        cChannels start_state = attr[state_i];
+
+        // 2. Random state
+        if (env_only)
+        {
+            for (size_t k = world->cue_range.first; k < world->cue_range.second; ++k)
+                if (r_env_state())
+                    start_state.unchecked_set(k);
+        } else {
+            start_state.unchecked_flip(r_reg_channel());
+        }
+
+        // Add a new attractor for this environment.
+        rates_vec.emplace_back();
+        auto &this_rate = rates_vec.back();
+
+        net.get_rates(start_state, this_rate, true);
+    }
 }
 
 
