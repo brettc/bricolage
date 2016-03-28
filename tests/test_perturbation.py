@@ -4,6 +4,9 @@ from bricolage.threshold3 import Parameters
 from bricolage.lineage import FullLineage
 from bricolage.core import InputType
 from bricolage.core_ext import DefaultTarget, NoisyTarget
+from bricolage.dot_layout import save_network_as_fullgraph
+import numpy.random as rand
+import numpy
 
 @pytest.fixture
 def p_3x1():
@@ -23,6 +26,77 @@ def target1(a, b):
     if (a or b) and not (a and b):
         return 1
     return 0
+
+def test_robustness(bowtie_network):
+    net = bowtie_network
+    save_network_as_fullgraph(net)
+    w = net.factory.world
+    low, high = w.reg_range
+
+    print w.reg_range
+    for e in w.environments:
+        orig = net.stabilise(e)[2]
+        i = rand.randint(low, high)
+        e.flip(i)
+        pert = net.stabilise(e)[2] 
+        print orig, pert
+
+def test_caching(bowtie_network):
+    # TODO: check that all of the transient and attractors stuff is in the
+    # cache
+    net = bowtie_network
+    # print len(net.rates_cache)
+
+
+    # w = net.factory.world
+    # for e in w.environments:
+    #     a, t, r = net.stabilise(e)
+    #     assert (r == net.get_rates(e)).all()
+    #
+    print len(net.rates_cache)
+    ks = net.rates_cache.keys()
+    ks.sort()
+    for k in ks:
+        print k, net.rates_cache[k]
+    
+    # print net.attractors
+
+def test_robustness_attr(bowtie_network):
+    net = bowtie_network
+    w = net.factory.world
+
+    low, high = w.cue_range[0], w.reg_range[1]
+    per_channel = 1.0 / float((high - low) * len(w.environments))
+    rob = 0.0
+
+    # For each env
+    for env in w.environments:
+        attr, trans, orig_rates = net.stabilise(env)
+
+        # These better be the same
+        other_orig_rates = net.get_rates(env)
+        numpy.testing.assert_allclose(orig_rates, other_orig_rates)
+
+        per_test = per_channel / float(len(attr))
+
+        # For each state in the attractor
+        for attr_state in attr:
+
+            # For each possible regulatory channel
+            for i in range(low, high):
+                ec = attr_state.copy()
+                ec.flip(i)
+                new_rates = net.get_rates(ec)
+                nattr, ntrans, alt_new_rates = net.stabilise(ec)
+                numpy.testing.assert_allclose(alt_new_rates, new_rates)
+
+                if numpy.allclose(orig_rates, new_rates):
+                    rob += per_test
+
+    print rob
+    # print net.rates
+    print net.attractor_robustness
+
 
 # def test1(tmpdir, p_3x1):
 #     base = Path(str(tmpdir))

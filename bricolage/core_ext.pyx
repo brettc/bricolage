@@ -30,6 +30,9 @@ cdef class Channels:
     # cdef _assign(self, bits_t bits):
     #     self._this.bits = bits
 
+    def __hash__(self):
+        return self._this.bits
+
     def max(self):
         return self._this.max()
 
@@ -401,7 +404,7 @@ cdef class Network:
         attr = self._make_python_attractor(c_attr)
         trans = self._make_python_attractor(c_trans)
         rates = self._make_python_rate(c_rates)
-        return trans, attr, rates
+        return attr, trans, rates
 
     def get_rates(self, Channels c, bint use_cache=True):
         cdef:
@@ -444,6 +447,10 @@ cdef class Network:
     property target:
         def __get__(self):
             return self._this.target
+
+    property attractor_robustness:
+        def __get__(self):
+            return self._this.attractor_robustness()
 
     def __repr__(self):
         return "<Network id:{} pt:{}>".format(self.identifier, self.parent_identifier)
@@ -737,7 +744,14 @@ cdef class Population(CollectionBase):
 
     property fitnesses:
         def __get__(self):
-            return self._this.fitnesses
+            ret = numpy.empty(self._this.fitnesses.size())
+            cdef:
+                np.npy_double[:] np_ret = ret
+                size_t i
+
+            for i in range(self._this.fitnesses.size()):
+                np_ret[i] = self._this.fitnesses[i]
+            return ret
 
 
 cdef class BaseTarget:

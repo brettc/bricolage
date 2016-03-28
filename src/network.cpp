@@ -2,6 +2,7 @@
 #include "algorithm.hpp"
 #include <cmath>
 #include <stdexcept>
+#include <iostream>
 
 using namespace bricolage;
 
@@ -113,6 +114,8 @@ void cNetwork::stabilise(const cChannels &initial,
     }
 
     // Add a new attractor for this environment.
+    attractor_.clear();
+    transient_.clear();
     rates_.clear();
     for (size_t i = 0; i < world->out_channels; ++i)
         rates_.push_back(0.0);
@@ -145,9 +148,13 @@ void cNetwork::stabilise(const cChannels &initial,
     {
         for (auto &ch: path)
         {
-            cached_mappings[ch] = rates_;
-            // auto ret = cached_mappings.insert(std::make_pair(initial,
-            // rates_));
+            // cached_mappings[ch] = rates_;
+            cached_mappings.emplace(ch, rates_);
+            // auto ret = cached_mappings.insert(std::make_pair(initial, rates
+            // if (ret.second)
+            //     *(ret.first) = rates_;
+
+
 
         }
     }
@@ -169,3 +176,45 @@ void cNetwork::get_rates(const cChannels &initial, cRates &rates, bool use_cache
     cAttractor attr, trans;
     stabilise(initial, false, attr, trans, rates);
 }
+
+double cNetwork::attractor_robustness() const
+{
+    cRates new_rates;
+    cAttractor new_attr, new_trans;
+    double success = 0.0;
+    double per_channel = 1.0 / 
+        double((world->cue_channels + world->reg_channels) * 
+        attractors.size());
+   
+    for (size_t i = 0; i < attractors.size(); ++i)
+    {
+        const auto &attr = attractors[i];
+        const auto &orig_rates = rates[i];
+        double per_test = per_channel / double(attr.size());
+        for (const auto &attr_state: attr)
+        {
+            for (size_t j = world->cue_range.first; 
+                 j < world->reg_range.second;
+                 ++j)
+            {
+                cChannels c(attr_state);
+                c.unchecked_flip(j);
+                get_rates(c, new_rates, true);
+                bool same = true;
+                for (size_t k = 0; k < orig_rates.size(); ++k)
+                {
+                    if (!is_close(orig_rates[k], new_rates[k]))
+                    {
+                        same = false;
+                        break;
+                    }
+                }
+                if (same)
+                    success += per_test;
+            }
+        }
+    }
+
+    return success;
+}
+

@@ -10,18 +10,6 @@
 
 using namespace bricolage;
 
-// Taken from the numpy docs on is_close
-const double RELATIVE_TOL = 1e-05;
-const double ABSOLUTE_TOL = 1e-08;
-inline bool is_close(double a, double b)
-{
-    return fabs(a - b) <= (ABSOLUTE_TOL + RELATIVE_TOL * fabs(b));
-}
-
-inline bool not_zeroish(double a)
-{
-    return fabs(a) > ABSOLUTE_TOL;
-}
 
 double calc_entropy(double normalizer, const std::vector<double> &probs)
 {

@@ -21,6 +21,19 @@
 namespace bricolage
 {
 
+// Taken from the numpy docs on is_close
+const double RELATIVE_TOL = 1e-05;
+const double ABSOLUTE_TOL = 1e-08;
+inline bool is_close(double a, double b)
+{
+    return fabs(a - b) <= (ABSOLUTE_TOL + RELATIVE_TOL * fabs(b));
+}
+
+inline bool not_zeroish(double a)
+{
+    return fabs(a) > ABSOLUTE_TOL;
+}
+
 // http://stackoverflow.com/questions/1903954/
 // is-there-a-standard-sign-function-signum-sgn-in-c-c
 template <typename T> inline int c_sgn(T val)
@@ -48,6 +61,16 @@ struct cChannels
     cChannels()
         : bits(0)
     {
+    }
+
+    cChannels(cChannels const &other)
+        : bits(other.bits)
+    {
+    }
+
+    void operator=(const cChannels &other)
+    {
+        bits = other.bits;
     }
 
     bool operator<(const cChannels &other) const
@@ -349,6 +372,8 @@ public:
                    cAttractor &attractor_,
                    cAttractor &transient_,
                    cRates &rates_) const;
+
+    double attractor_robustness() const;
 
     cFactory_ptr factory;
     cWorld_ptr world;

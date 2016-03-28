@@ -131,6 +131,7 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
                        cRates &)
         void get_rates(cChannels &initial, cRates &rates, bint use_cache)
         void clear_rate_cache()
+        double attractor_robustness()
 
         void *pyobject
         cFactory_ptr factory
