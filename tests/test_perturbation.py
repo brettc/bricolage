@@ -60,11 +60,9 @@ def test_caching(bowtie_network):
         print k, net.rates_cache[k]
     
     # print net.attractors
-
-def test_robustness_attr(bowtie_network):
-    net = bowtie_network
+    #
+def get_robustness_attr(net):
     w = net.factory.world
-
     low, high = w.cue_range[0], w.reg_range[1]
     per_channel = 1.0 / float((high - low) * len(w.environments))
     rob = 0.0
@@ -93,10 +91,21 @@ def test_robustness_attr(bowtie_network):
                 if numpy.allclose(orig_rates, new_rates):
                     rob += per_test
 
-    print rob
-    # print net.rates
-    print net.attractor_robustness
+    return rob
 
+def test_robustness_attr(bowtie_network):
+    net = bowtie_network
+    py_rob = get_robustness_attr(net)
+    cy_rob = net.attractor_robustness
+    assert py_rob == cy_rob
+
+
+def test_robustness_pop(bowtie_database):
+    pop = bowtie_database.population
+
+    x = pop.robustness()
+    k = numpy.isclose(x, 1.0)
+    print numpy.where(k)[0]
 
 # def test1(tmpdir, p_3x1):
 #     base = Path(str(tmpdir))

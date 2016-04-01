@@ -3,7 +3,8 @@ import click
 from logtools import set_logging, get_logger
 from bricolage.stats import (
     StatsFitness, StatsVisitor, StatsMutualInformation, StatsRelevantControl,
-    StatsAverageControl, StatsLag, StatsRobustness, StatsGenerations, StatsBindings)
+    StatsLag, StatsRobustness, StatsGenerations, StatsBindings,
+    StatsEnvironmental)
 from experiment import ExperimentError
 from bricolage.graph_maker import GraphType
 
@@ -186,6 +187,29 @@ def pop_robustness(verbose, treatment, replicate, every, only):
     # First, let's find the best fitness
     visitor = StatsVisitor(NS.experiment,
                            [StatsRobustness])
+    NS.experiment.visit_generations(visitor,
+                                    only_treatment=the_t,
+                                    only_replicate=the_rep,
+                                    every=every,
+                                    only=only)
+
+@bricolage.command()
+@verbose_
+@treatment_
+@replicate_
+@every_
+@only_
+def env_robustness(verbose, treatment, replicate, every, only):
+    set_logging(verbose)
+
+    try:
+        the_t, the_rep = NS.experiment.find_matching(treatment, replicate)
+    except ExperimentError as e:
+        raise click.BadParameter(e.message)
+
+    # First, let's find the best fitness
+    visitor = StatsVisitor(NS.experiment,
+                           [StatsEnvironmental])
     NS.experiment.visit_generations(visitor,
                                     only_treatment=the_t,
                                     only_replicate=the_rep,

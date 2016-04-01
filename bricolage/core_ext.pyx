@@ -639,6 +639,18 @@ cdef class CollectionBase:
 
             return bindings
 
+    def robustness(self):
+        robustness = numpy.zeros(self.size, dtype=float)
+        cdef:
+            size_t i
+            np.double_t[:] c_robustness = robustness
+
+        for i in range(self._collection.size()):
+            # TODO: make this more sensible 
+            c_robustness[i] = deref(self._collection)[i].get().attractor_robustness()
+
+        return robustness
+
 
 cdef class Collection(CollectionBase):
     def __cinit__(self, Factory c, size_t size=0):

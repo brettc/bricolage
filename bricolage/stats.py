@@ -327,6 +327,29 @@ class StatsRobustness(object):
             ('BEST_MUT', mutated_perfect),
         ]
 
+class StatsEnvironmental(object):
+    tag = "EB"
+
+    def __init__(self):
+        self.target = None
+
+    def init_lineage(self, rep, lin):
+        self.target = lin.targets[0]
+
+    def calc_stats(self, pop):
+        self.target.assess_collection(pop)
+        p_fit = np.asarray(pop.fitnesses)
+
+        robusts = pop.robustness()
+        rob_mean = robusts.mean()
+
+        rob_scaled = p_fit * robusts
+        robs_mean = rob_scaled.mean()
+
+        return [
+            ('MEAN', rob_mean),
+            ('FIT_MEAN', robs_mean),
+        ]
 
 class StatsLag(object):
     def __init__(self, experiment):
