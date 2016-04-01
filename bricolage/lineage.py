@@ -114,23 +114,25 @@ class BaseLineage(object):
         ])
 
     def _commit_generation(self, networks, indexes):
-        log.debug("Committing generation in {}".format(self))
         # Add a generations row
-        row = self._generations.row
         w, b = self.population.worst_and_best()
+        row = numpy.zeros(1, self._generation_dtype())
         row['best'] = b
         row['generation'] = self.generation
         row['target'] = self.target_index
         row['indexes'] = indexes
 
+        # Now commit everything
         try:
             pass
-        except:
-            raise
         finally:
-            # Force this to always happen together
+            # Force this to always happen together, even if somebady raised a
+            # KeyboardException or SystemExit
+            #
+            # Save the networks, and the generations, and update the header
             self._networks.append(networks)
-            row.append()
+            self._generations.append(row)
+            self._save_header()
             self._h5.flush()
 
     def _new_database(self):
@@ -178,7 +180,7 @@ class BaseLineage(object):
 
         assert attrs.storage_class == self.__class__.__name__
 
-        # Assign the arrays
+        # Assign the arrays ------------
         self._h5 = h5
         self._attrs = attrs
         self._networks = h5.root.networks
@@ -201,48 +203,44 @@ class BaseLineage(object):
         self.selection_model = self.params.selection_class(self.world)
 
     def _load(self):
+        self._load_header()
+
+        # Don't bother creating anything, we're about to fill it out
+        self.population = core_ext.Population(self.factory, 0)
+        self.selection_model = self.params.selection_class(self.world)
+
+        # Load the last generation
+        rec = self._generations[-1]
+        self.generation = rec['generation']
+        indexes = rec['indexes']
+
+        arr = self._networks.read_coordinates(indexes)
+        self.factory.from_numpy(arr, self.population)
+
+        target_index = rec['target']
+        if target_index >= 0:
+            self.set_target(target_index)
+
+        if hasattr(self._attrs, 'extra'):
+            self.extra = self._attrs.extra
+
+        log.info("---- Current generation is {}".format(self.generation))
+
+    def _load_header(self):
         # Recover the python objects that we need to reconstruct everything
-        try:
-            data = self._attrs.data
-
-            self.params = data.params
-            self.world = data.world
-            self.factory = data.factory
-            self.targets = data.targets
-            self._size = self.params.population_size
-
-            # Don't bother creating anything, we're about to fill it out
-            self.population = core_ext.Population(self.factory, 0)
-            self.selection_model = self.params.selection_class(self.world)
-
-            # Load the last generation
-            rec = self._generations[-1]
-            self.generation = rec['generation']
-            indexes = rec['indexes']
-
-            try:
-                arr = self._networks.read_coordinates(indexes)
-            except IndexError:
-                # FIXME:
-                print rec['generation']
-                print max(indexes)
-                raise
-
-            self.factory.from_numpy(arr, self.population)
-            target_index = rec['target']
-            if target_index >= 0:
-                self.set_target(target_index)
-
-            if hasattr(self._attrs, 'extra'):
-                self.extra = self._attrs.extra
-        except:
-            self._h5.close()
-            raise
-
-        finally:
-            log.pop()
+        # TODO: Fix this so that we look at each of these separately
+        data = self._attrs.data
+        self.params = data.params
+        self.world = data.world
+        self.factory = data.factory
+        self.targets = data.targets
+        self._size = self.params.population_size
 
     def _save_header(self):
+        """Update the header information"""
+
+        # Currently poorly written, as only the world and targets ever get
+        # updated
         if self.readonly:
             return
 
@@ -276,9 +274,6 @@ class SnapshotLineage(BaseLineage):
         return "<SnapShotLineage: {}".format(str(self.path.as_posix()))
 
     def save_snapshot(self):
-        # TODO: is this needed
-        self._save_header()
-
         # Check how big networks is now...
         start = len(self._networks)
 
@@ -336,10 +331,12 @@ class FullLineage(BaseLineage):
         if params is None:
             self._open_database()
             self._load()
+            self._check_integrity()
         else:
             self._create(init_pop_fun)
             self._new_database()
             self.save_generation(initial=True)
+
 
     def __repr__(self):
         return "<FullLineage: {}>".format(str(self.path.as_posix()))
@@ -351,7 +348,6 @@ class FullLineage(BaseLineage):
         idents = numpy.zeros(self._size, int)
         self.population._get_identifiers(idents)
         self._commit_generation(arr, idents)
-        self._check()
 
     def next_generation(self):
         """Make a new generation"""
@@ -365,12 +361,8 @@ class FullLineage(BaseLineage):
         assert gen == wanted_g
         t_index = rec['target']
         indexes = rec['indexes']
-        try:
-            arr = self._networks.read_coordinates(indexes)
-        except IndexError:
-            print indexes
-            raise
 
+        arr = self._networks.read_coordinates(indexes)
         gen_pop = core_ext.Population(self.factory, 0)
         self.factory.from_numpy(arr, gen_pop)
 
@@ -411,16 +403,18 @@ class FullLineage(BaseLineage):
         self.factory.from_numpy(arr, temp)
         return temp[0]
 
-    def _check(self):
-        rec = self._generations[-1]
-        max_index = max(rec['indexes'])
+    def _check_integrity(self):
         num_networks = len(self._networks)
-        if max_index >= num_networks:
-            log.error("Indexes exceed the number of generations!!")
+
+        if len(self._generations) == 0:
+            assert num_networks == 0
+            assert self.world.next_target_id == 0
+        else:
+            rec = self._generations[-1]
+            max_index = max(rec['indexes'])
+            assert max_index == num_networks - 1
+            assert num_networks == self.world.next_network_id
 
     def close(self):
-        self._check()
-        # Avoid messages from tables
-        if not self.readonly:
-            self._save_header()
+        self._h5.flush()
         self._h5.close()
