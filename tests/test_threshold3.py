@@ -116,7 +116,7 @@ def test_stabilise():
     # See if it goes back in to the attractor
     perturbed.flip(5)
     trans, attr, rates = n.stabilise(perturbed)
-    assert orig == attr[0]
+    assert orig != attr[0]
 
     # Push it HARDER
     perturbed.flip(6)
