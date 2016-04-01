@@ -416,5 +416,5 @@ class FullLineage(BaseLineage):
             assert num_networks == self.world.next_network_id
 
     def close(self):
-        self._check_integrity()
+        self._h5.flush()
         self._h5.close()
