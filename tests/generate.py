@@ -1,13 +1,14 @@
 #!env python
 import click
 import numpy
+import itertools
 
 from folders import data_dir
 from bricolage import threshold3
 from bricolage.lineage import SnapshotLineage
-from bricolage.core import InputType, SelectionModel, ScoringMethod
-from bricolage.core_ext import NoisyTarget, DefaultTarget
-import cPickle as pickle
+from bricolage.core import InputType
+from bricolage.core_ext import NoisyTarget, DefaultTarget, SelectionModel
+
 
 
 class GenerateError(Exception):
@@ -17,7 +18,7 @@ class GenerateError(Exception):
 # A holder for the database.
 _data = dict([
     (nm, (data_dir / nm).with_suffix('.db'))
-    for nm in ['xor', 'bowtie', 'perturb']
+    for nm in ['xor', 'bowtie', 'perturb', 'three']
 ])
 
 _numpy_dumps = dict([
@@ -146,6 +147,52 @@ def perturb(overwrite):
             lin.set_target(0)
 
         for g, b in select_till(lin, good_for=10):
+            click.secho("At generation {}, best is {}".format(g, b))
+
+
+def make_mapping():
+    cats = [0, 0, 0, 1, 1, 1, 2, 2]
+    assert len(cats) == 8
+    perms = itertools.permutations(cats)
+
+    # Mix it up
+    for i in range(5):
+        chosen = perms.next()
+
+    # All possible inputs
+    inputs = [_ for _ in itertools.product([0, 1], repeat=3)]
+    mapping = dict([(a, b) for a, b in zip(inputs, chosen)])
+    return mapping
+
+
+def three_target(a, b, c):
+    mapping = make_mapping()
+    cat = mapping[(a, b, c)]
+    if cat == 0:
+        return 0, 0, 1, 1
+    if cat == 1:
+        return 1, 1, 0, 0
+    return 0, 1, 1, 0
+
+
+@generate.command()
+@click.option('--overwrite', is_flag=True, default=False)
+def three(overwrite):
+    dbpath = get_dbpath('three', overwrite)
+    if dbpath is None:
+        return
+
+    p = threshold3.Parameters(
+        seed=6, cis_count=3, reg_channels=8, out_channels=4, cue_channels=3,
+        population_size=1000, mutation_rate=.002, input_type=InputType.PULSE,
+    )
+
+    with SnapshotLineage(dbpath, params=p) as lin:
+        if not lin.targets:
+            lin.targets.append(DefaultTarget(lin.world, three_target))
+            lin.set_target(0)
+
+        for g, b in select_till(lin, good_for=1000):
             click.secho("At generation {}, best is {}".format(g, b))
 
 
