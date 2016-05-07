@@ -42,6 +42,11 @@ def perturb_database():
     yield db
     db.close()
 
+@pytest.yield_fixture
+def three_database():
+    db = get_database('three', readonly=True)
+    yield db
+    db.close()
 
 class TestTreatment(Treatment):
     def __init__(self, name, params, count, target):

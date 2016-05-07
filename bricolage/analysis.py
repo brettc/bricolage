@@ -15,9 +15,12 @@ class NetworkAnalysis(analysis_ext.NetworkAnalysis):
 
     def calc_mutual_info(self, target):
         """Annotate the networks with information"""
+        cats = target.calc_categories()
+        if len(set(cats)) == 1:
+            return
+
         analyzer = analysis_ext.MutualInfoAnalyzer(
-            self.network.factory.world,
-            target.calc_categories())
+            self.network.factory.world, cats)
 
         info = analyzer.numpy_info_from_network(self.network)
         info.shape = info.shape[1],

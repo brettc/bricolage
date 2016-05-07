@@ -59,3 +59,10 @@ cdef class RelevantControlAnalyzer:
     cdef:
         cRelevantControlAnalyzer *_this;
         World world
+
+
+cdef class MIAnalyzer:
+    cdef:
+        cMIAnalyzer *_this;
+        World world
+

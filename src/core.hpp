@@ -687,4 +687,22 @@ struct cRelevantControlAnalyzer : public cBaseCausalAnalyzer
     void _analyse(cNetwork &net, info_array_type::reference sub);
 };
 
+//---------------------------------------------------------------------------
+// New information measures that handle multiple categories
+//
+struct cMIAnalyzer
+{
+    cMIAnalyzer(cWorld_ptr &world, const cIndexes &cats);
+    cWorld_ptr world;
+    cIndexes categories;
+    size_t num_categories;
+
+    // Note you need to delete the return values from these!
+    cInformation *analyse_network(cNetwork &net);
+    cInformation *analyse_collection(const cNetworkVector &networks);
+
+    void _analyse(cNetwork &net, joint_array_type::reference sub);
+};
+
+
 } // end namespace bricolage
