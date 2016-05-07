@@ -141,9 +141,9 @@ def perturb(overwrite):
 
     with SnapshotLineage(dbpath, params=p) as lin:
         if not lin.targets:
-            # lin.targets.append(NoisyTarget(lin.world, perturb_target,
-            #                                perturb_count=1, perturb_prop=.2))
-            lin.targets.append(DefaultTarget(lin.world, perturb_target))
+            lin.targets.append(NoisyTarget(lin.world, perturb_target,
+                                           perturb_count=3, perturb_prop=.2))
+            # lin.targets.append(DefaultTarget(lin.world, perturb_target))
             lin.set_target(0)
 
         for g, b in select_till(lin, good_for=10):
@@ -182,14 +182,18 @@ def three(overwrite):
     if dbpath is None:
         return
 
+    # Good values seed=2
     p = threshold3.Parameters(
-        seed=6, cis_count=3, reg_channels=8, out_channels=4, cue_channels=3,
+        seed=15, cis_count=3, reg_channels=8, out_channels=4, cue_channels=3,
+        # seed=2, cis_count=3, reg_channels=8, out_channels=4, cue_channels=3,
         population_size=1000, mutation_rate=.002, input_type=InputType.PULSE,
     )
 
     with SnapshotLineage(dbpath, params=p) as lin:
         if not lin.targets:
-            lin.targets.append(DefaultTarget(lin.world, three_target))
+            lin.targets.append(NoisyTarget(lin.world, three_target,
+                                           perturb_count=1, perturb_prop=.1))
+            # lin.targets.append(DefaultTarget(lin.world, three_target))
             lin.set_target(0)
 
         for g, b in select_till(lin, good_for=1000):

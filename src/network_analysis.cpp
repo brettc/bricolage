@@ -922,3 +922,69 @@ void cRelevantControlAnalyzer::_analyse(cNetwork &net, info_array_type::referenc
         for (size_t j = 0; j < world->reg_channels; ++j)
             sub[j][0] += info[i][j] * p_env;
 }
+
+
+//---------------------------------------------------------------------------
+cMIAnalyzer::cMIAnalyzer(cWorld_ptr &w, const cIndexes &cats)
+    : world(w)
+    , categories(cats)
+    , num_categories(1 + *std::max_element(cats.begin(), cats.end()))
+{
+}
+
+cInformation *cMIAnalyzer::analyse_network(
+    cNetwork &net)
+{
+    cJointProbabilities joint(world, 1, num_categories, 2);
+    _analyse(net, joint._array[0]);
+    return new cInformation(joint);
+}
+
+cInformation *cMIAnalyzer::analyse_collection(
+    const cNetworkVector &networks)
+{
+    cJointProbabilities joint(world, networks.size(), num_categories, 2);
+
+    for (size_t i = 0; i < networks.size(); ++i)
+        _analyse(*networks[i], joint._array[i]);
+    return new cInformation(joint);
+}
+
+void cMIAnalyzer::_analyse(
+    cNetwork &net, joint_array_type::reference sub)
+{
+    size_t reg_base = world->reg_range.first;
+    double normal_p_event = 1.0 / double(world->environments.size());
+
+    // For each environment
+    for (size_t ei = 0; ei < net.attractors.size(); ++ei)
+    {
+        auto attrs = net.attractors[ei];
+
+        // Go through each category, making it "focal"
+        for (size_t fc = 0; fc < num_categories; ++fc)
+        {
+            // We categorise the environments into two cats, depending on
+            // whether they are the focal category or not.
+            size_t cat = (categories[ei] == fc) ? 1: 0;
+            double p_event = normal_p_event / double(attrs.size());
+            for (auto &att : attrs)
+            {
+                // Each attractor state...
+                for (size_t ci = 0; ci < world->reg_channels; ++ci)
+                {
+                    // Is this gene on or off?
+                    size_t on_off = att.unchecked_test(reg_base + ci);
+                    // What information does this carry about the particular
+                    // category assigned to this environment
+                    sub[ci][fc][on_off][cat] += p_event;
+                }
+            }
+        }
+    }
+}
+
+
+
+
+

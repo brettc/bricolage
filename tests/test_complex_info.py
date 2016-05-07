@@ -1,5 +1,4 @@
-from math import log as logarithm
-# from bricolage.analysis_ext import (
+from bricolage.analysis_ext import MIAnalyzer
 #     MutualInfoAnalyzer, AverageControlAnalyzer, CausalFlowAnalyzer,
 #     OutputControlAnalyzer, RelevantControlAnalyzer, Information,
 #     _set_max_category_size, _get_max_category_size)
@@ -104,6 +103,28 @@ def calc_natural(env_probs, net, w):
     return pdist_regs
 
 
+class RateCategorizer(object):
+    def __init__(self, targets):
+        # Uniqize
+        self.targets = list(set(targets))
+        self.num_cats = len(self.targets)
+
+    def categorize(self, index, current):
+        assert 0 <= index < self.num_cats
+        # Return is either
+        #  1: same as the index
+        #  0: One of the other targets
+        # -1: NONE of the targets
+        for i, t in enumerate(self.targets):
+            if current == t:
+                if i == index:
+                    return 1
+                return 0
+
+        # Not found
+        return -1
+
+
 def get_relevant_control(net, targets):
     """Calculate the causal specificity for the entire output in each
     environment"""
@@ -115,14 +136,11 @@ def get_relevant_control(net, targets):
 
     pdist_regs = calc_natural(env_probs, net, wrld)
 
-    target_set = set()
-    for t in targets:
-        target_set.add(t)
-    targets = list(target_set)
+    rate_cat = RateCategorizer(targets)
 
-    info = numpy.zeros((wrld.reg_channels, env_count))
+    info = numpy.zeros((wrld.reg_channels, env_count, rate_cat.num_cats))
     cat_for_off = numpy.zeros(info.shape, dtype=int)
-    cat_for_off[:, :] = -1
+    cat_for_off[:, :, :] = -1
 
     for i in range(wrld.reg_channels):
         gene = net.genes[i]
@@ -133,38 +151,32 @@ def get_relevant_control(net, targets):
         gene.intervene = InterventionState.INTERVENE_OFF
         for j, rate in enumerate(net.rates):
             if not numpy.isclose(p_off, 0.0):
-                for k, targ in enumerate(targets):
-                    if targ == tuple(rate):
-                        # Record the category
-                        cat_for_off[i, j] = k
-
+                for k in range(rate_cat.num_cats):
+                    cat = rate_cat.categorize(k, tuple(rate))
+                    cat_for_off[i, j, k] = cat
+                    if cat != -1:
                         # Record the info, assuming this is the only entry in
                         # the row / column of the joint dist. We'll correct
                         # this below if we were wrong.
-                        info[i, j] += p_off * numpy.log2(1.0 / p_off)
-                        break
+                        info[i, j, k] += p_off * numpy.log2(1.0 / p_off)
 
         # ----- GENE IS MANIPULATED ON
         gene.intervene = InterventionState.INTERVENE_ON
         for j, rate in enumerate(net.rates):
             if not numpy.isclose(p_on, 0.0):
-                for k, targ in enumerate(targets):
-                    if targ == tuple(rate):
-                        # If the off category was the same as the on category,
-                        # then information is zero (the manipulation makes no
-                        # difference).
-                        if cat_for_off[i, j] == k:
-                            info[i, j] = 0.0
+                for k in range(rate_cat.num_cats):
+                    cat = rate_cat.categorize(k, tuple(rate))
+                    # If the off category was the same as the on category,
+                    # then information is zero (the manipulation makes no
+                    # difference).
+                    if cat != -1:
+                        if cat_for_off[i, j, k] == cat:
+                            info[i, j, k] = 0.0
                         else:
-                            info[i, j] += p_on * numpy.log2(1.0 / p_on)
-                        break
+                            info[i, j, k] += p_on * numpy.log2(1.0 / p_on)
 
         # Reset this gene
         gene.intervene = InterventionState.INTERVENE_NONE
-
-    # print
-    # print pdist_regs
-    # print cat_for_off
 
     # Now just average over the different environments
     return info.mean(axis=1)
@@ -172,15 +184,35 @@ def get_relevant_control(net, targets):
 
 def test_1(three_database):
     from bricolage.dot_layout import save_network_as_fullgraph
+    from bricolage.graph_maker import GraphType
     p = three_database.population
     t = three_database.targets[0]
     cats = t.calc_categories()
     n = p.get_best()[0]
     print n.fitness
     print n.identifier
-    save_network_as_fullgraph(n)
+    save_network_as_fullgraph(n, graph_type=GraphType.GENE)
     print cats
     print calc_mutual_info(n, cats)
+
+    cmi = MIAnalyzer(n.factory.world, cats)
+    print cmi.numpy_info_from_network(n)
+
+    # targs = t.calc_distinct_outputs() 
+    # rc = get_relevant_control(n, targs)
+    # print rc
+
+def test_3(three_database):
+    p = three_database.population
+    n = p.get_best()[1]
+    print n.fitness
+    print n.attractor_robustness
+    print n.rates
+    print n.attractors[-1]
+    # n.genes[1].intervene = InterventionState.INTERVENE_ON
+    n.genes[5].intervene = InterventionState.INTERVENE_OFF
+    print n.rates
+    print n.attractors[-1]
 
 
 def test_2(three_database):

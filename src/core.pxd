@@ -288,6 +288,12 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         cInformation *analyse_network(cNetwork &net) except +
         cInformation *analyse_collection(const cNetworkVector &networks) except +
 
+    cdef cppclass cMIAnalyzer:
+        cMIAnalyzer(const cWorld_ptr& world, const cIndexes categories);
+        cIndexes categories
+        cInformation *analyse_network(cNetwork &net) except +
+        cInformation *analyse_collection(const cNetworkVector &networks) except +
+
 cdef extern from "<src/core.hpp>" namespace "bricolage::cBaseCausalAnalyzer":
     # Hack for allowing access to static class functions
     size_t get_max_category_size()
