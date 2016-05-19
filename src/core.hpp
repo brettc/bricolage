@@ -10,8 +10,6 @@
 
 // #include <tr1/memory> Another shared_ptr?
 // #include <boost/shared_ptr.hpp>
-//
-#include <boost/dynamic_bitset.hpp>
 #include <boost/multi_array.hpp>
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
