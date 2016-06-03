@@ -1,158 +1,21 @@
-// vim: path=.,/usr/include/c++/4.2.1,/usr/include/c++/4.2.1/tr1,/usr/local/include fdm=syntax
 #pragma once
 
-#include <cstdint>
 #include <vector>
 #include <set>
 #include <map>
 #include <memory>
-#include <climits> // For CHAR_BIT
 
-// #include <tr1/memory> Another shared_ptr?
-// #include <boost/shared_ptr.hpp>
 #include <boost/multi_array.hpp>
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
 #include <tuple>
 #include <random>
 
+#include "defines.hpp"
+#include "channels.hpp"
+
 namespace bricolage
 {
-
-// Taken from the numpy docs on is_close
-const double RELATIVE_TOL = 1e-05;
-const double ABSOLUTE_TOL = 1e-08;
-inline bool is_close(double a, double b)
-{
-    return fabs(a - b) <= (ABSOLUTE_TOL + RELATIVE_TOL * fabs(b));
-}
-
-inline bool not_zeroish(double a)
-{
-    return fabs(a) > ABSOLUTE_TOL;
-}
-
-// http://stackoverflow.com/questions/1903954/
-// is-there-a-standard-sign-function-signum-sgn-in-c-c
-template <typename T> inline int c_sgn(T val)
-{
-    return (T(0) < val) - (val < T(0));
-}
-
-template <typename T> inline int c_cmp(T a, T b)
-{
-    return c_sgn(a - b);
-}
-
-typedef int_fast8_t signal_t;
-typedef signed int int_t;
-typedef unsigned int sequence_t;
-typedef unsigned long bits_t;
-typedef int_fast8_t index_t;
-
-#define MAX_CHANNELS (sizeof(bits_t) * CHAR_BIT)
-
-struct cChannels
-{
-    bits_t bits;
-
-    cChannels()
-        : bits(0)
-    {
-    }
-
-    cChannels(cChannels const &other)
-        : bits(other.bits)
-    {
-    }
-
-    void operator=(const cChannels &other)
-    {
-        bits = other.bits;
-    }
-
-    bool operator<(const cChannels &other) const
-    {
-        return bits < other.bits;
-    }
-
-    bool operator==(const cChannels &other) const
-    {
-        return bits == other.bits;
-    }
-
-    index_t max() 
-    {
-        return MAX_CHANNELS;
-    }
-
-    std::string to_string(index_t with_size);
-
-    void _check_size(index_t sz) const
-    {
-        if (sz >= MAX_CHANNELS)
-            throw std::runtime_error("channel size is too big");
-    }
-
-    void _check_index(index_t i, index_t size) const
-    {
-        _check_size(size);
-        if (i >= size)
-            throw std::runtime_error("channel index is too big");
-    }
-
-    void set(index_t i, index_t size)
-    {
-        _check_index(i, size);
-        unchecked_set(i);
-    }
-
-    void clear(index_t i, index_t size)
-    {
-        _check_index(i, size);
-        unchecked_clear(i);
-    }
-
-    void flip(index_t i, index_t size)
-    {
-        _check_index(i, size);
-        unchecked_flip(i);
-    }
-
-    bool test(index_t i, index_t size) const
-    {
-        _check_index(i, size);
-        return unchecked_test(i);
-    }
-
-    // The ones to use if you know what you're doing
-    void unchecked_set(index_t i)
-    {
-        bits |= 1 << i;
-    }
-
-    void unchecked_clear(index_t i)
-    {
-        bits &= ~(1 << i);
-    }
-
-    void unchecked_flip(index_t i)
-    {
-        bits ^= (1 << i);
-    }
-
-    bool unchecked_test(index_t i) const
-    {
-        return bits & (1 << i);
-    }
-
-    void unchecked_union(const cChannels &other)
-    {
-        bits |= other.bits;
-    }
-
-
-};
 
 typedef std::vector<cChannels> cAttractor;
 typedef std::vector<bits_t> cAttractorBits;
@@ -190,12 +53,6 @@ enum InputType
     INPUT_PULSE = 1,
 };
 
-inline int bitset_cmp(cChannels &a, cChannels &b)
-{
-    if (a < b) return -1;
-    if (a == b) return 0;
-    return 1;
-}
 
 class cCisModule
 {
@@ -233,7 +90,7 @@ class cNetwork;
 typedef std::shared_ptr<cNetwork> cNetwork_ptr;
 typedef std::vector<cNetwork_ptr> cNetworkVector;
 
-typedef std::shared_ptr<const cNetwork> cConstNetwork_ptr;
+// typedef std::shared_ptr<const cNetwork> cConstNetwork_ptr;
 // typedef std::vector<cConstNetwork_ptr> cNetworkVector;
 
 typedef std::mt19937 random_engine_t;
@@ -405,75 +262,8 @@ private:
 };
 
 
-enum ScoringMethod
-{
-    SCORE_LINEAR = 0,
-    SCORE_EXPONENTIAL = 1,
-    SCORE_EXPONENTIAL_VEC = 2
-};
-
-struct cBaseTarget
-{
-    cBaseTarget(const cWorld_ptr &world, 
-                const std::string &name, 
-                int_t id,
-                ScoringMethod method,
-                double strength);
-
-    virtual ~cBaseTarget() {}
-    cWorld_ptr world;
-    std::string name;
-    int_t identifier;
-    cRatesVector optimal_rates;
-    ScoringMethod scoring_method;
-    double strength;
-    cRates weighting;
-
-    virtual double assess(const cNetwork &net) const=0;
-    void assess_networks(const cNetworkVector &networks, std::vector<double> &scores) const;
-    void set_weighting(const cRates &w);
-    double score_rates(const cRatesVector &rates) const;
-
-
-};
-
-struct cDefaultTarget : public cBaseTarget
-{
-    cDefaultTarget(const cWorld_ptr &world, 
-                   const std::string &name, 
-                   int_t ident=-1,
-                   ScoringMethod method=SCORE_LINEAR, 
-                   double strength=1.0);
-    double assess(const cNetwork &net) const;
-};
-
-struct cNoisyTarget: public cBaseTarget
-{
-    cNoisyTarget(const cWorld_ptr &world, 
-                 const std::string &name, 
-                 int_t ident=-1, 
-                 ScoringMethod method=SCORE_LINEAR, 
-                 double strength=1.0,
-                 size_t perturb_count=1,
-                 double perturb_prop=1.0,
-                 bool e_only=true);
-    size_t perturb_count;
-    double perturb_prop;
-    bool env_only;
-    mutable cRatesVector rates_vec;
-    double assess(const cNetwork &net) const;
-    void calc_perturbation(const cNetwork &net, bool env_only) const;
-};
-
-struct cSelectionModel
-{
-    cSelectionModel(cWorld_ptr &world);
-    cWorld_ptr world;
-
-    // TODO: Make this virtual -- come up with different selection models
-    bool select(const cRates &scores,
-                size_t number, cIndexes &selected) const;
-};
+struct cBaseTarget;
+struct cSelectionModel;
 
 class cPopulation
 {
@@ -704,3 +494,4 @@ struct cMIAnalyzer
 
 
 } // end namespace bricolage
+// vim: path=.,/usr/include/c++/4.2.1,/usr/include/c++/4.2.1/tr1,/usr/local/include fdm=syntax
