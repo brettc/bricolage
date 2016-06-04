@@ -7,8 +7,8 @@ from folders import data_dir
 from bricolage import threshold3
 from bricolage.lineage import SnapshotLineage
 from bricolage.core import InputType
-from bricolage.core_ext import NoisyTarget, DefaultTarget, SelectionModel
-
+from bricolage.core_ext import SelectionModel
+from bricolage.targets_ext import NoisyTarget
 
 
 class GenerateError(Exception):

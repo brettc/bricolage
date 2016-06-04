@@ -1,12 +1,11 @@
 import cPickle as pickle
 from bricolage.threshold3 import (
-    World, Parameters, DefaultTarget, Factory, Population,
+    World, Parameters, Factory, Population,
     SelectionModel,
 )
 
 from bricolage.core import InputType, ScoringMethod
-from bricolage.core_ext import NoisyTarget
-from bricolage import dot_layout
+from bricolage.targets_ext import NoisyTarget, DefaultTarget
 
 
 def xor_func(a, b):

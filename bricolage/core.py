@@ -2,10 +2,12 @@ import logging
 log = logging.getLogger("core")
 
 from enum import IntEnum
-from .core_ext import SelectionModel, World, DefaultTarget, NoisyTarget, Channels
+from .core_ext import SelectionModel, World, Channels, Population
+from .analysis_ext import NetworkAnalysis
+from .targets_ext import DefaultTarget, NoisyTarget
 
 __all__ = ["World", "SelectionModel", "Parameters", "DefaultTarget", "NoisyTarget",
-           "Channels"]
+           "Channels", "NetworkAnalysis", "Population"]
 
 
 class InterventionState(IntEnum):

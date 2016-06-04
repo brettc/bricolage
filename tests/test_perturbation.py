@@ -1,9 +1,6 @@
 import pytest
-from pathlib import Path
 from bricolage.threshold3 import Parameters
-from bricolage.lineage import FullLineage
 from bricolage.core import InputType
-from bricolage.core_ext import DefaultTarget, NoisyTarget
 from bricolage.dot_layout import save_network_as_fullgraph
 import numpy.random as rand
 import numpy

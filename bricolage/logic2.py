@@ -1,7 +1,8 @@
 from . import core
 from .operand import Operand
 from .logic2_ext import Factory
-from .core_ext import World, DefaultTarget, Population
+from .core_ext import World, Population
+from .targets_ext import DefaultTarget
 __all__ = ["World", "Factory", "Parameters", "Operand",
            "Population", "DefaultTarget"] 
 

@@ -29,20 +29,6 @@ cdef class Factory:
             World world
             object gene_class, module_class, network_class
 
-cdef class BaseTarget:
-    cdef:
-        cBaseTarget *_base
-        readonly:
-            World world
-
-cdef class DefaultTarget(BaseTarget):
-    cdef:
-        cDefaultTarget *_this
-
-cdef class NoisyTarget(BaseTarget):
-    cdef:
-        cNoisyTarget *_this
-
 cdef class Network:
     cdef:
         readonly:
