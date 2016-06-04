@@ -174,31 +174,6 @@ public:
 
 typedef std::shared_ptr<cFactory> cFactory_ptr;
 
-
-class cDynamics
-{
-public:
-    cDynamics() {}
-
-    cAttractorSet attractors;
-    cAttractorSet transients;
-    cRatesVector rates;
-
-    void clear()
-    {
-        attractors.clear();
-        transients.clear();
-        rates.clear();
-    }
-
-    void add()
-    {
-        attractors.emplace_back();
-        transients.emplace_back();
-        rates.emplace_back();
-    }
-};
-
 class cNetwork
 {
 public:

@@ -118,11 +118,6 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         signal_t pub
         InterventionState intervene
 
-    cdef cppclass cDynamics:
-        cAttractorSet attractors
-        cAttractorSet transients
-        cRatesVector rates
-
     cdef cppclass cNetwork:
         cNetwork(cFactory_ptr &)
 
