@@ -1,4 +1,4 @@
-#include "core.hpp"
+#include "analysis.hpp"
 #include <cmath>
 #include <stdexcept>
 #include <iostream>

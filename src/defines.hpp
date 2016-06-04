@@ -6,6 +6,18 @@
 namespace bricolage
 {
 
+typedef int_fast8_t signal_t;
+typedef int_fast8_t index_t;
+typedef signed int int_t;
+typedef unsigned int sequence_t;
+typedef unsigned long bits_t;
+
+#define MAX_CHANNELS (sizeof(bits_t) * CHAR_BIT)
+
+typedef std::mt19937 random_engine_t;
+typedef std::uniform_int_distribution<size_t> randint_t;
+typedef std::uniform_real_distribution<> randreal_t;
+
 // Taken from the numpy docs on is_close
 const double RELATIVE_TOL = 1e-05;
 const double ABSOLUTE_TOL = 1e-08;
@@ -30,14 +42,6 @@ template <typename T> inline int c_cmp(T a, T b)
 {
     return c_sgn(a - b);
 }
-
-typedef int_fast8_t signal_t;
-typedef int_fast8_t index_t;
-typedef signed int int_t;
-typedef unsigned int sequence_t;
-typedef unsigned long bits_t;
-
-#define MAX_CHANNELS (sizeof(bits_t) * CHAR_BIT)
 
 } // end namespace bricolage
 // vim: path=.,/usr/include/c++/4.2.1,/usr/include/c++/4.2.1/tr1,/usr/local/include fdm=syntax

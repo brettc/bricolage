@@ -1,10 +1,7 @@
-# Define everything in the external library
+# From core stuff
 from utility cimport *
 
-cdef extern from "<src/core.hpp>" namespace "bricolage":
-    cdef enum:
-        MAX_CIS_CHANNELS = 4
-
+cdef extern from "<src/defines.hpp>" namespace "bricolage":
     ctypedef unsigned int signal_t
 
     ctypedef unsigned int sequence_t
@@ -13,6 +10,12 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
     ctypedef uniform_int_distribution[size_t] randint_t
     ctypedef unsigned long bits_t
     ctypedef unsigned char index_t
+
+    cdef int c_sgn(int)
+    cdef int c_cmp(int, int)
+
+
+cdef extern from "<src/channels.hpp>" namespace "bricolage":
 
     cdef cppclass cChannels:
         cChannels()
@@ -25,6 +28,14 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         index_t max() 
 
         bits_t bits
+
+    cdef int bitset_cmp(cChannels &, cChannels &)
+
+
+cdef extern from "<src/core.hpp>" namespace "bricolage":
+    cdef enum:
+        MAX_CIS_CHANNELS = 4
+
 
     ctypedef vector[cChannels] cAttractor
     ctypedef vector[bits_t] cAttractorBits
@@ -49,10 +60,6 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
     cChannelsRatesMapBits* to_cChannelRatesMapBits\
         "reinterpret_cast<bricolage::cChannelsRatesMapBits *>" (cChannelsRatesMap *) except NULL
     ctypedef vector[cRates] cRatesVector
-
-    cdef int bitset_cmp(cChannels &, cChannels &)
-    cdef int c_sgn(int)
-    cdef int c_cmp(int, int)
 
     cdef cppclass cFactory
     cdef cppclass cNetwork
@@ -147,64 +154,10 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         # See https://groups.google.com/forum/#!topic/cython-users/ko7X_fQ0n9Q
         cNetwork() 
 
-    ctypedef pair[char, size_t] Node_t
-    ctypedef pair[Node_t, Node_t] Edge_t
-    ctypedef std_set[Edge_t] cEdgeList
 
-    cdef cppclass cNetworkAnalysis:
-        cNetworkAnalysis(const cNetwork_ptr &n)
-        void make_active_edges(cEdgeList e)
-        void make_edges(cEdgeList e)
-        size_t calc_active_bindings()
-        cNetwork_ptr original
-        cNetwork_ptr modified
-        size_t active_bindings, potential_bindings
-
-    # # ctypedef shared_ptr[cNetwork] cNetwork_ptr
-    # # cNetwork_ptr get_detached_copy(cNetwork_ptr)
-    # # ctypedef shared_ptr[const cNetwork] cConstNetwork_ptr
-    # # ctypedef vector[cConstNetwork_ptr] cNetworkVector
-    # ctypedef vector[cNetwork_ptr] cNetworkVector
-    
-    cdef enum ScoringMethod:
-        SCORE_LINEAR = 0
-        SCORE_EXPONENTIAL = 1
-
-    cdef cppclass cBaseTarget:
-        cBaseTarget(cWorld_ptr &w, string name, int_t ident,
-                       ScoringMethod meth, double strength)
-
-        void assess_networks(cNetworkVector &networks,
-                             cRates &fitnesses)
-        double assess(cNetwork &net)
-        void set_weighting(const cRates &w);
-        cWorld *factory
-        int_t identifier
-        string name
-        cRates weighting
-        cRatesVector optimal_rates
-        ScoringMethod scoring_method
-        double strength
-
-    cdef cppclass cDefaultTarget(cBaseTarget):
-        cDefaultTarget(cWorld_ptr &w, string name, int_t ident,
-                       ScoringMethod meth, double strength)
-
-    cdef cppclass cNoisyTarget(cBaseTarget):
-        cNoisyTarget(cWorld_ptr &w, string name, int_t ident, 
-                     ScoringMethod meth, double strength, 
-                     int_t perturb_count, double perturb_prop, bint env_only)
-        size_t perturb_count
-        double perturb_prop
-        bint env_only
-
-    cdef cppclass cSelectionModel:
-        cSelectionModel(cWorld_ptr &factory)
-        cWorld_ptr factory
-
-        bint select(
-            const cNetworkVector &networks, size_t number, 
-            cIndexes &selected, const cBaseTarget &target)
+    # Forward declarations for selection.pxd
+    cdef cppclass cBaseTarget
+    cdef cppclass cSelectionModel
 
     cdef cppclass cPopulation:
         cPopulation(const cFactory_ptr &c, size_t n)
@@ -223,79 +176,4 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         cIndexes selected, mutated
         cNetworkVector networks
         cRates fitnesses
-
-    cdef cppclass cInfoE:
-        cInfoE(const cWorld_ptr &world, size_t ncategories)
-        cWorld_ptr world
-        size_t category_count
-        cIndexes categories
-        void get_extents(size_t &channels, size_t &categories, size_t &on_off)
-        void network_probs(double *data, cNetwork &net)
-        void collection_probs(double *data, cNetworkVector &networks)
-        void collection_info(double *data, cNetworkVector &networks)
-
-    cdef cppclass cJointProbabilities
-
-    cdef cppclass cInformation:
-        cInformation(const cJointProbabilities &joint)
-        cWorld_ptr world
-        size_t stride_n(size_t n)
-        size_t shape_n(size_t n)
-        size_t dimensions()
-        size_t element_size()
-        size_t total_size()
-        void *data()
-
-    cdef cppclass cJointProbabilities:
-        cJointProbabilities(const cWorld_ptr &w, size_t network_size, 
-                        size_t per_network, size_t per_channel)
-        bint calc_information(cInformation &information)
-        cWorld_ptr world
-        size_t stride_n(size_t n)
-        size_t shape_n(size_t n)
-        size_t dimensions()
-        size_t element_size()
-        size_t total_size()
-        void *data()
-
-    cdef cppclass cCausalFlowAnalyzer:
-        cCausalFlowAnalyzer(const cWorld_ptr& world)
-        cRates natural_probabilities
-        cJointProbabilities *analyse_network(cNetwork &net) except +
-        cJointProbabilities *analyse_collection(const cNetworkVector &networks) except +
-
-    cdef cppclass cAverageControlAnalyzer:
-        cAverageControlAnalyzer(const cWorld_ptr& world)
-        cRates natural_probabilities
-        cInformation *analyse_network(cNetwork &net) except +
-        cInformation *analyse_collection(const cNetworkVector &networks) except +
-
-    cdef cppclass cMutualInfoAnalyzer:
-        cMutualInfoAnalyzer(const cWorld_ptr& world, const cIndexes categories);
-        cIndexes categories
-        cJointProbabilities *analyse_network(cNetwork &net) except +
-        cJointProbabilities *analyse_collection(const cNetworkVector &networks) except +
-
-    cdef cppclass cOutputControlAnalyzer:
-        cOutputControlAnalyzer(const cWorld_ptr& world, cRatesVector)
-        cRates natural_probabilities
-        cInformation *analyse_network(cNetwork &net) except +
-        cInformation *analyse_collection(const cNetworkVector &networks) except +
-
-    cdef cppclass cRelevantControlAnalyzer:
-        cRelevantControlAnalyzer(const cWorld_ptr& world, cRatesVector)
-        cRates natural_probabilities
-        cInformation *analyse_network(cNetwork &net) except +
-        cInformation *analyse_collection(const cNetworkVector &networks) except +
-
-    cdef cppclass cMIAnalyzer:
-        cMIAnalyzer(const cWorld_ptr& world, const cIndexes categories);
-        cIndexes categories
-        cInformation *analyse_network(cNetwork &net) except +
-        cInformation *analyse_collection(const cNetworkVector &networks) except +
-
-cdef extern from "<src/core.hpp>" namespace "bricolage::cBaseCausalAnalyzer":
-    # Hack for allowing access to static class functions
-    size_t get_max_category_size()
-    void set_max_category_size(size_t)
 

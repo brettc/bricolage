@@ -26,17 +26,3 @@ cdef extern from "<boost/shared_ptr.hpp>" namespace "boost":
         shared_ptr(T* ptr)
         shared_ptr(shared_ptr& r)
         T* get()
-
-
-cdef extern from "<boost/dynamic_bitset.hpp>" namespace "boost":
-    cdef cppclass dynamic_bitset[T]:
-        dynamic_bitset()
-        void resize(size_t)
-        size_t size()
-        bint test(size_t)
-        void set(size_t)
-        void reset(size_t)
-        void flip(size_t)
-
-    cdef void to_string(dynamic_bitset[size_t], string s)
-

@@ -1,4 +1,3 @@
-// vim: path=.,/usr/include/c++/4.2.1,/usr/include/c++/4.2.1/tr1,/usr/local/include fdm=syntax
 #pragma once
 #include "core.hpp"
 
@@ -75,4 +74,5 @@ struct cSelectionModel
                 size_t number, cIndexes &selected) const;
 };
 
-}
+} // end namespace bricolage
+// vim: path=.,/usr/include/c++/4.2.1,/usr/include/c++/4.2.1/tr1,/usr/local/include fdm=syntax

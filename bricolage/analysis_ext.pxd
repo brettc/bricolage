@@ -1,6 +1,9 @@
 from utility cimport *
 from core cimport *
+from selection cimport *
+from analysis cimport *
 from core_ext cimport *
+
 
 cdef class NetworkAnalysis:
     cdef:

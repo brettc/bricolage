@@ -103,7 +103,7 @@ struct cChannels
     {
         bits |= other.bits;
     }
-
+};
 
 inline int bitset_cmp(cChannels &a, cChannels &b)
 {
@@ -112,6 +112,5 @@ inline int bitset_cmp(cChannels &a, cChannels &b)
     return 1;
 }
 
-};
 
 } // end namespace bricolage

@@ -4,6 +4,8 @@
 # cython: cdivision=True
 # distutils: define_macros=NPY_NO_DEPRECATED_API
 
+from analysis cimport *
+
 import cython
 import numpy
 import copy
