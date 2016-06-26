@@ -28,11 +28,11 @@ cFactory::cFactory(const bricolage::cWorld_ptr &w, size_t cc,
     //         bindings[std::make_pair(a, b)] = r_operand();
 }
 
-bricolage::cNetwork_ptr cFactory::construct(bool fill)
+bricolage::cNetwork_ptr cFactory::construct(bool create)
 {
     bricolage::cFactory_ptr p = shared_from_this();
     cNetwork *net = new cNetwork(p);
-    if (fill)
+    if (create)
         net->identifier = world->get_next_network_ident();
 
     for (size_t pub = world->reg_range.first, gindex = 0; 
@@ -44,7 +44,7 @@ bricolage::cNetwork_ptr cFactory::construct(bool fill)
         for (size_t j=0; j < module_count; ++j)
         {
             g.modules.emplace_back(cCisModule(*this));
-            if (fill)
+            if (create)
             {
                 auto &m = g.modules.back();
                 m.op = operands[r_operand()];
@@ -55,7 +55,7 @@ bricolage::cNetwork_ptr cFactory::construct(bool fill)
     }
 
     // Calculate the attractors
-    if (fill)
+    if (create)
         net->calc_attractors();
     return bricolage::cNetwork_ptr(net);
 }
