@@ -191,7 +191,6 @@ double cNoisyTarget::assess(const cNetwork &net) const
     return score;
 }
 
-
 void cNoisyTarget::calc_perturbation(const cNetwork &net, bool env_only) const
 {
     // We should already have initial attractors and rates.  This is NOT
@@ -237,6 +236,22 @@ void cNoisyTarget::calc_perturbation(const cNetwork &net, bool env_only) const
 
         net.get_rates(start_state, this_rate, true);
     }
+}
+
+cMultiTarget::cMultiTarget(const cWorld_ptr &w, 
+                           const std::string &n, int_t id,
+                           ScoringMethod m, double s)
+    : cBaseTarget(w, n, id, m, s)
+{
+}
+
+double cMultiTarget::assess(const cNetwork &net) const
+{
+    double score = 0.0;
+
+    // score_rates(rates_vec);
+
+    return score;
 }
 
 

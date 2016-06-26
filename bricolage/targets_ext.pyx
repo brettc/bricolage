@@ -200,3 +200,38 @@ cdef class NoisyTarget(BaseTarget):
     property perturb_prop:
         def __get__(self):
             return self._this.perturb_prop
+
+
+# NOTE: allow weighting to be None for backward compatibility
+def _multi_target(World w, name, ident, rates, weighting=None,
+                      scoring_method=None, strength=None):
+    t = MultiTarget(w, None, name, ident=ident)
+    # Manually construct these
+    t._this.optimal_rates = rates
+    if weighting is not None:
+        t.weighting = weighting
+    if scoring_method is not None:
+        t.scoring_method = scoring_method
+    if strength is not None:
+        t.strength = strength
+    return t
+
+cdef class MultiTarget(BaseTarget):
+    def __cinit__(self, World w, init_func=None, name="", ident=-1,
+                  scoring_method=0, strength=0.0):
+        self.world = w
+        self._this = new cMultiTarget(w._shared, name, ident, 
+                                        scoring_method, strength)
+        self._base = self._this
+        if init_func:
+            self._construct(init_func)
+
+    def __reduce__(self):
+        return _multi_target, (
+            self.world, 
+            self._this.name, 
+            self._this.identifier,
+            self._this.optimal_rates,
+            self._this.weighting,
+            self._this.scoring_method,
+            self._this.strength)

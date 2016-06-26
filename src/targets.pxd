@@ -36,6 +36,10 @@ cdef extern from "<src/targets.hpp>" namespace "bricolage":
         double perturb_prop
         bint env_only
 
+    cdef cppclass cMultiTarget(cBaseTarget):
+        cMultiTarget(cWorld_ptr &w, string name, int_t ident, 
+                     ScoringMethod meth, double strength)
+
     cdef cppclass cSelectionModel:
         cSelectionModel(cWorld_ptr &factory)
         cWorld_ptr factory

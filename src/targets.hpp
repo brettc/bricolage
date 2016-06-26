@@ -64,6 +64,16 @@ struct cNoisyTarget: public cBaseTarget
     void calc_perturbation(const cNetwork &net, bool env_only) const;
 };
 
+struct cMultiTarget: public cBaseTarget
+{
+    cMultiTarget(const cWorld_ptr &world, 
+                 const std::string &name, 
+                 int_t ident=-1, 
+                 ScoringMethod method=SCORE_LINEAR, 
+                 double strength=1.0);
+    double assess(const cNetwork &net) const;
+};
+
 struct cSelectionModel
 {
     cSelectionModel(cWorld_ptr &world);
