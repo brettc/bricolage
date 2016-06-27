@@ -216,6 +216,7 @@ def _multi_target(World w, name, ident, rates, weighting=None,
         t.strength = strength
     return t
 
+
 cdef class MultiTarget(BaseTarget):
     def __cinit__(self, World w, init_func=None, name="", ident=-1,
                   scoring_method=0, strength=0.0):
@@ -225,6 +226,10 @@ cdef class MultiTarget(BaseTarget):
         self._base = self._this
         if init_func:
             self._construct(init_func)
+
+        c = Channels(w)
+        c.unchecked_set(2)
+        self._this.pulses.push_back(c._this);
 
     def __reduce__(self):
         return _multi_target, (

@@ -107,6 +107,12 @@ cdef class Channels:
     def merge(self, Channels other):
         assert self.size == other.size
         self._this.unchecked_union(other._this)
+        return self
+
+    def filter(self, Channels other):
+        assert self.size == other.size
+        self._this.unchecked_intersection(other._this)
+        return self
 
 
 def _construct_world(params, net_id, target_id, r_state):

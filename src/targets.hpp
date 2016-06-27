@@ -71,7 +71,10 @@ struct cMultiTarget: public cBaseTarget
                  int_t ident=-1, 
                  ScoringMethod method=SCORE_LINEAR, 
                  double strength=1.0);
+                 // const Attractor &pulses);
     double assess(const cNetwork &net) const;
+    mutable cRatesVector rates_vec;
+    mutable cAttractor pulses;
 };
 
 struct cSelectionModel

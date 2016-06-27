@@ -39,6 +39,7 @@ cdef extern from "<src/targets.hpp>" namespace "bricolage":
     cdef cppclass cMultiTarget(cBaseTarget):
         cMultiTarget(cWorld_ptr &w, string name, int_t ident, 
                      ScoringMethod meth, double strength)
+        cAttractor pulses
 
     cdef cppclass cSelectionModel:
         cSelectionModel(cWorld_ptr &factory)

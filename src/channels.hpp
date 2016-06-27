@@ -103,6 +103,11 @@ struct cChannels
     {
         bits |= other.bits;
     }
+
+    void unchecked_intersection(const cChannels &other)
+    {
+        bits &= other.bits;
+    }
 };
 
 inline int bitset_cmp(cChannels &a, cChannels &b)

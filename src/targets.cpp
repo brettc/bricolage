@@ -249,7 +249,36 @@ double cMultiTarget::assess(const cNetwork &net) const
 {
     double score = 0.0;
 
-    // score_rates(rates_vec);
+    // Only score the rates at the end
+    rates_vec.clear();
+
+    cAttractorSet attractors;
+    cAttractorSet transients;
+    cRatesVector rates;
+
+    // For each environment
+    for (auto &env : world->environments)
+    {
+        // Got through and filter out only what we need
+        cChannels env_copy(env);
+        for (auto &pulse : pulses)
+        {
+            env_copy.unchecked_intersection(pulse);
+
+            attractors.emplace_back();
+            cAttractor &this_attr = attractors.back();
+            rates.emplace_back();
+            cRates &this_rate = rates.back();
+            transients.emplace_back();
+            cAttractor &this_trans = transients.back();
+
+            net.stabilise(env_copy, false, this_attr, this_trans, this_rate);
+
+            // Now we need to use the attractor that comes from here. Merge it
+            // with the pulse, and then see where we go next.
+            env_copy = this_attr[0];
+        }
+    }
 
     return score;
 }

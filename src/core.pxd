@@ -25,6 +25,7 @@ cdef extern from "<src/channels.hpp>" namespace "bricolage":
         void flip(index_t i, index_t sz) except +
         string to_string(index_t size) except +
         void unchecked_union(cChannels &other)
+        void unchecked_intersection(cChannels &other)
         index_t max() 
 
         bits_t bits
