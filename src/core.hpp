@@ -182,6 +182,7 @@ public:
 
     virtual cNetwork_ptr clone() const=0;
     virtual void mutate(size_t nmutations)=0;
+    virtual void duplicate(size_t ndups)=0;
     virtual size_t gene_count() const=0;
     virtual cGene *get_gene(size_t i)=0;
 

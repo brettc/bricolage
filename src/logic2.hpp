@@ -17,7 +17,9 @@ struct cFactory : public bricolage::cFactory
                  const cOperands &ops);
     size_t gene_count, module_count;
     cOperands operands;
-    bricolage::random_int_t r_gene, r_module, r_operand, r_site, r_input;
+    bricolage::random_int_t 
+        r_gene, r_regulatory, r_module, 
+        r_operand, r_site, r_input;
     // binding_map_t bindings;
 
     // Overrides
@@ -74,6 +76,7 @@ public:
     virtual size_t gene_count() const { return genes.size(); }
     virtual cGene *get_gene(size_t i) { return &genes[i]; }
     virtual void mutate(size_t nmutations);
+    virtual void duplicate(size_t ndups);
     bricolage::cNetwork_ptr clone() const;
     void cycle(bricolage::cChannels &c) const;
     void cycle_with_intervention(bricolage::cChannels &c) const;

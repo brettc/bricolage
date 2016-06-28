@@ -103,6 +103,11 @@ void cNetwork::mutate(size_t nmutations)
     }
 }
 
+void cNetwork::duplicate(size_t nmutations)
+{
+    auto &ctor = static_cast<const cFactory &>(*factory);
+}
+
 cCisModule::cCisModule(const cFactory &fy)
 {
 }

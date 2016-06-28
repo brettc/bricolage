@@ -125,6 +125,7 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         void cycle_with_intervention(cChannels c)
         size_t gene_count()
         void mutate(size_t)
+        void duplicate(size_t)
         cNetwork_ptr clone()
         cGene *get_gene(size_t)
         void calc_attractors()

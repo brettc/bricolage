@@ -228,6 +228,35 @@ def test_targets(c_3x2, target_3x2):
 
         # summed = scores.sum(axis=1) * ch.fitness_contribution
         # summed = scores.sum(axis=1)
+        #
+def test_targets(c_3x2, target_3x2):
+    targ = T.DefaultTarget(c_3x2.world, target_3x2)
+    nc = T.Population(c_3x2, 1000)
+    for net in nc:
+        diffs = abs(targ.as_array() - net.rates)
+        scores = 1.0 - diffs
+
+        # These should be the same (approx)
+        assert abs(scores.mean() - targ.assess(net)) < 1e-12
+
+        # summed = scores.sum(axis=1) * ch.fitness_contribution
+        # summed = scores.sum(axis=1)
+        #
+
+def test_dups(c_3x2):
+    n = c_3x2.create_network() #T.Network(c_3x2)
+    for g in n.genes:
+        print g.pub,
+        for m in g.modules:
+            print m,
+        print
+    n.duplicate(1)
+    for g in n.genes:
+        print g.pub,
+        for m in g.modules:
+            print m,
+        print
+
         
 # @pytest.fixture
 # def target_3x3():

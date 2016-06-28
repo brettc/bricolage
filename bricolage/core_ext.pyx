@@ -351,6 +351,16 @@ cdef class Network:
         self._this.mutate(nmutations)
         self.recalculate()
 
+    def duplicate(self, size_t nmutations):
+        """Mutate the network. 
+
+        This invalidates lots of assumptions required for selection to work
+        correctly. Use only if you understand what you are doing.
+        """
+        self._this.duplicate(nmutations)
+        self.recalculate()
+
+
     cdef _make_python_attractor(self, cAttractor &c_attr):
         w = self.factory.world
         intvec = deref(to_cAttractorBits(&c_attr))
