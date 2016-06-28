@@ -245,6 +245,41 @@ cMultiTarget::cMultiTarget(const cWorld_ptr &w,
 {
 }
 
+void recurse_attractors(cChannels initial, cAttractor &inputs, 
+                        cNetwork &net, cRates &retval)
+{
+    initial.unchecked_union(inputs[0]);
+
+    cAttractor attractor;
+    cAttractor transient;
+    cRates rates;
+
+    if (inputs.size() == 1)
+    {
+        // We've bottomed out. There are no more inputs to come. So this is our
+        // final rates. We return it, and if there were multiple paths to here
+        // then it will be averaged.
+        net.stabilise(initial, false, attractor, transient, retval);
+        return;
+    }
+    else
+    {
+        net.stabilise(initial, false, attractor, transient, retval);
+    }
+
+    // We need to send this inputs
+    cAttractor more_filter;
+    std::copy(inputs.begin() + 1, inputs.end(), std::back_inserter(more_filter));
+
+    for (auto &state : attractor)
+    {
+        cRates attr_rates;
+        recurse_attractors(state, more_filter, net, attr_rates);
+        // Average over the attractors
+    }
+
+}
+
 double cMultiTarget::assess(const cNetwork &net) const
 {
     double score = 0.0;

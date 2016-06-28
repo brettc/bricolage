@@ -111,7 +111,9 @@ def bowtie(overwrite):
 
     p = threshold3.Parameters(
         seed=8, cis_count=2, reg_channels=8, out_channels=3, cue_channels=3,
-        population_size=1000, mutation_rate=.002)
+        population_size=1000, mutation_rate=.002,
+        input_type = InputType.PULSE,
+    )
 
     with SnapshotLineage(dbpath, params=p) as lin:
         if not lin.targets:

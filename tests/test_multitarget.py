@@ -45,10 +45,10 @@ def test_network(bowtie_network):
     print net
     f = net.factory
     w = f.world
-    pulses = [Channels(w) for _ in range(1)]
-    pulses[0].set(2)
+    pulses = [Channels(w) for _ in range(2)]
+    pulses[1].set(2)
     pulses[0].set(3)
-    pulses[0].set(4)
+    pulses[1].set(4)
 
     # for i, p in enumerate(pulses):
     #     p.set(2 + i)
