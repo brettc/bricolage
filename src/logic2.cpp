@@ -15,7 +15,7 @@ cFactory::cFactory(const bricolage::cWorld_ptr &w, size_t cc,
     , module_count(cc)
     , operands(ops)
     , r_gene(random_int_range(0, gene_count, w))
-    , r_regulatory(random_int_range(0, w->gene_count-w->out_channels, w))
+    , r_regulatory(random_int_range(0, w->reg_channels, w))
     , r_module(random_int_range(0, module_count, w))
     , r_operand(random_int_range(0, ops.size(), w))
     , r_site(random_int_range(0, 2, w))

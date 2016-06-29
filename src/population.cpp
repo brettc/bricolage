@@ -66,8 +66,13 @@ bool cPopulation::select(const cSelectionModel &sm, size_t size)
     return true;
 }
 
+
+// typedef std::map<size_t, std::pair<size_t, size_t> > mutate_index;
+typedef std::map<size_t, size_t> mutate_index;
+
 size_t cPopulation::mutate(double site_rate, int_t generation)
 {
+
     // How many mutations are we going to have? That depends on the total
     // number of sites that might mutate. Per network, this is rate_per_gene *
     // gene_count. We multiply this by the number of networks in the collection
@@ -87,47 +92,26 @@ size_t cPopulation::mutate(double site_rate, int_t generation)
     // Now we need to assign these to individual networks. Only these networks 
     // will change. The rest remain constant.
     randint_t r_network(0, networks.size()-1);
-    cIndexes mutes;
+    mutate_index mutes;
     for (size_t i=0; i < m_count; ++i)
-        mutes.push_back(r_network(world->rand));
-
-    // Sort them so that any repeated networks are adjacent.
-    std::sort(mutes.begin(), mutes.end());
-
-    // We now let the networks figure out how *exactly* they will mutate.  This
-    // looks longwinded, but we want to handle cases where a single network is
-    // mutated more than once in one step, rather than calling multiple times
-    // on the same network, so most of this is putting together multiple
-    // m_count into a single call.
-    auto it = mutes.begin();
-    size_t network_num = *it, count = 1;
-    for (;;) 
-     {
-        // Skip ahead to the next one
-        ++it;
-
-        // If we're at the end, or the next one is different, go ahead and
-        // apply the mutations ...
-        if (it == mutes.end() || *it != network_num)
+    {
+        auto ret = mutes.emplace(i, 1);
+        if (!ret.second)
         {
-            networks[network_num] = factory->clone_and_mutate_network(
-                networks[network_num], count, generation);
-
-            // Add to the indexes that changed
-            mutated.push_back(network_num);
-            if (it == mutes.end())
-                break;
-
-            count = 1;
-            network_num = *it;
-        }
-        // ... otherwise we have a repeat of the same network_num. Let's just
-        // accumulate this into one call.
-        else
-        {
-            count += 1;
+            mutate_index::value_type &v = (*ret.first);
+            v.second += 1;
         }
     }
+
+    // We've now collected everything together. Go ahead and mutate the actual
+    // networks and.
+    for (const auto &v : mutes)
+    {
+        networks[v.first] = factory->clone_and_mutate_network(
+                networks[v.first], v.second, generation);
+        mutated.push_back(v.first);
+    }
+
 
     // Number of Networks mutated (not number of mutations)
     return mutated.size();
