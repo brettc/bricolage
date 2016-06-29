@@ -72,7 +72,6 @@ typedef std::map<size_t, size_t> mutate_index;
 
 size_t cPopulation::mutate(double site_rate, int_t generation)
 {
-
     // How many mutations are we going to have? That depends on the total
     // number of sites that might mutate. Per network, this is rate_per_gene *
     // gene_count. We multiply this by the number of networks in the collection
@@ -82,20 +81,22 @@ size_t cPopulation::mutate(double site_rate, int_t generation)
     std::poisson_distribution<> r_pop(expected);
     size_t m_count = r_pop(world->rand);
 
-    // Clear this
+    // Clear our record of what has been mutated
     mutated.clear();
 
-    // If we're not generating any m_count, let's just bail.
+    // If we're not generating any, let's just bail.
     if (m_count == 0)
         return 0;
 
-    // Now we need to assign these to individual networks. Only these networks 
-    // will change. The rest remain constant.
+    // First, we figure the index of the networks that are going to mutate.  It
+    // is possible for the same number to come up more than once, so we need to
+    // keep the *number* of mutations per network.
     randint_t r_network(0, networks.size()-1);
     mutate_index mutes;
     for (size_t i=0; i < m_count; ++i)
     {
-        auto ret = mutes.emplace(i, 1);
+        // We a
+        auto ret = mutes.emplace(r_network(world->rand), 1);
         if (!ret.second)
         {
             mutate_index::value_type &v = (*ret.first);
@@ -103,12 +104,14 @@ size_t cPopulation::mutate(double site_rate, int_t generation)
         }
     }
 
-    // We've now collected everything together. Go ahead and mutate the actual
-    // networks and.
+    // Now we can go ahead and mutate the actual networks.
     for (const auto &v : mutes)
     {
+        // Replace the networks.
         networks[v.first] = factory->clone_and_mutate_network(
                 networks[v.first], v.second, generation);
+
+        // Keep a record of what we mutated.
         mutated.push_back(v.first);
     }
 
