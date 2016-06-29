@@ -360,7 +360,6 @@ cdef class Network:
         self._this.duplicate(nmutations)
         self.recalculate()
 
-
     cdef _make_python_attractor(self, cAttractor &c_attr):
         w = self.factory.world
         intvec = deref(to_cAttractorBits(&c_attr))
@@ -623,7 +622,7 @@ cdef class CollectionBase:
 
         for i in range(sz):
             self._collection.push_back(
-                con.clone_and_mutate_network(n._shared, mutations[i], 1))
+                con.clone_and_mutate_network(n._shared, mutations[i], 0, 1))
 
     property generations:
         def __get__(self):
@@ -756,8 +755,8 @@ cdef class Population(CollectionBase):
             s = size
         return self._this.select(deref(sm._this), s)
 
-    def mutate(self, double site_rate, int generation=0):
-        return self._this.mutate(site_rate, generation)
+    def mutate(self, double site_rate, double dup_rate=0.0, int generation=0):
+        return self._this.mutate(site_rate, dup_rate, generation)
 
     property mutated:
         def __get__(self):

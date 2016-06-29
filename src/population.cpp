@@ -67,10 +67,9 @@ bool cPopulation::select(const cSelectionModel &sm, size_t size)
 }
 
 
-// typedef std::map<size_t, std::pair<size_t, size_t> > mutate_index;
-typedef std::map<size_t, size_t> mutate_index;
+typedef std::map<size_t, std::pair<size_t, size_t> > mutate_index;
 
-size_t cPopulation::mutate(double site_rate, int_t generation)
+size_t cPopulation::mutate(double site_rate, double dup_rate, int_t generation)
 {
     // How many mutations are we going to have? That depends on the total
     // number of sites that might mutate. Per network, this is rate_per_gene *
@@ -79,13 +78,21 @@ size_t cPopulation::mutate(double site_rate, int_t generation)
     // a poisson distribution.
     double expected = site_rate * factory->site_count(networks);
     std::poisson_distribution<> r_pop(expected);
-    size_t m_count = r_pop(world->rand);
+    size_t mut_count = r_pop(world->rand);
+
+    size_t dup_count = 0;
+    if (dup_rate > 0.0)
+    {
+        double dup_expected = dup_rate * world->gene_count * networks.size();
+        std::poisson_distribution<> r_pop2(dup_expected);
+        dup_count = r_pop2(world->rand);
+    }
 
     // Clear our record of what has been mutated
     mutated.clear();
 
     // If we're not generating any, let's just bail.
-    if (m_count == 0)
+    if (mut_count == 0 && dup_count == 0)
         return 0;
 
     // First, we figure the index of the networks that are going to mutate.  It
@@ -93,14 +100,25 @@ size_t cPopulation::mutate(double site_rate, int_t generation)
     // keep the *number* of mutations per network.
     randint_t r_network(0, networks.size()-1);
     mutate_index mutes;
-    for (size_t i=0; i < m_count; ++i)
+
+    // First the mutations
+    for (size_t i=0; i < mut_count; ++i)
     {
-        // We a
-        auto ret = mutes.emplace(r_network(world->rand), 1);
+        auto ret = mutes.emplace(r_network(world->rand), std::make_pair(1, 0));
         if (!ret.second)
         {
             mutate_index::value_type &v = (*ret.first);
-            v.second += 1;
+            v.second.first += 1;
+        }
+    }
+    // Now, duplications
+    for (size_t i=0; i < dup_count; ++i)
+    {
+        auto ret = mutes.emplace(r_network(world->rand), std::make_pair(0, 1));
+        if (!ret.second)
+        {
+            mutate_index::value_type &v = (*ret.first);
+            v.second.second += 1;
         }
     }
 
@@ -109,12 +127,14 @@ size_t cPopulation::mutate(double site_rate, int_t generation)
     {
         // Replace the networks.
         networks[v.first] = factory->clone_and_mutate_network(
-                networks[v.first], v.second, generation);
+                networks[v.first], 
+                v.second.first, 
+                v.second.second,
+                generation);
 
         // Keep a record of what we mutated.
         mutated.push_back(v.first);
     }
-
 
     // Number of Networks mutated (not number of mutations)
     return mutated.size();

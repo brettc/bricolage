@@ -14,13 +14,16 @@ cGene::cGene(sequence_t seq, signal_t p)
 }
 
 cNetwork_ptr cFactory::clone_and_mutate_network(
-    cNetwork_ptr &n, size_t nmutations, int_t generation)
+    cNetwork_ptr &n, size_t nmutations, size_t dups, int_t generation)
 {
     cNetwork_ptr copy(n->clone());
     copy->identifier = world->get_next_network_ident();
     copy->parent_identifier = n->identifier;
     copy->generation = generation;
-    copy->mutate(nmutations);
+    if (nmutations)
+        copy->mutate(nmutations);
+    if (dups)
+        copy->duplicate(dups);
     copy->calc_attractors();
     return copy;
 }

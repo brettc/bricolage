@@ -101,7 +101,7 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         cNetwork_ptr construct(bint fill)
         size_t site_count(cNetworkVector &networks)
         cNetwork_ptr clone_and_mutate_network(
-            cNetwork_ptr &n, size_t mutations, int_t generation)
+            cNetwork_ptr &n, size_t mutations, size_t dups, int_t generation)
         cWorld_ptr world
     
     cdef cppclass cCisModule:
@@ -157,7 +157,7 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
 
     cdef cppclass cPopulation:
         cPopulation(const cFactory_ptr &c, size_t n)
-        size_t mutate(double site_rate, int_t generation)
+        size_t mutate(double site_rate, double dup_rate, int_t generation)
         void assess(const cBaseTarget &target)
         bint select(const cSelectionModel &sm, size_t size)
         pair[double, double] worst_and_best()
