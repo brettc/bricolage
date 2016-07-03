@@ -16,7 +16,7 @@ struct cFactory : public bricolage::cFactory
     cFactory(const bricolage::cWorld_ptr &w, size_t module_count, 
                  const cOperands &ops);
     cOperands operands;
-    bricolage::random_int_t r_operand, r_site, r_input;
+    bricolage::random_int_t r_operand, r_site;
 
     // Overrides
     bricolage::cNetwork_ptr construct(bool fill);

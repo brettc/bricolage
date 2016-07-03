@@ -110,5 +110,19 @@ cFactory::cFactory(const cWorld_ptr &w, size_t cc)
     , r_regulatory(random_int_range(0, w->reg_channels, w))
     , r_module(random_int_range(0, module_count, w))
 {
+    for (size_t i = w->sub_range.first; i < w->sub_range.second; ++i)
+        draw_from_subs.push_back(i);
+    r_sub = random_int_range(0, draw_from_subs.size(), w);
 }
 
+void cFactory::set_draw_from_subs(const bricolage::cIndexes &dsubs)
+{
+    if (dsubs.size() == 0)
+        throw std::runtime_error("VARIABLE mutation requires subs");
+    for (auto s: dsubs)
+        if (s < world->sub_range.first || s >= world->sub_range.second)
+            throw std::runtime_error("VARIABLE mutation has invalid subs");
+
+    draw_from_subs = dsubs;
+    r_sub = random_int_range(0, draw_from_subs.size(), world);
+}

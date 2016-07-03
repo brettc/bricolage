@@ -14,7 +14,6 @@ cFactory::cFactory(const bricolage::cWorld_ptr &w, size_t cc,
     , operands(ops)
     , r_operand(random_int_range(0, ops.size(), w))
     , r_site(random_int_range(0, 2, w))
-    , r_input(random_int_range(w->sub_range.first, w->sub_range.second, w))
 {
 }
 
@@ -38,8 +37,8 @@ bricolage::cNetwork_ptr cFactory::construct(bool create)
             {
                 auto &m = g.modules.back();
                 m.op = operands[r_operand()];
-                m.channels[0] = r_input();
-                m.channels[1] = r_input();
+                m.channels[0] = draw_from_subs[r_sub()];
+                m.channels[1] = draw_from_subs[r_sub()];
             }
         }
     }
@@ -149,7 +148,7 @@ void cCisModule::mutate(const cFactory &c)
 {
     // Pick a channel
     size_t i = c.r_site();
-    channels[i] = c.r_input();
+    channels[i] = c.draw_from_subs[c.r_sub()];
     // signal_pair_t cc = std::make_pair(channels[0], channels[1]);
     // op = c.bindings.at(cc);
     op = c.operands[c.r_operand()];

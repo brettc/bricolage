@@ -19,7 +19,6 @@ class InterventionState(IntEnum):
 class MutateType(IntEnum):
     JUMP = 0
     PROGRESSIVE = 1
-    JUMP_LAYERED = 2
 
 
 class ScoringMethod(IntEnum):

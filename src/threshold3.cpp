@@ -13,26 +13,6 @@ cFactory::cFactory(const bricolage::cWorld_ptr &w, size_t cc,
     , r_binding(random_int_range(-3, 4, w))
     , r_direction(random_int_range(0, 2, w))
 {
-    for (size_t i = w->sub_range.first; i < w->sub_range.second; ++i)
-        draw_from_subs.push_back(i);
-    r_sub = random_int_range(0, draw_from_subs.size(), w);
-
-    for (size_t i = w->reg_range.first; i < w->reg_range.second; ++i)
-        draw_from_regs.push_back(i);
-    r_reg = random_int_range(0, draw_from_regs.size(), w);
-
-}
-
-void cFactory::set_draw_from_subs(const bricolage::cIndexes &dsubs)
-{
-    if (dsubs.size() == 0)
-        throw std::runtime_error("VARIABLE mutation requires subs");
-    for (auto s: dsubs)
-        if (s < world->sub_range.first || s >= world->sub_range.second)
-            throw std::runtime_error("VARIABLE mutation has invalid subs");
-
-    draw_from_subs = dsubs;
-    r_sub = random_int_range(0, draw_from_subs.size(), world);
 }
 
 // Construct a brand new Network with random stuff.
@@ -57,11 +37,7 @@ bricolage::cNetwork_ptr cFactory::construct(bool fill)
                 auto &m = g.modules.back();
                 for (size_t i = 0; i < 3; ++i)
                 {
-                    if (mutate_type == JUMP_LAYERED && pub >= world->out_range.first)
-                        m.channels[i] = draw_from_regs[r_reg()];
-                    else
-                        m.channels[i] = draw_from_subs[r_sub()];
-
+                    m.channels[i] = draw_from_subs[r_sub()];
                     m.binding[i] = r_binding();
                 }
             }
@@ -128,14 +104,6 @@ void cCisModule::mutate(const cFactory &fy, const cGene &gene)
     size_t site = fy.r_site();
     switch (fy.mutate_type)
     {
-    case JUMP_LAYERED:
-        if (gene.pub >= fy.world->out_range.first)
-        {
-            channels[site] = fy.draw_from_regs[fy.r_reg()];
-            binding[site] = fy.r_binding();
-            break;
-        }
-        // Fall through if you are a regulatory gene
     case JUMP:
         {
             channels[site] = fy.draw_from_subs[fy.r_sub()];
