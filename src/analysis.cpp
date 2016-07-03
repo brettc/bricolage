@@ -984,7 +984,3 @@ void cMIAnalyzer::_analyse(
     }
 }
 
-
-
-
-

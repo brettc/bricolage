@@ -36,13 +36,6 @@ cdef class Factory(core_ext.Factory):
         if addz > 0:
             self.draw_from_subs += [0] * addz
 
-    property draw_from_subs:
-        def __get__(self):
-            cdef cFactory *c = dynamic_cast_cFactory(self._this) 
-            return c.draw_from_subs
-        def __set__(self, core.cIndexes dsubs):
-            cdef cFactory *c = dynamic_cast_cFactory(self._this) 
-            c.set_draw_from_subs(dsubs)
 
     def __reduce__(self):
         return _construct_factory, (self.world, )

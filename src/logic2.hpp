@@ -71,7 +71,7 @@ public:
     // Overrides
     virtual size_t gene_count() const { return genes.size(); }
     virtual cGene *get_gene(size_t i) { return &genes[i]; }
-    virtual void mutate(size_t nmutations);
+    virtual void mutate(size_t n_sub, size_t n_pub);
     virtual void duplicate(size_t ndups);
     bricolage::cNetwork_ptr clone() const;
     void cycle(bricolage::cChannels &c) const;

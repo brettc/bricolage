@@ -60,4 +60,59 @@ struct Cycle
     }
 };
 
-}
+template<typename Network, typename Factory>
+struct Mutator
+{
+    void mutate(Network &net, size_t n_cis, size_t n_trans)
+    {
+        auto &fty = static_cast<const Factory &>(*net.factory);
+
+        // Select the genes that should be mutated
+        while (n_cis > 0)
+        {
+            // Choose a gene and mutate it
+            size_t i = fty.r_gene();
+            auto &g = net.genes[i];
+            
+            // Choose a module
+            size_t j = fty.r_module();
+            auto &c = g.modules[j];
+
+            // Let the module do it's own mutation
+            c.mutate(fty);
+            --n_cis;
+        }
+
+        while (n_trans > 0)
+        {
+            // Choose a gene and mutate it
+            size_t i = fty.r_gene();
+            auto &g = net.genes[i];
+            g.pub = fty.draw_from_regs[fty.r_reg()];
+            
+            --n_trans;
+        }
+    }
+
+    void duplicate(Network &net, size_t n_dups)
+    {
+        auto &fty = static_cast<const Factory &>(*net.factory);
+
+        while (n_dups > 0)
+        {
+            // Choose a gene and mutate it
+            size_t i, j;
+            i = fty.r_regulatory();
+            do 
+            {
+                j = fty.r_regulatory();
+            } while (i == j);
+
+            net.genes[j] = net.genes[i];
+            --n_dups;
+        }
+    }
+};
+
+
+} // end namespace

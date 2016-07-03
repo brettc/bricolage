@@ -164,19 +164,21 @@ public:
 
     cWorld_ptr world;
     size_t gene_count, module_count;
-    bricolage::random_int_t r_gene, r_regulatory, r_module, r_sub;
+    bricolage::random_int_t r_gene, r_regulatory, r_module, r_sub, r_reg;
 
     // A vector of sub values that is used to draw from
     bricolage::cIndexes draw_from_subs; 
+    bricolage::cIndexes draw_from_regs; 
 
     // This is where the factorys and mutators for networks live
     virtual cNetwork_ptr construct(bool fill)=0;
     virtual size_t site_count(cNetworkVector &networks)=0;
 
     cNetwork_ptr clone_and_mutate_network(
-        cNetwork_ptr &n, size_t mutations, size_t dups, int_t generation);
+        cNetwork_ptr &n, size_t n_sub, size_t n_pub, size_t dups, int_t generation);
 
     void set_draw_from_subs(const bricolage::cIndexes &d);
+    void set_draw_from_regs(const bricolage::cIndexes &d);
 
 };
 
@@ -189,7 +191,7 @@ public:
     virtual ~cNetwork() {}
 
     virtual cNetwork_ptr clone() const=0;
-    virtual void mutate(size_t nmutations)=0;
+    virtual void mutate(size_t n_sub, size_t n_pub)=0;
     virtual void duplicate(size_t ndups)=0;
     virtual size_t gene_count() const=0;
     virtual cGene *get_gene(size_t i)=0;

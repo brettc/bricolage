@@ -63,43 +63,17 @@ cNetwork::cNetwork(const bricolage::cFactory_ptr &c)
     // nothing special here...
 }
 
-void cNetwork::mutate(size_t nmutations)
+void cNetwork::mutate(size_t n_cis, size_t n_trans)
 {
-    auto &ctor = static_cast<const cFactory &>(*factory);
-
-    // Select the genes that should be mutated
-    while (nmutations > 0)
-    {
-        // Choose a gene and mutate it
-        size_t i = ctor.r_gene();
-        auto &g = genes[i];
-        
-        size_t j = ctor.r_module();
-        auto &c = g.modules[j];
-        c.mutate(ctor);
-        --nmutations;
-    }
+    static algo::Mutator<cNetwork, cFactory> mutator;
+    mutator.mutate(*this, n_cis, n_trans);
 }
 
-void cNetwork::duplicate(size_t nmutations)
+void cNetwork::duplicate(size_t n_dups)
 {
-    auto &ctor = static_cast<const cFactory &>(*factory);
-
-    while (nmutations > 0)
-    {
-        // Choose a gene and mutate it
-        size_t i, j;
-        i = ctor.r_regulatory();
-        do 
-        {
-            j = ctor.r_regulatory();
-        } while (i == j);
-
-        genes[j] = genes[i];
-        --nmutations;
-    }
+    static algo::Mutator<cNetwork, cFactory> mutator;
+    mutator.duplicate(*this, n_dups);
 }
-
 
 bricolage::cNetwork_ptr cNetwork::clone() const
 {
@@ -149,7 +123,5 @@ void cCisModule::mutate(const cFactory &c)
     // Pick a channel
     size_t i = c.r_site();
     channels[i] = c.draw_from_subs[c.r_sub()];
-    // signal_pair_t cc = std::make_pair(channels[0], channels[1]);
-    // op = c.bindings.at(cc);
     op = c.operands[c.r_operand()];
 }

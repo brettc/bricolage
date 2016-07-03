@@ -185,6 +185,7 @@ def test_cis_manipulation(c_one_unit):
     cis = net.genes[0].modules[0]
     for i in range(16):
         op = T.Operand(i)
+        print op
         cis.op = op
         for a, b in ((0, 0), (0, 1), (1, 0), (1, 1)):
             assert operand.calculate(op, a, b) == cis.test(a, b)
@@ -252,6 +253,12 @@ def test_pop_dup(c_3x2):
 
     # There should be lots
     assert dupped > 200
+
+def test_network_trans_mutation(c_3x2):
+    n = c_3x2.create_network() #T.Network(c_3x2)
+    n.mutate(0, 1)
+    pubs = [g.pub for g in n.genes]
+    assert len(set(pubs)) < len(pubs)
 
 # def xor_target(a, b):
 #     if (a or b) and not (a and b):

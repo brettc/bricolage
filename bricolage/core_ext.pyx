@@ -244,6 +244,18 @@ cdef class Factory:
         n.bind_to(self._this.construct(True))
         return n
 
+    property draw_from_subs:
+        def __get__(self):
+            return self._this.draw_from_subs
+        def __set__(self, cIndexes ch):
+            self._this.set_draw_from_subs(ch)
+
+    property draw_from_regs:
+        def __get__(self):
+            return self.this.draw_from_regs
+        def __set__(self, cIndexes ch):
+            self._this.set_draw_from_regs(ch)
+
 
 def _construct_network(Factory factory, array):
     c = Collection(factory)
@@ -330,13 +342,13 @@ cdef class Network:
         self._attractors = None
         self._rates = None
 
-    def mutate(self, size_t nmutations):
+    def mutate(self, size_t n_cis, size_t n_trans=0):
         """Mutate the network. 
 
         This invalidates lots of assumptions required for selection to work
         correctly. Use only if you understand what you are doing.
         """
-        self._this.mutate(nmutations)
+        self._this.mutate(n_cis, n_trans)
         self.recalculate()
 
     def duplicate(self, size_t nmutations):
@@ -612,7 +624,7 @@ cdef class CollectionBase:
 
         for i in range(sz):
             self._collection.push_back(
-                con.clone_and_mutate_network(n._shared, mutations[i], 0, 1))
+                con.clone_and_mutate_network(n._shared, mutations[i], 0, 0, 1))
 
     property generations:
         def __get__(self):

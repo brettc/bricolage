@@ -101,7 +101,11 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         cNetwork_ptr construct(bint fill)
         size_t site_count(cNetworkVector &networks)
         cNetwork_ptr clone_and_mutate_network(
-            cNetwork_ptr &n, size_t mutations, size_t dups, int_t generation)
+            cNetwork_ptr &n, size_t n_sub, size_t n_pub, size_t dups, int_t generation)
+        void set_draw_from_subs(cIndexes &d)
+        void set_draw_from_regs(cIndexes &d)
+        cIndexes draw_from_subs, draw_from_regs
+        size_t gene_count, module_count
         cWorld_ptr world
     
     cdef cppclass cCisModule:
@@ -124,7 +128,7 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         void cycle(cChannels c)
         void cycle_with_intervention(cChannels c)
         size_t gene_count()
-        void mutate(size_t)
+        void mutate(size_t, size_t)
         void duplicate(size_t)
         cNetwork_ptr clone()
         cGene *get_gene(size_t)

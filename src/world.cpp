@@ -110,12 +110,17 @@ cFactory::cFactory(const cWorld_ptr &w, size_t cc)
     , r_regulatory(random_int_range(0, w->reg_channels, w))
     , r_module(random_int_range(0, module_count, w))
 {
+    cIndexes subs, regs;
     for (size_t i = w->sub_range.first; i < w->sub_range.second; ++i)
-        draw_from_subs.push_back(i);
-    r_sub = random_int_range(0, draw_from_subs.size(), w);
+        subs.push_back(i);
+    set_draw_from_subs(subs);
+
+    for (size_t i = w->reg_range.first; i < w->reg_range.second; ++i)
+        regs.push_back(i);
+    set_draw_from_regs(regs);
 }
 
-void cFactory::set_draw_from_subs(const bricolage::cIndexes &dsubs)
+void cFactory::set_draw_from_subs(const cIndexes &dsubs)
 {
     if (dsubs.size() == 0)
         throw std::runtime_error("VARIABLE mutation requires subs");
@@ -125,4 +130,17 @@ void cFactory::set_draw_from_subs(const bricolage::cIndexes &dsubs)
 
     draw_from_subs = dsubs;
     r_sub = random_int_range(0, draw_from_subs.size(), world);
+}
+
+void cFactory::set_draw_from_regs(const cIndexes &dregs)
+{
+    // It could be the case that we have NO regulatory genes
+    // if (dregs.size() == 0)
+    //     throw std::runtime_error("VARIABLE mutation requires regs");
+    for (auto s: dregs)
+        if (s < world->reg_range.first || s >= world->reg_range.second)
+            throw std::runtime_error("VARIABLE mutation has invalid regs");
+
+    draw_from_regs = dregs;
+    r_reg = random_int_range(0, draw_from_regs.size(), world);
 }

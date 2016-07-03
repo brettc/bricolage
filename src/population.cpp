@@ -132,6 +132,7 @@ size_t cPopulation::mutate(double site_rate, double dup_rate, int_t generation)
         networks[v.first] = factory->clone_and_mutate_network(
                 networks[v.first], 
                 v.second.first, 
+                0, 
                 v.second.second,
                 generation);
 

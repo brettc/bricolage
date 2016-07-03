@@ -57,41 +57,16 @@ size_t cFactory::site_count(bricolage::cNetworkVector &networks)
     return gene_count * module_count * networks.size();
 }
 
-void cNetwork::mutate(size_t nmutations)
+void cNetwork::mutate(size_t n_cis, size_t n_trans)
 {
-    auto &fy = static_cast<const cFactory &>(*factory);
-
-    // Select the genes that should be mutated
-    while (nmutations > 0)
-    {
-        // Choose a gene and mutate it
-        size_t i = fy.r_gene();
-        auto &g = genes[i];
-
-        size_t j = fy.r_module();
-        auto &c = g.modules[j];
-        c.mutate(fy, g);
-        --nmutations;
-    }
+    static algo::Mutator<cNetwork, cFactory> mutator;
+    mutator.mutate(*this, n_cis, n_trans);
 }
 
-void cNetwork::duplicate(size_t nmutations)
+void cNetwork::duplicate(size_t n_dups)
 {
-    auto &ctor = static_cast<const cFactory &>(*factory);
-
-    while (nmutations > 0)
-    {
-        // Choose a gene and mutate it
-        size_t i, j;
-        i = ctor.r_regulatory();
-        do 
-        {
-            j = ctor.r_regulatory();
-        } while (i == j);
-
-        genes[j] = genes[i];
-        --nmutations;
-    }
+    static algo::Mutator<cNetwork, cFactory> mutator;
+    mutator.duplicate(*this, n_dups);
 }
 
 cCisModule::cCisModule(const cFactory &fy)
@@ -99,7 +74,7 @@ cCisModule::cCisModule(const cFactory &fy)
 }
 
 // This is where the action really is.
-void cCisModule::mutate(const cFactory &fy, const cGene &gene)
+void cCisModule::mutate(const cFactory &fy)
 {
     size_t site = fy.r_site();
     switch (fy.mutate_type)
