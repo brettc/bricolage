@@ -46,6 +46,7 @@ class Parameters(object):
         self.selection_class = SelectionModel
         self.population_size = 100
         self.mutation_rate = 0.001
+        self.duplication_rate = 0.0
         self.mutate_type = MutateType.JUMP
         self.score_method = ScoringMethod.LINEAR
         self.score_strength = 1.0

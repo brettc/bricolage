@@ -97,7 +97,9 @@ class BaseLineage(object):
         # next_generation
         self.generation += 1
         self.population.select(self.selection_model)
-        n = self.population.mutate(self.params.mutation_rate, 0.0, self.generation)
+        n = self.population.mutate(self.params.mutation_rate, 
+                                   self.params.duplication_rate,
+                                   self.generation)
         log.debug("{} Mutations at generation {}".format(n, self.generation))
 
         # Now we re-assess the population to ensure that each of them has

@@ -2,7 +2,7 @@
 #include <cmath>
 #include <limits>
 // #include <stdexcept>
-// #include <iostream>
+#include <iostream>
 
 using namespace bricolage;
 
@@ -83,9 +83,10 @@ size_t cPopulation::mutate(double site_rate, double dup_rate, int_t generation)
     size_t dup_count = 0;
     if (dup_rate > 0.0)
     {
-        double dup_expected = dup_rate * world->gene_count * networks.size();
+        double dup_expected = dup_rate * world->reg_channels * networks.size();
         std::poisson_distribution<> r_pop2(dup_expected);
         dup_count = r_pop2(world->rand);
+        // std::cout << "m expect " << expected << " dup expect " << dup_expected << std::endl;
     }
 
     // Clear our record of what has been mutated
@@ -94,6 +95,8 @@ size_t cPopulation::mutate(double site_rate, double dup_rate, int_t generation)
     // If we're not generating any, let's just bail.
     if (mut_count == 0 && dup_count == 0)
         return 0;
+
+    // std::cout << "drate " << dup_rate << " Dup count " << dup_count << std::endl;
 
     // First, we figure the index of the networks that are going to mutate.  It
     // is possible for the same number to come up more than once, so we need to

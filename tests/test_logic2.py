@@ -3,7 +3,8 @@ import pytest
 import numpy
 from bricolage import logic2 as T
 from bricolage import operand
-from bricolage.core import Channels
+from bricolage.core import Channels, SelectionModel
+from bricolage.targets_ext import DefaultTarget
 
 @pytest.fixture
 def c_one_unit():
@@ -228,20 +229,50 @@ def test_targets(c_3x2, target_3x2):
         # summed = scores.sum(axis=1) * ch.fitness_contribution summed =
         # scores.sum(axis=1)
 
-def test_dups(c_3x2):
+def test_network_dup(c_3x2):
     n = c_3x2.create_network() #T.Network(c_3x2)
-    for g in n.genes:
-        print g.pub,
-        for m in g.modules:
-            print m,
-        print
     n.duplicate(1)
-    for g in n.genes:
-        print g.pub,
-        for m in g.modules:
-            print m,
-        print
+    pubs = [g.pub for g in n.genes]
+    assert len(set(pubs)) < len(pubs)
+    
+def test_pop_dup(c_3x2):
+    psize = 1000
+    pop = T.Population(c_3x2, psize)
+    assert pop.size == psize
+    assert pop.mutated == []
 
+    nm = pop.mutate(.01, .1, 0)
+    assert len(pop.mutated) == nm
+    dupped = 0
+    for i in pop.mutated:
+        n = pop[i]
+        pubs = [g.pub for g in n.genes]
+        if len(set(pubs)) < len(pubs):
+            dupped += 1
+
+    # There should be lots
+    assert dupped > 200
+
+# def xor_target(a, b):
+#     if (a or b) and not (a and b):
+#         return [.5, 1]
+#     return [0, 0]
+#
+# def test_big():
+#     p = T.Parameters(
+#         seed=1, cis_count=3, reg_channels=8, out_channels=2, cue_channels=2,
+#     )
+#     world = T.World(p)
+#     print world.reg_channels
+#     factory = T.Factory(world)
+#     target = DefaultTarget(world, xor_target)
+#     pop = T.Population(factory, 100)
+#     select = SelectionModel(world)
+#     for i in range(1000):
+#         pop.select(select)
+#         pop.mutate(.002, .001)
+#         pop.assess(target)
+#         print pop.worst_and_best()
         
 # @pytest.fixture
 # def target_3x3():

@@ -12,6 +12,7 @@ cFactory::cFactory(const bricolage::cWorld_ptr &w, size_t cc,
     , module_count(cc)
     , mutate_type(mtype)
     , r_gene(random_int_range(0, gene_count, w))
+    , r_regulatory(random_int_range(0, w->reg_channels, w))
     , r_module(random_int_range(0, module_count, w))
     , r_site(random_int_range(0, 3, w))
     , r_binding(random_int_range(-3, 4, w))
@@ -106,6 +107,20 @@ void cNetwork::mutate(size_t nmutations)
 void cNetwork::duplicate(size_t nmutations)
 {
     auto &ctor = static_cast<const cFactory &>(*factory);
+
+    while (nmutations > 0)
+    {
+        // Choose a gene and mutate it
+        size_t i, j;
+        i = ctor.r_regulatory();
+        do 
+        {
+            j = ctor.r_regulatory();
+        } while (i == j);
+
+        genes[j] = genes[i];
+        --nmutations;
+    }
 }
 
 cCisModule::cCisModule(const cFactory &fy)
