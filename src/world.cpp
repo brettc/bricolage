@@ -102,8 +102,13 @@ void cWorld::set_random_state(const std::string &s)
     istr >> rand;
 }
 
-cFactory::cFactory(const cWorld_ptr &w)
+cFactory::cFactory(const cWorld_ptr &w, size_t cc)
     : world(w)
+    , gene_count(w->reg_channels + w->out_channels)
+    , module_count(cc)
+    , r_gene(random_int_range(0, gene_count, w))
+    , r_regulatory(random_int_range(0, w->reg_channels, w))
+    , r_module(random_int_range(0, module_count, w))
 {
 }
 

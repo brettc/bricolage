@@ -7,13 +7,8 @@ using namespace thresh3;
 
 cFactory::cFactory(const bricolage::cWorld_ptr &w, size_t cc,
                            const MutateType mtype)
-    : bricolage::cFactory(w)
-    , gene_count(w->reg_channels + w->out_channels)
-    , module_count(cc)
+    : bricolage::cFactory(w, cc)
     , mutate_type(mtype)
-    , r_gene(random_int_range(0, gene_count, w))
-    , r_regulatory(random_int_range(0, w->reg_channels, w))
-    , r_module(random_int_range(0, module_count, w))
     , r_site(random_int_range(0, 3, w))
     , r_binding(random_int_range(-3, 4, w))
     , r_direction(random_int_range(0, 2, w))

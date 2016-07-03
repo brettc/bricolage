@@ -10,23 +10,12 @@ using namespace logic2;
 // cFactory
 cFactory::cFactory(const bricolage::cWorld_ptr &w, size_t cc, 
                            const cOperands &ops)
-    : bricolage::cFactory(w)
-    , gene_count(w->reg_channels + w->out_channels)
-    , module_count(cc)
+    : bricolage::cFactory(w, cc)
     , operands(ops)
-    , r_gene(random_int_range(0, gene_count, w))
-    , r_regulatory(random_int_range(0, w->reg_channels, w))
-    , r_module(random_int_range(0, module_count, w))
     , r_operand(random_int_range(0, ops.size(), w))
     , r_site(random_int_range(0, 2, w))
     , r_input(random_int_range(w->sub_range.first, w->sub_range.second, w))
 {
-
-    // Randomly allocate operands to binding pairs
-    // std::pair<size_t, size_t> &r = w->sub_range;
-    // for (bricolage::signal_t a = r.first; a < r.second; ++a)
-    //     for (bricolage::signal_t b = r.first; b < r.second; ++b)
-    //         bindings[std::make_pair(a, b)] = r_operand();
 }
 
 bricolage::cNetwork_ptr cFactory::construct(bool create)

@@ -11,13 +11,11 @@ class cFactory : public bricolage::cFactory
 public:
     cFactory(const bricolage::cWorld_ptr &w, size_t module_count,
                  const MutateType mtype);
-    size_t gene_count, module_count;
     MutateType mutate_type;
     bricolage::cIndexes draw_from_subs; // A vector of sub values that is used to draw from
     bricolage::cIndexes draw_from_regs; // A vector of only regulatory (no environmental inputs)
     bricolage::random_int_t 
-        r_gene, r_regulatory,
-        r_module, r_site, r_binding, 
+        r_site, r_binding, 
         r_direction, r_sub, r_reg;
 
     void set_draw_from_subs(const bricolage::cIndexes &d);

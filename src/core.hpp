@@ -159,8 +159,12 @@ inline random_int_t random_int_range(int a, int b, const bricolage::cWorld_ptr &
 class cFactory : public std::enable_shared_from_this<cFactory>
 {
 public:
-    cFactory(const cWorld_ptr &w);
+    cFactory(const cWorld_ptr &w, size_t cc);
     virtual ~cFactory() {};
+
+    cWorld_ptr world;
+    size_t gene_count, module_count;
+    bricolage::random_int_t r_gene, r_regulatory, r_module;
 
     // This is where the factorys and mutators for networks live
     virtual cNetwork_ptr construct(bool fill)=0;
@@ -169,7 +173,6 @@ public:
     cNetwork_ptr clone_and_mutate_network(
         cNetwork_ptr &n, size_t mutations, size_t dups, int_t generation);
 
-    cWorld_ptr world;
 };
 
 typedef std::shared_ptr<cFactory> cFactory_ptr;
