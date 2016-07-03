@@ -147,12 +147,6 @@ cdef class World:
         def __get__(self):
             return copy.deepcopy(self._params)
 
-    # def create_state(self):
-    #     c = Channels()
-    #     c._this.resize(self._this.channel_count)
-    #     c.world = self._shared
-    #     return c
-
     property environments:
         def __get__(self):
             intvec = deref(to_cAttractorBits(&self._this.environments))
@@ -199,12 +193,6 @@ cdef class World:
     property channel_count:
         def __get__(self):
             return self._this.channel_count
-    # property off_channel:
-    #     def __get__(self):
-    #         return off_channel
-    # property on_channel:
-    #     def __get__(self):
-    #         return off_channel
 
     property cue_range:
         def __get__(self):
@@ -584,8 +572,10 @@ cdef class CollectionBase:
             return <object>(net.pyobject)
 
         # Nope. We need to create a new python wrapper object
-        cdef Network n = self.factory.network_class(self.factory, 
-                                                        self.factory._secret_key)
+        cdef Network n = self.factory.network_class(
+                self.factory, 
+                self.factory._secret_key)
+
         n.bind_to(ptr)
         return n
 

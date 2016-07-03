@@ -95,6 +95,9 @@ void cNetwork::stabilise(const cChannels &initial,
         // Make sure the on channel is on
         current.unchecked_set(on_channel);
 
+        // TODO: If the input type is constant, then this is where we'd turn 
+        // stuff back on...  
+        
         // Have we already seen this?
         attractor_begins_at = 0;
         found = false;
@@ -145,21 +148,12 @@ void cNetwork::stabilise(const cChannels &initial,
     for (size_t i = 0; i < world->out_channels; ++i)
         rates_[i] *= norm;
     
-    // Fill cache (if we're not interventing) -- everything in transient and
+    // Fill cache (if we're not intervening) -- everything in transient and
     // attractor map to rates
     if (!intervention)
     {
         for (auto &ch: path)
-        {
-            // cached_mappings[ch] = rates_;
             cached_mappings.emplace(ch, rates_);
-            // auto ret = cached_mappings.insert(std::make_pair(initial, rates
-            // if (ret.second)
-            //     *(ret.first) = rates_;
-
-
-
-        }
     }
 }
 
