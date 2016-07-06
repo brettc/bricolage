@@ -2,7 +2,7 @@
 from utility cimport *
 from core cimport *
 
-cdef extern from "<src/selection.hpp>" namespace "bricolage":
+cdef extern from "<src/targets.hpp>" namespace "bricolage":
     
     cdef enum ScoringMethod:
         SCORE_LINEAR = 0

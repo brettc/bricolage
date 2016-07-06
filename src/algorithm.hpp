@@ -49,11 +49,11 @@ struct Cycle
         for (auto &g : network.genes)
             for (auto &m : g.modules)
                 if (m.is_active(c))
-                    {
-                        next.unchecked_set(g.pub);
-                        // The gene is active, no use looking further
-                        break;
-                    }
+                {
+                    next.unchecked_set(g.pub);
+                    // The gene is active, no use looking further
+                    break;
+                }
 
         // Update the "return" value.
         c.bits = next.bits;
@@ -86,7 +86,7 @@ struct Mutator
         while (n_trans > 0)
         {
             // Choose a gene and mutate it
-            size_t i = fty.r_regulatory();
+            size_t i = fty.r_reg_gene();
             auto &g = net.genes[i];
             g.pub = fty.draw_from_regs[fty.r_reg()];
             
@@ -102,10 +102,10 @@ struct Mutator
         {
             // Choose a gene and mutate it
             size_t i, j;
-            i = fty.r_regulatory();
+            i = fty.r_reg_gene();
             do 
             {
-                j = fty.r_regulatory();
+                j = fty.r_reg_gene();
             } while (i == j);
 
             net.genes[j] = net.genes[i];

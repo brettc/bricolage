@@ -1,6 +1,6 @@
 from utility cimport *
 from core cimport *
-from selection cimport *
+from targets cimport *
 from analysis cimport *
 from core_ext cimport *
 

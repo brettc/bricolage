@@ -1,6 +1,6 @@
 from utility cimport *
 from core cimport *
-from selection cimport *
+from targets cimport *
 
 cdef class World:
     cdef:

@@ -165,7 +165,7 @@ public:
 
     cWorld_ptr world;
     size_t gene_count, module_count;
-    bricolage::random_int_t r_gene, r_regulatory, r_module, r_sub, r_reg;
+    bricolage::random_int_t r_gene, r_reg_gene, r_module, r_sub, r_reg;
 
     // A vector of sub values that is used to draw from
     bricolage::cIndexes draw_from_subs; 

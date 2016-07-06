@@ -38,10 +38,11 @@ template <typename T> inline int c_sgn(T val)
     return (T(0) < val) - (val < T(0));
 }
 
+// python-like comparison function which returns -1, 0, 1
 template <typename T> inline int c_cmp(T a, T b)
 {
     return c_sgn(a - b);
 }
 
 } // end namespace bricolage
-// vim: path=.,/usr/include/c++/4.2.1,/usr/include/c++/4.2.1/tr1,/usr/local/include fdm=syntax
+
