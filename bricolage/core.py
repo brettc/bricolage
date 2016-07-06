@@ -45,6 +45,7 @@ class Parameters(object):
         self.selection_class = SelectionModel
         self.population_size = 100
         self.mutation_rate = 0.001
+        self.trans_mutation_rate = 0.0
         self.duplication_rate = 0.0
         self.mutate_type = MutateType.JUMP
         self.score_method = ScoringMethod.LINEAR
@@ -57,6 +58,9 @@ class Parameters(object):
     def _override(self, kwargs):
         for k, v in kwargs.items():
             setattr(self, k, v)
+
+        if not hasattr(self, 'reg_gene_count'):
+            self.reg_gene_count = self.reg_channels
 
     def same_as(self, other):
         sdict = self.__dict__.copy()

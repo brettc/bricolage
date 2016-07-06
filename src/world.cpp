@@ -19,10 +19,12 @@ std::string cChannels::to_string(index_t sz)
     return rep;
 }
 
-cWorld::cWorld(size_t seed, size_t cue, size_t reg, size_t out)
+cWorld::cWorld(size_t seed, size_t cue, size_t reg, size_t out, size_t reg_gene_count)
     // Key stuff
     : next_network_identifier(0)
     , next_target_identifier(0)
+    // Genes
+    , reg_gene_count(reg_gene_count)
     // Channels
     , cue_channels(cue)
     , reg_channels(reg)
@@ -31,6 +33,9 @@ cWorld::cWorld(size_t seed, size_t cue, size_t reg, size_t out)
     , rand(seed)
     , input_type(INPUT_CONSTANT)
 {
+    if (reg_gene_count > 0 && reg == 0)
+        throw std::runtime_error("no regulatory channels!");
+
     init_channels();
     init_environments();
 }
@@ -39,21 +44,6 @@ cWorld::~cWorld()
 {
 }
 
-void cWorld::init_environments()
-{
-    // Number of environments is 2^cue_channels. Use some binary math...
-    size_t env_count = 1 << cue_channels;
-
-    for (size_t i = 0; i < env_count; ++i)
-    {
-        cChannels c;
-        // Shift to account for reserved channels
-        c.bits = i << reserved_channels;
-        // Turn on bias channel
-        c.unchecked_set(on_channel);
-        environments.push_back(c);
-    }
-}
 
 void cWorld::init_channels()
 {
@@ -88,6 +78,21 @@ void cWorld::init_channels()
     pub_range.second = out_range.second;
 }
 
+void cWorld::init_environments()
+{
+    // Number of environments is 2^cue_channels. Use some binary math...
+    size_t env_count = 1 << cue_channels;
+
+    for (size_t i = 0; i < env_count; ++i)
+    {
+        cChannels c;
+        // Shift to account for reserved channels
+        c.bits = i << reserved_channels;
+        // Turn on bias channel
+        c.unchecked_set(on_channel);
+        environments.push_back(c);
+    }
+}
 
 std::string cWorld::get_random_state()
 {
@@ -104,7 +109,7 @@ void cWorld::set_random_state(const std::string &s)
 
 cFactory::cFactory(const cWorld_ptr &w, size_t cc)
     : world(w)
-    , gene_count(w->reg_channels + w->out_channels)
+    , gene_count(w->reg_gene_count + w->out_channels)
     , module_count(cc)
     , r_gene(random_int_range(0, gene_count, w))
     , r_regulatory(random_int_range(0, w->reg_channels, w))

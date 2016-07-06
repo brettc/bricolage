@@ -8,8 +8,8 @@ using namespace logic2;
 
 // --------------------------------------------------------------------
 // cFactory
-cFactory::cFactory(const bricolage::cWorld_ptr &w, size_t cc, 
-                           const cOperands &ops)
+cFactory::cFactory(const bricolage::cWorld_ptr &w, size_t cc,
+                   const cOperands &ops)
     : bricolage::cFactory(w, cc)
     , operands(ops)
     , r_operand(random_int_range(0, ops.size(), w))
@@ -24,9 +24,19 @@ bricolage::cNetwork_ptr cFactory::construct(bool create)
     if (create)
         net->identifier = world->get_next_network_ident();
 
-    for (size_t pub = world->reg_range.first, gindex = 0; 
-         pub < world->pub_range.second; ++pub, ++gindex)
+    size_t pub;
+    for (size_t gindex = 0; gindex < gene_count; ++gindex)
     {
+        // Figure out the next publish value 
+        if (gindex < world->reg_gene_count)
+        {
+            pub = world->reg_range.first + (gindex % world->reg_channels);
+        }
+        else
+        {
+            pub = gindex - world->reg_gene_count + world->out_range.first;
+        }
+
         net->genes.emplace_back(gindex, pub);
         auto &g = net->genes.back();
 
@@ -41,6 +51,7 @@ bricolage::cNetwork_ptr cFactory::construct(bool create)
                 m.channels[1] = draw_from_subs[r_sub()];
             }
         }
+
     }
 
     // Calculate the attractors

@@ -86,7 +86,7 @@ struct Mutator
         while (n_trans > 0)
         {
             // Choose a gene and mutate it
-            size_t i = fty.r_gene();
+            size_t i = fty.r_regulatory();
             auto &g = net.genes[i];
             g.pub = fty.draw_from_regs[fty.r_reg()];
             
@@ -112,7 +112,63 @@ struct Mutator
             --n_dups;
         }
     }
+
 };
+
+// template<typename Network, typename Factory, typename Gene, typename CisModule>
+// struct Constructor
+// {
+//     Network *construct(Factory &f, bool create)
+//     {
+//         auto p = f.shared_from_this(); 
+//         cNetwork *net = new cNetwork(p);
+//         if (create)
+//             net->identifier = world->get_next_network_ident();
+//
+//         size_t gindex = 0;
+//         size_t pub = world->reg_range.first;
+//         // Create the regulatory genes
+//         for (; gindex < f.world->reg_gene_count; ++gindex)
+//         {
+//             net->genes.emplace_back(gindex, pub);
+//             auto &g = net->genes.back();
+//
+//             ++pub;
+//
+//             // Cycle repeatedly through these
+//             if (pub == f.world->pub_range.second)
+//                 pub = world->reg_range.first;
+//         }
+//         // Create the structural genes
+//         for (size_t st_gene = 0; st_gene < f.world->out_channels; ++st_gene, ++gindex)
+//         {
+//
+//         for (size_t pub = world->reg_range.first, gindex = 0; 
+//             pub < world->pub_range.second; ++pub, ++gindex)
+//         {
+//             net->genes.emplace_back(gindex, pub);
+//             auto &g = net->genes.back();
+//
+//             for (size_t j=0; j < module_count; ++j)
+//             {
+//                 g.modules.emplace_back(cCisModule(*this));
+//                 if (create)
+//                 {
+//                     auto &m = g.modules.back();
+//                     m.op = operands[r_operand()];
+//                     m.channels[0] = draw_from_subs[r_sub()];
+//                     m.channels[1] = draw_from_subs[r_sub()];
+//                 }
+//             }
+//         }
+//
+//         // Calculate the attractors
+//         if (create)
+//             net->calc_attractors();
+//     }
+//     return net;
+//
+// };
 
 
 } // end namespace

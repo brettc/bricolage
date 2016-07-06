@@ -120,15 +120,20 @@ def _construct_world(params, net_id, target_id, r_state):
 cdef class World:
     def __cinit__(self, params):
         self._params = copy.deepcopy(params)
+        # Hack for old stuff
+        if not hasattr(self._params, 'reg_gene_count'):
+            self._params.reg_gene_count = self._params.reg_channels
+
         self._shared = cWorld_ptr(new cWorld(
-            params.seed, 
-            params.cue_channels, 
-            params.reg_channels, 
-            params.out_channels,
+            self._params.seed, 
+            self._params.cue_channels, 
+            self._params.reg_channels, 
+            self._params.out_channels,
+            self._params.reg_gene_count,
         ))
         self._this = self._shared.get()
 
-        if hasattr(params, 'input_type'):
+        if hasattr(self._params, 'input_type'):
             self._this.input_type = params.input_type
 
         self.reserved_signals = set([on_channel, off_channel])
@@ -757,8 +762,8 @@ cdef class Population(CollectionBase):
             s = size
         return self._this.select(deref(sm._this), s)
 
-    def mutate(self, double site_rate, double dup_rate=0.0, int generation=0):
-        return self._this.mutate(site_rate, dup_rate, generation)
+    def mutate(self, double cis_rate, double trans_rate=0.0, double dup_rate=0.0, int generation=0):
+        return self._this.mutate(cis_rate, trans_rate, dup_rate, generation)
 
     property mutated:
         def __get__(self):

@@ -260,6 +260,48 @@ def test_network_trans_mutation(c_3x2):
     pubs = [g.pub for g in n.genes]
     assert len(set(pubs)) < len(pubs)
 
+def test_reg_gene_size_big():
+    params = T.Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
+                        cue_channels=3, reg_gene_count=6)
+    world = T.World(params)
+    const = T.Factory(world)
+    n1 = const.create_network()
+    print world.reg_range
+    print world.out_range
+    print [g.pub for g in n1.genes]
+
+def test_reg_gene_size_small():
+    params = T.Parameters(seed=4, cis_count=2, reg_channels=20, out_channels=2,
+                        cue_channels=3, reg_gene_count=5)
+    world = T.World(params)
+    const = T.Factory(world)
+    n1 = const.create_network()
+    print world.reg_range
+    print world.out_range
+    print [g.pub for g in n1.genes]
+    n1.mutate(0, 1)
+    # n1.calc_attractors()
+    print [g.pub for g in n1.genes]
+    n1.mutate(0, 1)
+    # n1.calc_attractors()
+
+def test_trans_pop():
+    params = T.Parameters(seed=4, cis_count=2, reg_channels=30, out_channels=2,
+                        cue_channels=3, reg_gene_count=6)
+    world = T.World(params)
+    fact = T.Factory(world)
+    pop = T.Population(fact, 5)
+    for n in pop:
+        print [g.pub for g in n.genes]
+    pop.mutate(0, .3, 0)
+    for n in pop:
+        print [g.pub for g in n.genes]
+    # pop.mutate(0, .01, 0)
+    # pop.mutate(0, .01, 0)
+    # n1 = const.create_network()
+    # print world.reg_range
+    # print world.out_range
+    # print [g.pub for g in n1.genes]
 # def xor_target(a, b):
 #     if (a or b) and not (a and b):
 #         return [.5, 1]

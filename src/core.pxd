@@ -77,9 +77,10 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         INPUT_PULSE = 1
 
     cdef cppclass cWorld:
-        cWorld(size_t seed, size_t cue, size_t reg, size_t out)
+        cWorld(size_t seed, size_t cue, size_t reg, size_t out, size_t reg_genes)
         mt19937 rand
         sequence_t next_network_identifier, next_target_identifier
+        size_t reg_gene_count
         size_t cue_channels, reg_channels, out_channels
         size_t channel_count
         pair[size_t, size_t] cue_range
@@ -161,7 +162,8 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
 
     cdef cppclass cPopulation:
         cPopulation(const cFactory_ptr &c, size_t n)
-        size_t mutate(double site_rate, double dup_rate, int_t generation)
+        size_t mutate(double cis_rate, double trans_rate, double dup_rate, 
+                      int_t generation)
         void assess(const cBaseTarget &target)
         bint select(const cSelectionModel &sm, size_t size)
         pair[double, double] worst_and_best()

@@ -99,7 +99,7 @@ class cFactory;
 class cWorld //: std::enable_shared_from_this<cWorld>
 {
 public:
-    cWorld(size_t seed, size_t cue, size_t reg, size_t out);
+    cWorld(size_t seed, size_t cue, size_t reg, size_t out, size_t reg_gene_count);
     ~cWorld();
 
     sequence_t get_next_network_ident() { return next_network_identifier++; }
@@ -108,11 +108,12 @@ public:
     // Counters
     sequence_t next_network_identifier, next_target_identifier;
 
+    // Number of regulatory genes
+    size_t reg_gene_count;
+
     // Channel definitions
     size_t cue_channels, reg_channels, out_channels;
     size_t channel_count;
-
-    size_t gene_count;
 
     std::pair<size_t, size_t> cue_range;
     std::pair<size_t, size_t> reg_range;
@@ -253,7 +254,8 @@ class cPopulation
 public:
     cPopulation(const cFactory_ptr &c, size_t n);
 
-    size_t mutate(double site_rate, double dup_rate, int_t generation);
+    size_t mutate(double cis_rate, double trans_rate, double dup_rate, 
+                  int_t generation);
     void assess(const cBaseTarget &target);
     bool select(const cSelectionModel &sm, size_t size);
 

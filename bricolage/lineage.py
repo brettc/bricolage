@@ -98,6 +98,7 @@ class BaseLineage(object):
         self.generation += 1
         self.population.select(self.selection_model)
         n = self.population.mutate(self.params.mutation_rate, 
+                                   self.params.trans_mutation_rate,
                                    self.params.duplication_rate,
                                    self.generation)
         log.debug("{} Mutations at generation {}".format(n, self.generation))
