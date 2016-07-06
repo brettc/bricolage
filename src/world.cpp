@@ -112,7 +112,7 @@ cFactory::cFactory(const cWorld_ptr &w, size_t cc)
     , gene_count(w->reg_gene_count + w->out_channels)
     , module_count(cc)
     , r_gene(random_int_range(0, gene_count, w))
-    , r_regulatory(random_int_range(0, w->reg_channels, w))
+    , r_reg_gene(random_int_range(0, w->reg_gene_count, w))
     , r_module(random_int_range(0, module_count, w))
 {
     cIndexes subs, regs;
