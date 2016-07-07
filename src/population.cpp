@@ -161,8 +161,6 @@ size_t cPopulation::mutate(double cis_rate,
         const size_t index = v.first;
         const Mutations &m = v.second;
 
-        std::cout << index << ' ' << m.trans << std::endl;
-
         // Replace the networks with the mutated ones.
         networks[index] = factory->clone_and_mutate_network(
                 networks[index], 
