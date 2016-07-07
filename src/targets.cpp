@@ -238,6 +238,53 @@ void cNoisyTarget::calc_perturbation(const cNetwork &net, bool env_only) const
     }
 }
 
+cTransNoisyTarget::cTransNoisyTarget(const cWorld_ptr &w, 
+                           const std::string &n, int_t id,
+                           ScoringMethod m, double s)
+    : cBaseTarget(w, n, id, m, s)
+{
+}
+
+double cTransNoisyTarget::assess(const cNetwork &net) const
+{
+    // // We've already done it!
+    if (net.target == identifier)
+        return net.fitness;
+    
+    cRatesVector rates_vec;
+    double score = 0.0;
+    // Go through each environment.
+    for (size_t noisy_channel = world->reg_range.first;
+         noisy_channel < world->reg_range.second; ++noisy_channel)
+    {
+        rates_vec.clear();
+        
+        for (const auto &env : world->environments)
+        {
+            cChannels start_state = env;
+
+            // Randomly flip a regulatory gene channel
+            start_state.unchecked_set(noisy_channel);
+
+            rates_vec.emplace_back();
+            auto &this_rate = rates_vec.back();
+            net.get_rates(start_state, this_rate, true);
+        }
+
+        score += score_rates(rates_vec);
+    }
+
+    score /= world->reg_channels;
+
+    // Must be greater 0 >= n <= 1.0
+    net.fitness = score;
+
+    // Record the target we've been used to assess. We can skip doing every
+    // time then.
+    net.target = identifier;
+    return score;
+}
+
 cMultiTarget::cMultiTarget(const cWorld_ptr &w, 
                            const std::string &n, int_t id,
                            ScoringMethod m, double s)

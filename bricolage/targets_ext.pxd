@@ -18,6 +18,10 @@ cdef class NoisyTarget(BaseTarget):
     cdef:
         cNoisyTarget *_this
 
+cdef class TransNoisyTarget(BaseTarget):
+    cdef:
+        cTransNoisyTarget *_this
+
 cdef class MultiTarget(BaseTarget):
     cdef:
         cMultiTarget *_this

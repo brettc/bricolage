@@ -202,6 +202,29 @@ cdef class NoisyTarget(BaseTarget):
             return self._this.perturb_prop
 
 
+cdef class TransNoisyTarget(BaseTarget):
+    def __cinit__(self, World w, init_func=None, name="", ident=-1,
+                  scoring_method=0, strength=0.0):
+        self.world = w
+        self._this = new cTransNoisyTarget(
+            w._shared, name, ident, 
+            scoring_method, strength)
+
+        self._base = self._this
+        if init_func:
+            self._construct(init_func)
+
+    def __reduce__(self):
+        return _default_target, (
+            self.world, 
+            self._this.name, 
+            self._this.identifier,
+            self._this.optimal_rates,
+            self._this.weighting,
+            self._this.scoring_method,
+            self._this.strength)
+
+
 # NOTE: allow weighting to be None for backward compatibility
 def _multi_target(World w, name, ident, rates, weighting=None,
                       scoring_method=None, strength=None):
