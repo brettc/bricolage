@@ -441,7 +441,11 @@ class Experiment(object):
                 current = t.name.lower()
                 if len_look <= len(current):
                     if look == current[:len_look]:
-                        matches.append(t)
+                        if len(current) == len_look:
+                            matches = [t]
+                            break
+                        else:
+                            matches.append(t)
 
             if not matches:
                 raise ExperimentError("No match for {}.".format(text))
