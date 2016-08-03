@@ -75,7 +75,7 @@ struct cBaseCausalAnalyzer
 {
     cBaseCausalAnalyzer(cWorld_ptr &world);
     cWorld_ptr world;
-    cRates natural_probabilities;
+    cRates intervention_probs;
 
     // We only allocate this many categories. More than this and we're screwed.
     static size_t max_category;
@@ -174,10 +174,11 @@ struct cOutputControlAnalyzer : public cBaseCausalAnalyzer
 
 struct cRelevantControlAnalyzer : public cBaseCausalAnalyzer
 {
-    cRelevantControlAnalyzer(cWorld_ptr &world, const cRatesVector &tr);
+    cRelevantControlAnalyzer(cWorld_ptr &world, const cRatesVector &tr, bool use_natural_);
     cRatesVector target_rates;
     boost::multi_array<int, 2> categories;
     boost::multi_array<double, 2> info;
+    bool use_natural;
 
     // Note you need to delete the return values from these!
     int categorize(const cRates rates);

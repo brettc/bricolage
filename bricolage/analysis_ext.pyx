@@ -283,9 +283,9 @@ cdef class OutputControlAnalyzer:
 
 
 cdef class RelevantControlAnalyzer:
-    def __cinit__(self, World w, cRatesVector tr = []):
+    def __cinit__(self, World w, cRatesVector tr = [], use_natural=True):
         self.world = w
-        self._this = new cRelevantControlAnalyzer(w._shared, tr)
+        self._this = new cRelevantControlAnalyzer(w._shared, tr, use_natural)
 
     def __dealloc__(self):
         if self._this != NULL:

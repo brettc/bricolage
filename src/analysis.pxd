@@ -53,13 +53,13 @@ cdef extern from "<src/analysis.hpp>" namespace "bricolage":
 
     cdef cppclass cCausalFlowAnalyzer:
         cCausalFlowAnalyzer(const cWorld_ptr& world)
-        cRates natural_probabilities
+        cRates intervention_probs
         cJointProbabilities *analyse_network(cNetwork &net) except +
         cJointProbabilities *analyse_collection(const cNetworkVector &networks) except +
 
     cdef cppclass cAverageControlAnalyzer:
         cAverageControlAnalyzer(const cWorld_ptr& world)
-        cRates natural_probabilities
+        cRates intervention_probs
         cInformation *analyse_network(cNetwork &net) except +
         cInformation *analyse_collection(const cNetworkVector &networks) except +
 
@@ -71,13 +71,14 @@ cdef extern from "<src/analysis.hpp>" namespace "bricolage":
 
     cdef cppclass cOutputControlAnalyzer:
         cOutputControlAnalyzer(const cWorld_ptr& world, cRatesVector)
-        cRates natural_probabilities
+        cRates intervention_probs
         cInformation *analyse_network(cNetwork &net) except +
         cInformation *analyse_collection(const cNetworkVector &networks) except +
 
     cdef cppclass cRelevantControlAnalyzer:
-        cRelevantControlAnalyzer(const cWorld_ptr& world, cRatesVector)
-        cRates natural_probabilities
+        cRelevantControlAnalyzer(const cWorld_ptr& world, cRatesVector, bint use_natural)
+        bint use_natural
+        cRates intervention_probs
         cInformation *analyse_network(cNetwork &net) except +
         cInformation *analyse_collection(const cNetworkVector &networks) except +
 

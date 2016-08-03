@@ -302,7 +302,7 @@ void cJointProbabilities::calc_information(cInformation &info) const
 
 cBaseCausalAnalyzer::cBaseCausalAnalyzer(cWorld_ptr &w)
     : world(w)
-    , natural_probabilities(w->reg_channels, 0.0)
+    , intervention_probs(w->reg_channels, 0.5)
 {
 }
 
@@ -323,7 +323,7 @@ void cBaseCausalAnalyzer::set_max_category_size(size_t m)
 void cBaseCausalAnalyzer::_calc_natural(cNetwork &net)
 {
     for (size_t i = 0; i < world->reg_channels; ++i)
-        natural_probabilities[i] = 0.0;
+        intervention_probs[i] = 0.0;
 
     size_t reg_base = world->reg_range.first;
 
@@ -340,7 +340,7 @@ void cBaseCausalAnalyzer::_calc_natural(cNetwork &net)
             for (size_t i = 0; i < world->reg_channels; ++i)
             {
                 if (cs.unchecked_test(reg_base + i))
-                    natural_probabilities[i] += p_state;
+                    intervention_probs[i] += p_state;
             }
         }
     }
@@ -427,7 +427,7 @@ void cCausalFlowAnalyzer::_analyse(cNetwork &net, joint_array_type::reference su
         cGene *gene = net.get_gene(i);
         gene->intervene = INTERVENE_OFF;
         net.calc_attractors_with_intervention();
-        double p_gene_off = p_env * (1.0 - natural_probabilities[i]);
+        double p_gene_off = p_env * (1.0 - intervention_probs[i]);
 
         for (size_t j = 0; j < net.rates.size(); ++j)
             for (size_t k = 0; k < world->out_channels; ++k)
@@ -438,7 +438,7 @@ void cCausalFlowAnalyzer::_analyse(cNetwork &net, joint_array_type::reference su
 
         gene->intervene = INTERVENE_ON;
         net.calc_attractors_with_intervention();
-        double p_gene_on = p_env * natural_probabilities[i];
+        double p_gene_on = p_env * intervention_probs[i];
 
         // for each environment (there are rates for each)
         for (size_t j = 0; j < net.rates.size(); ++j)
@@ -516,7 +516,7 @@ void cAverageControlAnalyzer::_analyse(
     for (size_t j = 0; j < world->reg_channels; ++j)
     {
         cGene *gene = net.get_gene(j);
-        double p_gene_on = natural_probabilities[j];
+        double p_gene_on = intervention_probs[j];
         double p_gene_off = 1.0 - p_gene_on;
 
         // Force gene OFF
@@ -748,7 +748,7 @@ void cOutputControlAnalyzer::_analyse(
     for (size_t j = 0; j < world->reg_channels; ++j)
     {
         cGene *gene = net.get_gene(j);
-        double p_gene_on = natural_probabilities[j];
+        double p_gene_on = intervention_probs[j];
         double p_gene_off = 1.0 - p_gene_on;
 
         // Force gene OFF
@@ -808,11 +808,13 @@ void cOutputControlAnalyzer::_analyse(
 }
 
 // --------------------------------------------------------------------------
-cRelevantControlAnalyzer::cRelevantControlAnalyzer(cWorld_ptr &world, const cRatesVector &tr)
+cRelevantControlAnalyzer::cRelevantControlAnalyzer(cWorld_ptr &world, const cRatesVector &tr,
+                                                   bool use_natural_)
     : cBaseCausalAnalyzer(world)
     , target_rates(tr)
     , categories(boost::extents[world->environments.size()][world->reg_channels])
     , info(boost::extents[world->environments.size()][world->reg_channels])
+    , use_natural(use_natural_)
 {
 }
 
@@ -869,7 +871,9 @@ void cRelevantControlAnalyzer::_analyse(cNetwork &net, info_array_type::referenc
     auto &world = net.factory->world;
 
     _clear();
-    _calc_natural(net);
+
+    if (use_natural)
+        _calc_natural(net);
 
     // Note the reversed order here (j, i). I've exchanged the loops because
     // it is very expensive to recalculate the attractors. So we do it as
@@ -877,7 +881,7 @@ void cRelevantControlAnalyzer::_analyse(cNetwork &net, info_array_type::referenc
     for (size_t j = 0; j < world->reg_channels; ++j)
     {
         cGene *gene = net.get_gene(j);
-        double p_gene_on = natural_probabilities[j];
+        double p_gene_on = intervention_probs[j];
         double p_gene_off = 1.0 - p_gene_on;
 
         // Force gene OFF
