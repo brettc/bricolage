@@ -70,11 +70,14 @@ class BaseLineage(object):
         self.targets.append(t)
 
         # By default, set the target to the latest
-        self.set_target(len(self.targets) - 1)
+        self.set_target(-1)
         self._save_header()
 
     # TODO: add by name?
-    def set_target(self, index):
+    def set_target(self, index=-1):
+        if index == -1:
+            index = len(self.targets) - 1
+
         if index == self.target_index:
             return
 
@@ -264,13 +267,13 @@ class BaseLineage(object):
 
 
 class SnapshotLineage(BaseLineage):
-    def __init__(self, path, params=None, readonly=False):
+    def __init__(self, path, params=None, readonly=False, init_pop_fun=None):
         BaseLineage.__init__(self, path, params=params, readonly=readonly)
         if params is None:
             self._open_database()
             self._load()
         else:
-            self._create()
+            self._create(init_pop_fun)
             self._new_database()
 
     def __repr__(self):
@@ -421,3 +424,35 @@ class FullLineage(BaseLineage):
     def close(self):
         self._h5.flush()
         self._h5.close()
+
+
+def new_lineage_from_old(db_path, old_lineage, copy_targets=False,
+                         kls=SnapshotLineage):
+
+    def init_pop_fun(factory, size):
+        pop_old = old_lineage.population
+        size_old = pop_old.size
+        assert size == size_old
+
+        pop_new = core_ext.Population(factory, size)
+
+        # This does the conversion safely
+        arr_old = pop_old.factory.pop_to_numpy(pop_old)
+        arr_new = factory.pop_to_numpy(pop_new)
+
+        arr_old['generation'] = arr_new['generation']
+        arr_old['parent'] = arr_new['parent']
+        arr_old['id'] = arr_new['id']
+
+        # Overwrite the current pop
+        factory.from_numpy(arr_old, pop_new)
+        return pop_new
+
+    new_lineage = kls(db_path, old_lineage.params, init_pop_fun=init_pop_fun)
+
+    if copy_targets:
+        for targ in old_lineage.targets:
+            new_lineage.targets.append(targ)
+        new_lineage.set_target(-1)
+
+    return new_lineage
