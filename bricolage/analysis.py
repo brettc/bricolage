@@ -31,7 +31,7 @@ class NetworkAnalysis(analysis_ext.NetworkAnalysis):
 
     def calc_output_control(self, target):
         analyzer = analysis_ext.RelevantControlAnalyzer(
-            self.network.factory.world, target.calc_distinct_outputs())
+            self.network.factory.world, target.calc_distinct_outputs(), use_natural=False)
         info = analyzer.numpy_info_from_network(self.network)
         self.relevant_control = info
 
