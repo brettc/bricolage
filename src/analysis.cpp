@@ -850,6 +850,10 @@ int cRelevantControlAnalyzer::categorize(const cRates rates)
         match = true;
         for (size_t j = 0; j < tr.size(); ++j)
         {
+            // Negative rates match EVERYTHING (we don't care about these outputs)
+            if (tr[j] < 0.0)
+                continue;
+
             // If any of the rates don't match, then it is NOT a match. So we
             // can quit early.
             if (!is_close(tr[j], rates[j]))
