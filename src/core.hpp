@@ -131,6 +131,9 @@ public:
     // How the input is handled
     InputType input_type;
 
+    // How many time steps to pulse the environment for
+    size_t pulse_for;
+
     std::string get_random_state();
     void set_random_state(const std::string &s);
 
@@ -206,7 +209,7 @@ public:
 
     void get_rates(const cChannels &initial, cRates &rates, bool use_cache) const;
     void clear_rate_cache() const { cached_mappings.clear(); }
-    void stabilise(const cChannels &initial,
+    void stabilise(const cAttractor &external,
                    bool intervention,
                    cAttractor &attractor_,
                    cAttractor &transient_,

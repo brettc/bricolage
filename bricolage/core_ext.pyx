@@ -418,12 +418,19 @@ cdef class Network:
         r.flags.writeable = False
         return r
 
-    def stabilise(self, Channels c, intervention=False):
+    def stabilise(self, external, intervention=False):
         cdef:
-            cAttractor c_attr, c_trans
+            cAttractor c_attr, c_trans, c_external
             cRates c_rates
 
-        self._this.stabilise(c._this, intervention, c_attr, c_trans, c_rates)
+        if isinstance(external, Channels):
+            external = [external]
+
+        for channels in external:
+            c_channels = <Channels?>(channels)
+            c_external.push_back(c_channels._this)
+
+        self._this.stabilise(c_external, intervention, c_attr, c_trans, c_rates)
         attr = self._make_python_attractor(c_attr)
         trans = self._make_python_attractor(c_trans)
         rates = self._make_python_rate(c_rates)

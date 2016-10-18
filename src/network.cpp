@@ -47,6 +47,9 @@ void cNetwork::_calc_attractors(bool intervention)
     attractors.clear();
     rates.clear();
 
+    cAttractor external;
+    std::fill_n(std::back_inserter(external), world->pulse_for, world->environments[0]);
+
     // Go through each environment.
     for (auto &env : world->environments)
     {
@@ -60,21 +63,27 @@ void cNetwork::_calc_attractors(bool intervention)
         transients.emplace_back();
         cAttractor &this_trans = transients.back();
 
-        stabilise(env, intervention, this_attr, this_trans, this_rate);
+        cAttractor external;
+        std::fill_n(external.begin(), world->pulse_for, env);
+        stabilise(external, intervention, this_attr, this_trans, this_rate);
     }
 }
 
 
-
 // This is the core calculation for everything (at the moment)
-void cNetwork::stabilise(const cChannels &initial,
+void cNetwork::stabilise(const cAttractor &external,
                          bool intervention,
                          cAttractor &attractor_,
                          cAttractor &transient_,
                          cRates &rates_) const
 {
     cAttractor path;
-    cChannels current = initial;
+    size_t external_index = 0;
+    size_t external_size = external.size();
+
+    // Initialise the states
+    cChannels current = external[external_index];
+    external_index++;
 
     // Make sure the on channel is on
     current.unchecked_set(on_channel);
@@ -92,28 +101,39 @@ void cNetwork::stabilise(const cChannels &initial,
         else
             cycle_with_intervention(current);
 
-        // Make sure the on channel is on
+        // Make sure the on channel is always on
         current.unchecked_set(on_channel);
 
-        // TODO: If the input type is constant, then this is where we'd turn 
-        // stuff back on...  
-        
-        // Have we already seen this?
-        attractor_begins_at = 0;
-        found = false;
-        for (cChannels &prev : path)
+        // Mix in the current external states 
+        if (external_index < external_size)
         {
-            if (prev == current)
-            {
-                found = true;
-                break;
-            }
-            attractor_begins_at++;
+            current.unchecked_union(external[external_index]);
+            external_index++;
         }
+        else
+        {
+            // Okay, all external changes have been seen. Now we can look for
+            // the attractor. Only begin looking at the last time we injected
+            // something.
+            attractor_begins_at = external_size - 1;
+            found = false;
 
-        // If we have seen this state, we've found the attractor.
-        if (found)
-            break;
+            // We're looking to see if the very same set of channels has
+            // occured. If so, we about to into a loop.
+            for (cChannels &prev : path)
+            {
+                if (prev == current)
+                {
+                    found = true;
+                    break;
+                }
+                attractor_begins_at++;
+            }
+
+            // If we have seen this state, we've found the attractor.
+            if (found)
+                break;
+        }
 
         // Add the current to our attractor.
         path.push_back(current);
@@ -160,6 +180,9 @@ void cNetwork::stabilise(const cChannels &initial,
 
 void cNetwork::get_rates(const cChannels &initial, cRates &rates, bool use_cache) const
 {
+    cAttractor external;
+    std::fill_n(std::back_inserter(external), world->pulse_for, initial);
+    
     if (use_cache)
     {
         auto found = cached_mappings.find(initial);
@@ -171,7 +194,7 @@ void cNetwork::get_rates(const cChannels &initial, cRates &rates, bool use_cache
     }
 
     cAttractor attr, trans;
-    stabilise(initial, false, attr, trans, rates);
+    stabilise(external, false, attr, trans, rates);
 }
 
 double cNetwork::attractor_robustness() const
