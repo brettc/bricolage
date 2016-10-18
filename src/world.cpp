@@ -32,6 +32,7 @@ cWorld::cWorld(size_t seed, size_t cue, size_t reg, size_t out, size_t reg_gene_
     // Random
     , rand(seed)
     , input_type(INPUT_CONSTANT)
+    , pulse_for(1)
 {
     if (reg_gene_count > 0 && reg == 0)
         throw std::runtime_error("no regulatory channels!");

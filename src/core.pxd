@@ -91,6 +91,7 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         pair[size_t, size_t] pub_range
         cAttractor environments
         InputType input_type
+        size_t pulse_for
         double get_random_double(double low, double high)
         double get_random_int(int low, int high)
         string get_random_state()
@@ -136,7 +137,7 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         cGene *get_gene(size_t)
         void calc_attractors()
         void calc_attractors_with_intervention()
-        void stabilise(cChannels &, bint intervene, cAttractor &, cAttractor &,
+        void stabilise(cAttractor &, bint intervene, cAttractor &, cAttractor &,
                        cRates &)
         void get_rates(cChannels &initial, cRates &rates, bint use_cache)
         void clear_rate_cache()
