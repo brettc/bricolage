@@ -63,7 +63,6 @@ void cNetwork::_calc_attractors(bool intervention)
         transients.emplace_back();
         cAttractor &this_trans = transients.back();
 
-        cAttractor external;
         std::fill_n(external.begin(), world->pulse_for, env);
         stabilise(external, intervention, this_attr, this_trans, this_rate);
     }
@@ -120,8 +119,9 @@ void cNetwork::stabilise(const cAttractor &external,
 
             // We're looking to see if the very same set of channels has
             // occured. If so, we about to into a loop.
-            for (cChannels &prev : path)
+            while (attractor_begins_at < path.size())
             {
+                cChannels &prev = path[attractor_begins_at];
                 if (prev == current)
                 {
                     found = true;
