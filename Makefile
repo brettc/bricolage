@@ -18,10 +18,13 @@ LIBINC=-L$(PYTHONDIR)/lib -L$(PYSRC)
 CYTHON=$(PYTHONDIR)/bin/cython
 
 CCFLAGS = \
-		 -fno-strict-aliasing -arch x86_64 -fPIC -DNDEBUG -g -fwrapv -O3 \
-		 -Wall -Wstrict-prototypes -Wno-unused-function \
-		 -stdlib=libc++ -std=c++11 -mmacosx-version-min=10.8 \
-		 -MMD
+	-fno-strict-aliasing -arch x86_64 -fPIC -DNDEBUG -g -fwrapv -O3 \
+	-Wall \
+	-Wstrict-prototypes \
+	-Wno-unused-function \
+	-Wno-unused-local-typedefs \
+	-stdlib=libc++ -std=c++11 -mmacosx-version-min=10.8 \
+	-MMD
 
 INCLUDES = \
 		-I. \
