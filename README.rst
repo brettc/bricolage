@@ -14,7 +14,7 @@ All code was written by `Brett Calcott`_.
 Acknowledgments
 ---------------
 
-This evolution and development of this library has been supported through a
+The evolution and development of this library has been supported through a
 number of grants and post-doctoral fellowships including: 
 
 * `Joshua Epstein's`_ NIH Director's Pioneer Award DP1OD003874 from the Office
