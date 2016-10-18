@@ -309,6 +309,25 @@ class Experiment(object):
         self.database.create()
         self._init_db()
 
+    def get_replicate(self, t_id, r_id):
+        t_idx = t_id - 1
+        r_idx = r_id - 1
+        if t_id < 1 or t_id > len(self.treatments):
+            raise ExperimentError("No treatment {}".format(str(t_id)))
+
+        tr = self.treatments[t_idx]
+        assert isinstance(tr, Treatment)
+        assert tr.seq == t_id
+
+        if r_id < 1 or r_id > len(tr.replicates):
+            raise ExperimentError("No Replicate {}".format(str(r_id)))
+
+        rep = tr.replicates[r_idx]
+        assert isinstance(rep, Replicate)
+        assert rep.seq == r_id
+
+        return rep
+
     def get_next_treatment_seq(self):
         self.next_treatment_seq += 1
         return self.next_treatment_seq
