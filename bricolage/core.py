@@ -52,6 +52,7 @@ class Parameters(object):
         self.score_strength = 1.0
         self.add_zeros = 0
         self.input_type = InputType.CONSTANT
+        self.pulse_for = 1
 
         self._override(kwargs)
 

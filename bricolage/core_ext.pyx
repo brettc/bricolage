@@ -142,6 +142,9 @@ cdef class World:
         if hasattr(self._params, 'input_type'):
             self._this.input_type = params.input_type
 
+        if hasattr(self._params, 'pulse_for'):
+            self._this.pulse_for = params.pulse_for
+
         self.reserved_signals = set([on_channel, off_channel])
         self.cue_signals = set(range(*self._this.cue_range))
         self.reg_signals = set(range(*self._this.reg_range))
