@@ -186,27 +186,31 @@ class Replicate(object):
         # log.info("Writing stats for generation {}".format(gen))
         # self.session.bulk_save_objects(stats)
 
-    def draw_winners(self, lin, maxw=1, graph_type=GraphType.GENE):
+    def draw_winners(self, lin, maxw=1, graph_type=GraphType.GENE, 
+                     with_dot=False, knockouts=True):
         winners = [(n.fitness, n.identifier, n) for n in lin.population]
         winners.sort(reverse=True)
         for i, (fit, ident, net) in enumerate(winners):
             if i == maxw:
                 break
-            self.draw_net('winner', net, target=lin.targets[0], graph_type=graph_type)
+            self.draw_net('winner', net, target=lin.targets[0], graph_type=graph_type,
+                          knockouts=knockouts, with_dot=with_dot)
 
     def draw_net(self, prefix, net,
                  graph_type=GraphType.GENE_SIGNAL,
                  knockouts=True,
-                 target=None):
+                 target=None,
+                 with_dot=False):
         ana = NetworkAnalysis(net)
         ana.annotate(target)
-        g = get_graph_by_type(graph_type, ana)
+        g = get_graph_by_type(graph_type, ana, knockouts=knockouts)
         d = DotMaker(g)
         p = self.analysis_path / '{}-G{:07d}-N{:02d}-F{}.png'.format(
             prefix, net.generation, net.identifier, net.fitness)
         log.info("Writing {}".format(str(p)))
         d.save_picture(str(p))
-        # d.save_dot(str(p.with_suffix('.dot')))
+        if with_dot:
+            d.save_dot(str(p.with_suffix('.dot')))
 
 
 class Treatment(object):
