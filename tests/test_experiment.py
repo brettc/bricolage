@@ -9,7 +9,7 @@ def target1(a, b):
     return 0.0
 
 
-class TestTreatment(Treatment):
+class MyTreatment(Treatment):
 
     def run_replicate(self, replicate, lineage):
         if len(lineage.targets) == 0:
@@ -30,7 +30,7 @@ _params = Parameters(
 def test_exp1(tmpdir):
     tmpdir = Path(str(tmpdir))
     # pth = Path('.')
-    treats = [TestTreatment('bob', _params, 10)]
+    treats = [MyTreatment('bob', _params, 10)]
     e = Experiment(tmpdir, treats, seed=1, analysis_path="/Users/brett/Desktop")
     e.run()
 
