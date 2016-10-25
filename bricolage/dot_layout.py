@@ -25,9 +25,9 @@ class DotMaker(object):
         if node_type == NodeType.GENE:
             return self.graph.get_gene_label(ident)
         elif node_type == NodeType.MODULE:
-            return self.graph.get_module_label(ident),
+            return self.graph.get_module_label(ident)
         elif node_type == NodeType.CHANNEL:
-            return self.graph.get_channel_label(ident),
+            return self.graph.get_channel_label(ident)
 
         raise RuntimeError
 
