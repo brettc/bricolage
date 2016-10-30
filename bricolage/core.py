@@ -75,6 +75,8 @@ class Parameters(object):
                 d['score_strength'] = 1.0
             if 'input_type' not in d:
                 d['input_type'] = InputType.CONSTANT
+            if 'pulse_for' not in d:
+                d['pulse_for'] = 1
 
         if set(sdict.keys()) != set(odict.keys()):
             x = set(sdict.keys())
