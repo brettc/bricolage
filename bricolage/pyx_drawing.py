@@ -200,7 +200,8 @@ class Connector(object):
             # Must be a loop
             _, f_intersect = self.shape1.outline.intersect(p)
             _, p, _ = p.split(f_intersect)
-            p, _ = p.split([p.end() - 0.1])
+            all = p.split([p.end() - 0.1])
+            p = all[0]
         else:
 
             # Clip the beginning, and clip the end
