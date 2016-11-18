@@ -18,8 +18,8 @@ RE_STRUCT = re.compile(r"P(\d+)")
 
 # EEEK. Truly awful.
 def latexify(l):
-    # l = l.replace("~", r"\lnot{}")
-    # l = l.replace("~", r"\sim{}")
+    l = l.replace("~", r"$\sim$")
+    # l = l.replace("~", r"\sim")
     l = l.replace(" & ", r" \& ")
     # l = l.replace(" & ", r" \land{} ")
     # l = l.replace(" | ", r" \lor{} ")
