@@ -1,6 +1,6 @@
 from bricolage.experiment import Experiment, Treatment
 from pathlib import Path
-from bricolage.threshold3 import Parameters, Population
+from bricolage.threshold3 import Parameters, Population, DefaultTarget
 
 
 def target1(a, b):
@@ -13,7 +13,7 @@ class MyTreatment(Treatment):
 
     def run_replicate(self, replicate, lineage):
         if len(lineage.targets) == 0:
-            lineage.add_target(target1)
+            lineage.add_target(DefaultTarget(lineage.world, target1))
         while lineage.generation < 100:
             lineage.next_generation()
 
@@ -39,11 +39,11 @@ def test_exp1(tmpdir):
     #     print l.population.worst_and_best()
 
 
-class TestCloningTreatment(Treatment):
+class CloningTreatment(Treatment):
 
     def run_replicate(self, replicate, lineage):
         if len(lineage.targets) == 0:
-            lineage.add_target(target1)
+            lineage.add_target(DefaultTarget(lineage.world, target1))
         while lineage.generation < 100:
             lineage.next_generation()
 
@@ -56,7 +56,7 @@ class TestCloningTreatment(Treatment):
 
 def test_exp2(tmpdir):
     tmpdir = Path(str(tmpdir))
-    treats = [TestCloningTreatment('bob', _params, 10)]
+    treats = [CloningTreatment('bob', _params, 10)]
     e = Experiment(tmpdir, treats, seed=1)
     e.run()
 

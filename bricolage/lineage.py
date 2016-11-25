@@ -48,32 +48,16 @@ class BaseLineage(object):
         log.debug("Closing lineage {} in __exit__".format(self))
         self.close()
 
-    def add_target(self, func, name="", target_class=None, weighting=None,
-                   scoring_method=ScoringMethod.LINEAR,
-                   strength=1.0):
+    def add_target(self, targ):
         if self.readonly:
             raise LineageError("Network is readonly")
-        if target_class is None:
-            target_class = self.params.target_class
 
-        # Make up a name if none is given
-        if name == "":
-            name = str(len(self.targets))
-
-        # Add locally and save
-        t = target_class(self.world, func, name=name,
-                         scoring_method=scoring_method, strength=strength)
-
-        if weighting is not None:
-            t.weighting = weighting
-
-        self.targets.append(t)
+        self.targets.append(targ)
 
         # By default, set the target to the latest
         self.set_target(-1)
         self._save_header()
 
-    # TODO: add by name?
     def set_target(self, index=-1):
         if index == -1:
             index = len(self.targets) - 1

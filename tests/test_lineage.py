@@ -2,6 +2,7 @@ import pytest
 import pathlib
 from bricolage.operand import Operand
 from bricolage import logic2, threshold3
+from bricolage.core import DefaultTarget
 import bricolage.lineage as L
 
 @pytest.fixture(scope="module", params=['logic2', 'threshold3'])
@@ -98,7 +99,7 @@ def test_snapshot_reload(p_3x2, tmpdir):
     base = pathlib.Path(str(tmpdir))
     path = base / 'reload.db'
     with L.SnapshotLineage(path, params=p_3x2) as a:
-        a.add_target(target1)
+        a.add_target(DefaultTarget(a.world, target1))
 
         r1 = a.world.get_random_state()
         p1 = a.population
@@ -118,7 +119,7 @@ def test_snapshot_autosave(tmpdir, p_3x2):
 
     # Set it all up
     with L.SnapshotLineage(path, p_3x2) as a:
-        a.add_target(target1)
+        a.add_target(DefaultTarget(a.world, target1))
 
         # Run selection for 100 generations
         for i in range(100):
@@ -134,7 +135,7 @@ def test_snapshot_iterate(p_3x2, tmpdir):
     base = pathlib.Path(str(tmpdir))
     path = base / 'iterate.db'
     with L.SnapshotLineage(path, params=p_3x2) as a:
-        a.add_target(target1)
+        a.add_target(DefaultTarget(a.world, target1))
         for i in range(100):
             if i % 10 == 0:
                 a.save_snapshot()
@@ -155,7 +156,7 @@ def test_snapshot_lineage(p_3x2, tmpdir):
 
     # Generate a bunch of snapshots
     with L.SnapshotLineage(path_1, params=p_3x2) as a:
-        a.add_target(target1)
+        a.add_target(DefaultTarget(a.world, target1))
         for i in range(times):
             for j in range(generations):
                 a.next_generation()
@@ -168,7 +169,7 @@ def test_snapshot_lineage(p_3x2, tmpdir):
         path_2 = base / 'snap2.db'
 
         with L.SnapshotLineage(path_2, params=p_3x2) as b:
-            b.add_target(target1)
+            b.add_target(DefaultTarget(a.world, target1))
             for i in range(times):
                 for j in range(generations):
                     b.next_generation()
@@ -195,14 +196,14 @@ def test_repeatability(tmpdir, p_3x2):
     path = base / 'r1.db'
 
     with L.SnapshotLineage(path, params=p_3x2) as a:
-        a.add_target(target1)
+        a.add_target(DefaultTarget(a.world, target1))
         for i in range(100):
             a.next_generation()
 
         path = base / 'r2.db'
 
         with L.SnapshotLineage(path, params=p_3x2) as b:
-            b.add_target(target1)
+            b.add_target(DefaultTarget(a.world, target1))
             for i in range(100):
                 b.next_generation()
 
@@ -213,7 +214,7 @@ def test_full_lineage(tmpdir, p_3x2):
 
     # Set it all up
     with L.FullLineage(path, p_3x2) as a:
-        a.add_target(target1)
+        a.add_target(DefaultTarget(a.world, target1))
 
         # Run selection for 100 generations
         for i in range(100):
@@ -228,7 +229,7 @@ def test_full_lineage(tmpdir, p_3x2):
     # Reload again, this time running selection further.
     # Save the 100th generation too.
     with L.FullLineage(path) as c:
-        c.add_target(target1)
+        c.add_target(DefaultTarget(a.world, target1))
         p1 = c.get_generation(100)
         for i in range(100):
             c.next_generation()
@@ -245,7 +246,7 @@ def test_ancestry(tmpdir, p_3x2):
 
     # Set it all up
     with L.FullLineage(path, p_3x2) as a:
-        a.add_target(target1)
+        a.add_target(DefaultTarget(a.world, target1))
         N = 1000
         for i in range(N):
             a.next_generation()
@@ -268,7 +269,7 @@ def test_network(p_3x2, tmpdir):
 
     # Set it all up
     with L.FullLineage(path, p_3x2) as a:
-        a.add_target(target1)
+        a.add_target(DefaultTarget(a.world, target1))
         gen_count = 100
         for i in range(gen_count):
             a.next_generation()
@@ -283,7 +284,7 @@ def test_targets(p_3x2, tmpdir):
     base = pathlib.Path(str(tmpdir))
     path = base / 'targets.db'
     with L.FullLineage(path, params=p_3x2) as a:
-        a.add_target(target1)
+        a.add_target(DefaultTarget(a.world, target1))
         for i in range(100):
             a.next_generation()
 
@@ -294,7 +295,7 @@ def test_targets(p_3x2, tmpdir):
             a.next_generation()
 
         # Try something new
-        a.add_target(target2)
+        a.add_target(DefaultTarget(a.world, target2))
         for i in range(100):
             a.next_generation()
 

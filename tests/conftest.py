@@ -2,6 +2,7 @@ import pytest
 from generate import get_database
 from bricolage.experiment import Experiment, Treatment
 from bricolage.threshold3 import Parameters
+from bricolage.core import DefaultTarget
 import pathlib
 
 
@@ -55,7 +56,7 @@ class TestTreatment(Treatment):
 
     def run_replicate(self, replicate, lineage):
         if len(lineage.targets) == 0:
-            lineage.add_target(self.target)
+            lineage.add_target(DefaultTarget(lineage.world, self.target))
         while lineage.generation < 100:
             lineage.next_generation()
 

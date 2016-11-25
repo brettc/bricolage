@@ -6,9 +6,9 @@ import itertools
 from folders import data_dir
 from bricolage import threshold3
 from bricolage.lineage import SnapshotLineage
-from bricolage.core import InputType
+from bricolage.core import InputType, ScoringMethod
 from bricolage.core_ext import SelectionModel
-from bricolage.targets_ext import NoisyTarget
+from bricolage.targets_ext import NoisyTarget, DefaultTarget
 
 
 class GenerateError(Exception):
@@ -18,7 +18,7 @@ class GenerateError(Exception):
 # A holder for the database.
 _data = dict([
     (nm, (data_dir / nm).with_suffix('.db'))
-    for nm in ['xor', 'bowtie', 'perturb', 'three']
+    for nm in ['xor', 'bowtie', 'perturb', 'three', 'double_bow']
 ])
 
 _numpy_dumps = dict([
@@ -231,6 +231,43 @@ def make_noisy():
 @click.option('--overwrite', is_flag=True, default=False)
 def noisy_fitnesses(overwrite):
     numpy.save(str(_numpy_dumps['noisy']), make_noisy())
+
+def double_bow_target(a, b, c, d, e, f):
+    ret = []
+    if (a and not b) or (b and not c):
+        ret.extend([0, 0, 1, 1])
+    else:
+        ret.extend([1, 1, 0, 0])
+
+    if (d and not e) or (d and not f) or (not e and not f):
+        ret.extend([0, 0, 1, 1])
+    else:
+        ret.extend([1, 1, 0, 0])
+    return ret
+
+
+@generate.command()
+@click.option('--overwrite', is_flag=True, default=False)
+def double_bow(overwrite):
+    dbpath = get_dbpath('double_bow', overwrite)
+    if dbpath is None:
+        return
+
+    p = threshold3.Parameters(
+        seed=15, cis_count=3, reg_channels=14, out_channels=8, cue_channels=6,
+        population_size=5000, mutation_rate=.001,
+    )
+
+    with SnapshotLineage(dbpath, params=p) as lin:
+        target = DefaultTarget(lin.world, double_bow_target,
+                       scoring_method=ScoringMethod.EXPONENTIAL_VEC,
+                       strength=.2)
+
+        lin.targets.append(target)
+        lin.set_target(0)
+
+        for g, b in select_till(lin, good_for=1000):
+            click.secho("At generation {}, best is {}".format(g, b))
 
 if __name__ == "__main__":
     generate()
