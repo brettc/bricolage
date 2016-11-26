@@ -72,9 +72,10 @@ class Replicate(object):
         self.generations = -1
 
     def __repr__(self):
-        return "<Replicate: {}-{}>".format(
+        return "<Replicate: {}-{} Seed-{}>".format(
             self.treatment.name,
             self.seq,
+            self.seed,
         )
 
     @property
@@ -89,7 +90,8 @@ class Replicate(object):
         #     .filter(ReplicateRecord.treatment_id == self.treatment.seq)\
         #     .filter(ReplicateRecord.replicate_id == self.seq).one()
 
-        log.info("Running replicate {}".format(self.path))
+        log.info("Running replicate {}".format(self))
+        log.info("In Path {}".format(self.path))
         if not self.path.exists():
             self.path.mkdir(parents=True)
         with self.get_lineage() as lin:
