@@ -163,7 +163,7 @@ def test_basic(double_bow, net2):
 
 def test_basic(double_bow, net2):
     cat = get_joint(net2, range(4), [0, 0, 1, 1], [1, 1, 0, 0])
-    print cat.calc_weighted_joint(.5)
+    print cat.calc_weighted_joint(.25)
     cat = get_joint(net2, range(4, 8), [0, 0, 1, 1], [1, 1, 0, 0])
-    print cat.calc_weighted_joint(.5)
+    print cat.calc_weighted_joint(.25)
     # print cat.calc_weighted_joint(-.5)
