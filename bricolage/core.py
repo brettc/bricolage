@@ -48,10 +48,10 @@ class Parameters(object):
         self.trans_mutation_rate = 0.0
         self.duplication_rate = 0.0
         self.mutate_type = MutateType.JUMP
-        self.score_method = ScoringMethod.LINEAR
-        self.score_strength = 1.0
+        self.score_method = ScoringMethod.EXPONENTIAL_VEC
+        self.score_strength = .25
         self.add_zeros = 0
-        self.input_type = InputType.CONSTANT
+        self.input_type = InputType.PULSE
         self.pulse_for = 1
 
         self._override(kwargs)
