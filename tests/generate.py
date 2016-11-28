@@ -4,7 +4,7 @@ import numpy
 import itertools
 
 from folders import data_dir
-from bricolage import threshold3
+from bricolage import threshold3, logic2
 from bricolage.lineage import SnapshotLineage
 from bricolage.core import InputType, ScoringMethod
 from bricolage.core_ext import SelectionModel
@@ -253,18 +253,15 @@ def double_bow(overwrite):
     if dbpath is None:
         return
 
-    p = threshold3.Parameters(
-        seed=15, cis_count=3, reg_channels=14, out_channels=8, cue_channels=6,
+    p = logic2.Parameters(
+        seed=21166, cis_count=3, reg_channels=14, out_channels=8, cue_channels=6,
         population_size=5000, mutation_rate=.001,
     )
 
     with SnapshotLineage(dbpath, params=p) as lin:
-        target = DefaultTarget(lin.world, double_bow_target,
+        lin.add_target(DefaultTarget(lin.world, double_bow_target,
                        scoring_method=ScoringMethod.EXPONENTIAL_VEC,
-                       strength=.2)
-
-        lin.targets.append(target)
-        lin.set_target(0)
+                       strength=.2))
 
         for g, b in select_till(lin, good_for=1000):
             click.secho("At generation {}, best is {}".format(g, b))

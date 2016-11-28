@@ -12,6 +12,11 @@ def bowtie_database():
     yield db
     db.close()
 
+@pytest.yield_fixture
+def double_bow():
+    db = get_database('double_bow', readonly=True)
+    yield db
+    db.close()
 
 @pytest.fixture
 def bowtie_env_categories(bowtie_database):
