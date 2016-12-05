@@ -315,6 +315,14 @@ class Experiment(object):
         self.database.create()
         self._init_db()
 
+    def with_treatment_id(self, t_id):
+        if t_id > len(self.treatments):
+            raise ExperimentError("{} has no treatment with id {}".format(self, t_id))
+
+        tr = self.treatments[t_id - 1]
+        assert tr.seq == t_id
+        return tr
+
     def get_replicate(self, t_id, r_id):
         t_idx = t_id - 1
         r_idx = r_id - 1
@@ -443,12 +451,13 @@ class Experiment(object):
                     if hasattr(visitor, 'leave_lineage'):
                         visitor.leave_lineage(rep, lin)
 
-    def find_matching(self, text, repnum):
+    def find_matching(self, treatnum, repnum):
+        treatnum = int(treatnum)
+        repnum = int(repnum)
         # Default to ALL
         matching_treatment = None
-        matches = []
 
-        if text == "":
+        if treatnum < 1:
             # If they've selected a replicate too, then we need a treatment.
             if repnum >= 1:
                 if len(self.treatments) > 1:
@@ -460,26 +469,7 @@ class Experiment(object):
             else:
                 matches = [None]
         else:
-            look = text.lower()
-            len_look = len(text)
-            for t in self.treatments:
-                current = t.name.lower()
-                if len_look <= len(current):
-                    if look == current[:len_look]:
-                        if len(current) == len_look:
-                            matches = [t]
-                            break
-                        else:
-                            matches.append(t)
-
-            if not matches:
-                raise ExperimentError("No match for {}.".format(text))
-
-            if len(matches) > 1:
-                raise Experiment("More than one match for {}.".format(text))
-
-        # Ok. Grab the match. It may be None.
-        matching_treatment = matches[0]
+            matching_treatment = self.with_treatment_id(treatnum)
 
         if repnum >= 1:
             matching_replicate = matching_treatment.with_replicate_id(repnum)
@@ -487,13 +477,3 @@ class Experiment(object):
             matching_replicate = None
 
         return matching_treatment, matching_replicate
-
-    # def visit_replicates(self, visitor,
-    #                      filter_treatments=None,
-    #                      filter_replicates=None):
-    #     try:
-    #         for rep, lin in self.iter_lineages():
-    #             visitor.visit_lineage(rep, lin)
-    #     except (KeyboardInterrupt, SystemExit):
-    #         log.info("User interrupted --- quitting")
-    #         self.user_interrupt = True

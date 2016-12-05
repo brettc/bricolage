@@ -32,7 +32,7 @@ verbose_ = click.option('--verbose', is_flag=True, default=False,
 every_ = click.option('--every', default=1000,
                       help="Only do every N generations")
 only_ = click.option('--only', help="Only do this generation")
-treatment_ = click.option('--treatment', default="",
+treatment_ = click.option('--treatment', default=-1,
                           help="Filter treatments by name.")
 replicate_ = click.option('--replicate', default=-1,
                           help="Filter replicates by number.")
