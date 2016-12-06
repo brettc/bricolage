@@ -360,3 +360,29 @@ cdef class MIAnalyzer:
     def numpy_info_from_collection(self, CollectionBase coll):
         i = self.analyse_collection(coll)
         return numpy.asarray(i)
+
+
+cdef class WCAnalyzer:
+    def __cinit__(self, World w, cIndexes ind, cRates t1, cRates t2):
+        self.world = w
+        assert ind.size() == t1.size() == t2.size()
+        for i in ind:
+            assert 0 <= i < w.reg_channels
+
+        self._this = new cWCAnalyzer(w._shared, ind, t1, t2)
+
+    def get_joint(self, Network n):
+        j = JointProbabilities(self.world)
+        cdef cJointProbabilities *c_joint = NULL 
+        c_joint = self._this.get_joint(deref(n._this))
+        j.bind(c_joint)
+
+        # Convert to numpy and reshape
+        arr = numpy.asarray(j)
+        s = arr.shape
+        arr.shape = s[1], s[3], s[4]
+        return arr
+
+    def __dealloc__(self):
+        if self._this != NULL:
+            del self._this

@@ -208,5 +208,66 @@ struct cMIAnalyzer
 };
 
 
+// Weighted control
+struct cWCAnalyzer
+{
+    // Construct using two targets
+    cWCAnalyzer(cWorld_ptr &world, 
+                const cIndexes &indexes,
+                const cRates &t1, 
+                const cRates &t2);
+
+    // Keep this around for general sizes
+    const cWorld_ptr world_ptr;
+
+    // Convenience
+    const cWorld &world; 
+    
+    // Which particular rates do we want?
+    cIndexes indexes;
+
+    // What are the values of the targets?
+    const cRates target1, target2;
+
+    // What values have we found?
+    cRatesVector rates_found;
+
+    // What probabilities do these rates have 
+    typedef std::array<double, 2> off_on_type;
+    typedef std::vector<off_on_type> off_on_vector_type;
+
+    struct RateDetail
+    {
+        RateDetail(size_t idx, size_t sz) 
+            : used_for(idx)
+            , probs(sz, {{0.0, 0.0}})
+        {}
+
+        size_t used_for; // indicates if it is in use for this index;
+        off_on_vector_type probs; // OFF/ON per reg channel
+        std::array<double, 2> similarity; // target1, target2
+    };
+
+    typedef std::map<cRates, RateDetail> rate_detail_map_type;
+    rate_detail_map_type rate_detail_map;
+
+    // Getting actual values back.
+    // Note you need to delete the return values from these!
+    cInformation *analyse_network(cNetwork &net);
+    cInformation *analyse_collection(const cNetworkVector &networks);
+
+    cJointProbabilities *get_joint(cNetwork &net);
+
+    // The internal functions
+    // void _calc_weightings();
+    inline double similarity(const cRates &a, const cRates &b, double s);
+    void _analyse(cNetwork &net);
+    inline void _add_probability(const cRates &rates, size_t gindex, size_t is_on, double pr);
+    inline int _match(const cRates &rates) const;
+    // void _clear();
+
+};
+
+
 } // end namespace bricolage
 // vim: path=.,/usr/include/c++/4.2.1,/usr/include/c++/4.2.1/tr1,/usr/local/include fdm=syntax

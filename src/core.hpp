@@ -4,12 +4,13 @@
 #include <set>
 #include <map>
 #include <memory>
+#include <array>
+#include <tuple>
+#include <random>
 
 #include <boost/multi_array.hpp>
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
-#include <tuple>
-#include <random>
 
 #include "defines.hpp"
 #include "channels.hpp"

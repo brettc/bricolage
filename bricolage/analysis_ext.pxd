@@ -69,3 +69,8 @@ cdef class MIAnalyzer:
         cMIAnalyzer *_this;
         World world
 
+cdef class WCAnalyzer:
+    cdef:
+        cWCAnalyzer *_this;
+        World world
+

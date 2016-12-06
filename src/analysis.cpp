@@ -6,6 +6,7 @@
 #include <map>
 #include <exception>
 #include <sstream>
+#include <array>
 
 
 using namespace bricolage;
@@ -201,7 +202,6 @@ size_t cNetworkAnalysis::calc_active_bindings()
 
     return active_bindings;
 }
-
 
 
 //-----------------------------------------------------------------------------
@@ -994,3 +994,175 @@ void cMIAnalyzer::_analyse(
     }
 }
 
+cWCAnalyzer::cWCAnalyzer(cWorld_ptr &w,
+                         const cIndexes &ind,
+                         const cRates &t1, 
+                         const cRates &t2)
+            // bool use_natural_)
+    : world_ptr(w)
+    , world(*w)
+    , indexes(ind)
+    , target1(t1)
+    , target2(t2)
+    , empty_probs(world.reg_channels, {{0.0, 0.0}})
+{
+    // off_on_type empty;
+    // empty[0] = 0.0;
+    // empty[1] = 0.0;
+    // std::fill_n(std::back_inserter(empty_probs), world.reg_channels, empty);
+}
+
+cInformation *cWCAnalyzer::analyse_network(
+    cNetwork &net)
+{
+    // cJointProbabilities joint(world, 1, num_categories, 2);
+    // _analyse(net, joint._array[0]);
+    // return new cInformation(joint);
+    return 0;
+}
+
+cInformation *cWCAnalyzer::analyse_collection(
+    const cNetworkVector &networks)
+{
+    // cJointProbabilities joint(world, networks.size(), num_categories, 2);
+    //
+    // for (size_t i = 0; i < networks.size(); ++i)
+    //     _analyse(*networks[i], joint._array[i]);
+    // return new cInformation(joint);
+    return 0;
+}
+
+
+inline double cWCAnalyzer::similarity(const cRates &a, const cRates &b, double s)
+{
+    // ASSUMES: rates are same size (at least b >= a)
+    double dist = 0.0;
+    for (size_t i = 0; i < a.size(); ++i)
+    {
+        double diff = a[i] - b[i];
+        dist += diff * diff;
+    }
+    if (dist == 0.0)
+        return 1.0;
+    else
+        dist = sqrt(dist);
+
+    return exp(-fabs(dist) / s);
+}
+
+
+void cWCAnalyzer::_analyse(cNetwork &net)
+{
+    double pr = 0.5 / (world.environments.size());
+
+    // std::cout << "base prob " << pr << std::endl;
+
+    // Note the reversed order here (j, i); it is very expensive to recalculate
+    // the attractors. So we do it as little as possible.
+    for (size_t j = 0; j < world.reg_channels; ++j)
+    {
+        cGene *gene = net.get_gene(j);
+
+        // Force gene OFF
+        gene->intervene = INTERVENE_OFF;
+        net.calc_attractors_with_intervention();
+
+        // For each environment and each output channel
+        for (auto const &r : net.rates)
+            _add_probability(r, j, 0, pr);
+
+        // Force gene ON
+        gene->intervene = INTERVENE_ON;
+        net.calc_attractors_with_intervention();
+
+        for (auto const &r : net.rates)
+            _add_probability(r, j, 1, pr);
+
+        // Reset the current gene
+        gene->intervene = INTERVENE_NONE;
+    }
+
+    // Recalculate one more time without using interventions. This just resets
+    // everything.
+    net.calc_attractors();
+
+    // Now take the env weighted average of all of these, and summarize them in
+    // the object that was passed.
+    // double p_env = 1.0 / net.rates.size();
+    // for (size_t i = 0; i < net.rates.size(); ++i)
+    //     for (size_t j = 0; j < world->reg_channels; ++j)
+    //         sub[j][0] += info[i][j] * p_env;
+}
+
+inline void cWCAnalyzer::_add_probability(const cRates &rate, 
+                                          size_t gindex, size_t is_on, double pr)
+{
+    int found = _match(rate);
+
+    if (found < 0)
+    {
+        // Construct a rate that just contains what we are interested in
+        cRates matched;
+        for (size_t j = 0; j < indexes.size(); ++j)
+            matched.push_back(rate[indexes[j]]);
+
+        // Add a new entry.
+        rates_found.emplace_back(matched);
+        rates_probabilities.emplace_back(empty_probs);
+        rates_probabilities[rates_probabilities.size() - 1][gindex][is_on] = pr;
+    }
+    else
+    {
+        // Just update the existing entries
+        rates_probabilities[found][gindex][is_on] += pr;
+    }
+}
+
+// Simple linear search
+inline int cWCAnalyzer::_match(const cRates &rate) const
+{
+    bool match;
+    int i = 0;
+    for (; i < rates_found.size(); ++i)
+    {
+        match = true;
+        auto &match_try = rates_found[i];
+
+        for (size_t j = 0; j < indexes.size(); ++j)
+        {
+            // If any of the rates don't match, then it is NOT a match. So we
+            // can quit early.
+            if (!is_close(rate[indexes[j]], match_try[j]))
+            {
+                match = false;
+                break;
+            }
+        }
+        if (match)
+            return i;
+    }
+    return -1;
+}
+
+cJointProbabilities *cWCAnalyzer::get_joint(cNetwork &net)
+{
+    // Mainly for testing
+    _analyse(net);
+
+    cJointProbabilities *joint =
+        new cJointProbabilities(world_ptr,
+                                1,
+                                1,
+                                rates_found.size());
+
+    for (size_t i = 0; i < rates_found.size(); ++i)
+    {
+        for (size_t j = 0; j < world.reg_channels; ++j)
+        {
+            joint->_array[0][j][0][0][i] = rates_probabilities[i][j][0];
+            joint->_array[0][j][0][1][i] = rates_probabilities[i][j][1];
+        }
+    }
+
+    return joint;
+}

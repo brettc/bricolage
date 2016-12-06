@@ -3,10 +3,7 @@
 
 import pytest
 # from math import log as logarithm
-# from bricolage.analysis_ext import (
-#     MutualInfoAnalyzer, AverageControlAnalyzer, CausalFlowAnalyzer,
-#     OutputControlAnalyzer, RelevantControlAnalyzer, Information,
-#     _set_max_category_size, _get_max_category_size)
+from bricolage.analysis_ext import MIAnalyzer, WCAnalyzer
 from bricolage.core import InterventionState
 from bricolage.dot_layout import DotMaker
 from bricolage.graph_draw import SmallDiagram, TextDiagram
@@ -185,3 +182,13 @@ def test_basic(double_bow, net2):
     cat = get_joint(net2, range(4, 8), [0, 0, 1, 1], [1, 1, 0, 0])
     print cat.calc_weighted_joint(.25)
     # print cat.calc_weighted_joint(-.5)
+
+def test_cpp(net1):
+    wc = WCAnalyzer(net1.factory.world, range(4), t1=[0, 0, 1, 1], t2=[1, 1, 0, 0])
+    j_c = wc.get_joint(net1)
+
+    cat = get_joint(net1, range(4), [0, 0, 1, 1], [1, 1, 0, 0])
+    j_p = cat.make_joint()
+
+    assert j_c.shape == j_p.shape
+    numpy.testing.assert_allclose(j_c, j_p)
