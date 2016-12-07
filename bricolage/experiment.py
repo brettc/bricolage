@@ -1,5 +1,6 @@
 from bricolage.dot_layout import DotMaker
 from bricolage.graph_maker import get_graph_by_type, GraphType
+from bricolage.core_ext import Population
 import logtools
 
 import copy
@@ -271,6 +272,28 @@ class Treatment(object):
             if not self.experiment.user_interrupt:
                 r.run()
 
+class DependentTreatment(Treatment):
+    def __init__(self, name, params, count, exp, tnum, repnum):
+        super(DependentTreatment, self).__init__(name, params, count)
+        assert isinstance(exp, Experiment)
+        self.starting_rep = exp.get_replicate(tnum, repnum)
+
+    def make_initial_population(self, replicate, factory, size):
+        # This is a very ugly way to load a population into a new factory!
+        with self.starting_rep.get_lineage() as lin:
+            other_pop = lin.population
+            pop = Population(factory, size)
+            arr_old = lin.factory.pop_to_numpy(other_pop)
+            arr_new = factory.pop_to_numpy(pop)
+
+            arr_old['generation'] = arr_new['generation']
+            arr_old['parent'] = arr_new['parent']
+            arr_old['id'] = arr_new['id']
+
+            actual_pop = Population(factory)
+            factory.from_numpy(arr_old, actual_pop)
+
+        return actual_pop
 
 class Experiment(object):
     def __init__(self, path, treatments, name=None, seed=1, analysis_path=None, full=True):
