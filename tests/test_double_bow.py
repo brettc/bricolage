@@ -3,6 +3,7 @@
 
 import pytest
 # from math import log as logarithm
+from bricolage.core_ext import Collection
 from bricolage.analysis_ext import MIAnalyzer, WCAnalyzer
 from bricolage.core import InterventionState
 from bricolage.dot_layout import DotMaker
@@ -184,10 +185,29 @@ def test_basic(double_bow, net2):
     # print cat.calc_weighted_joint(-.5)
 
 def test_cpp(net1):
-    wc = WCAnalyzer(net1.factory.world, range(4), t1=[0, 0, 1, 1], t2=[1, 1, 0, 0])
-    j_c = wc.get_joint(net1)
-
+    wc = WCAnalyzer(net1.factory.world, range(4), [0, 0, 1, 1], [1, 1, 0, 0], .2)
+    # j_c = wc.get_joint(net1)
+    #
     cat = get_joint(net1, range(4), [0, 0, 1, 1], [1, 1, 0, 0])
-    j_p = cat.make_joint()
-    assert j_c.shape == j_p.shape
-    numpy.testing.assert_allclose(j_c, j_p)
+    # j_p = cat.make_joint()
+    # assert j_c.shape == j_p.shape
+    # numpy.testing.assert_allclose(j_c, j_p)
+
+    j_i = wc.analyse_network(net1)
+    print j_i
+    print cat.calc_weighted_joint(.2)
+
+def test_array(double_bow):
+    wc = WCAnalyzer(double_bow.world, range(4), [0, 0, 1, 1], [1, 1, 0, 0], .2)
+
+    # net = double_bow.population[0]
+    # j_c = wc.analyse_network(net)
+    # print j_c
+    coll = Collection(double_bow.factory)
+    for i in range(20):
+        coll.add(double_bow.population[i])
+    #
+    j_c = wc.analyse_collection(coll)
+    print j_c[0]
+    print j_c[1]
+

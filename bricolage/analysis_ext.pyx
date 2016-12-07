@@ -363,13 +363,13 @@ cdef class MIAnalyzer:
 
 
 cdef class WCAnalyzer:
-    def __cinit__(self, World w, cIndexes ind, cRates t1, cRates t2):
+    def __cinit__(self, World w, cIndexes ind, cRates t1, cRates t2, double weighting):
         self.world = w
         assert ind.size() == t1.size() == t2.size()
         for i in ind:
             assert 0 <= i < w.reg_channels
 
-        self._this = new cWCAnalyzer(w._shared, ind, t1, t2)
+        self._this = new cWCAnalyzer(w._shared, ind, t1, t2, weighting)
 
     def get_joint(self, Network n):
         j = JointProbabilities(self.world)
@@ -381,6 +381,24 @@ cdef class WCAnalyzer:
         arr = numpy.asarray(j)
         s = arr.shape
         arr.shape = s[1], s[3], s[4]
+        return arr
+
+    def analyse_network(self, Network n):
+        info = Information()
+        cdef cInformation *c_info = NULL 
+        c_info = self._this.analyse_network(deref(n._this))
+        info.bind(c_info)
+        arr = numpy.asarray(info)
+        return arr.ravel()
+
+    def analyse_collection(self, CollectionBase coll):
+        info = Information()
+        cdef cInformation *c_info= NULL 
+        c_info = self._this.analyse_collection(deref(coll._collection))
+        info.bind(c_info)
+        arr = numpy.asarray(info)
+        s = arr.shape
+        arr.shape = s[0], s[1]
         return arr
 
     def __dealloc__(self):

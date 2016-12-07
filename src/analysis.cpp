@@ -997,13 +997,14 @@ void cMIAnalyzer::_analyse(
 cWCAnalyzer::cWCAnalyzer(cWorld_ptr &w,
                          const cIndexes &ind,
                          const cRates &t1, 
-                         const cRates &t2)
-            // bool use_natural_)
+                         const cRates &t2,
+                         double wght)
     : world_ptr(w)
     , world(*w)
     , indexes(ind)
     , target1(t1)
     , target2(t2)
+    , weighting(wght)
     , processing_index(0)
     , empty_probs(world.reg_channels, {{0.0, 0.0}})
 {
@@ -1012,25 +1013,22 @@ cWCAnalyzer::cWCAnalyzer(cWorld_ptr &w,
 cInformation *cWCAnalyzer::analyse_network(
     cNetwork &net)
 {
-    // cJointProbabilities joint(world, 1, num_categories, 2);
-    // _analyse(net, joint._array[0]);
-    // return new cInformation(joint);
-    return 0;
+    // Entropies and mutual info
+    cInformation *info = new cInformation(world_ptr, 1, 1);
+    _analyse(net, info->_array[0]);
+    return info;
 }
 
 cInformation *cWCAnalyzer::analyse_collection(
     const cNetworkVector &networks)
 {
-    // cJointProbabilities joint(world, networks.size(), num_categories, 2);
-    //
-    // for (size_t i = 0; i < networks.size(); ++i)
-    //     _analyse(*networks[i], joint._array[i]);
-    // return new cInformation(joint);
-    return 0;
+    cInformation *info = new cInformation(world_ptr, networks.size(), 1);
+    for (size_t i = 0; i < networks.size(); ++i)
+        _analyse(*networks[i], info->_array[i]);
+    return info;
 }
 
-
-inline double cWCAnalyzer::similarity(const cRates &a, const cRates &b, double s)
+inline double cWCAnalyzer::_similarity(const cRates &a, const cRates &b)
 {
     // ASSUMES: rates are same size (at least b >= a)
     double dist = 0.0;
@@ -1044,15 +1042,15 @@ inline double cWCAnalyzer::similarity(const cRates &a, const cRates &b, double s
     else
         dist = sqrt(dist);
 
-    return exp(-fabs(dist) / s);
+    return exp(-fabs(dist) / weighting);
 }
 
 
-void cWCAnalyzer::_analyse(cNetwork &net)
+void cWCAnalyzer::_wiggle(cNetwork &net)
 {
-    double pr = 0.5 / (world.environments.size());
+    processing_index++;
 
-    // std::cout << "base prob " << pr << std::endl;
+    double pr = 0.5 / (world.environments.size());
 
     // Note the reversed order here (j, i); it is very expensive to recalculate
     // the attractors. So we do it as little as possible.
@@ -1083,12 +1081,6 @@ void cWCAnalyzer::_analyse(cNetwork &net)
     // everything.
     net.calc_attractors();
 
-    // Now take the env weighted average of all of these, and summarize them in
-    // the object that was passed.
-    // double p_env = 1.0 / net.rates.size();
-    // for (size_t i = 0; i < net.rates.size(); ++i)
-    //     for (size_t j = 0; j < world->reg_channels; ++j)
-    //         sub[j][0] += info[i][j] * p_env;
 }
 
 inline void cWCAnalyzer::_add_probability(const cRates &rate, 
@@ -1108,50 +1100,89 @@ inline cWCAnalyzer::RateDetail& cWCAnalyzer::_match(const cRates &rate)
     rate_detail_map_type::iterator iter = rate_detail_map.find(to_match);
     if (iter == rate_detail_map.end())
     {
+        // It is a new one. We need to initialize it and fill out the similarity metric.
         auto result = rate_detail_map.emplace(to_match, 
             RateDetail(rate_detail_map.size(), processing_index, world.reg_channels));
         iter = result.first;
         auto &new_detail = (*iter).second;
-        new_detail.similarity[0] = .55;
+        new_detail.similarity[0] = _similarity(to_match, target1);
+        new_detail.similarity[1] = _similarity(to_match, target2);
     }
     else
     {
         auto &detail = (*iter).second;
-        // Reset this if we're processing something new
+        // Reset everything to zero if we're processing something new
         if (detail.used_for != processing_index)
+        {
+            detail.used_for = processing_index;
             detail.probs = empty_probs;
+        }
     }
     return (*iter).second;
 }
 
-//
-//     bool match;
-//     int i = 0;
-//     for (; i < rates_found.size(); ++i)
-//     {
-//         match = true;
-//         auto &match_try = rates_found[i];
-//
-//         for (size_t j = 0; j < indexes.size(); ++j)
-//         {
-//             // If any of the rates don't match, then it is NOT a match. So we
-//             // can quit early.
-//             if (!is_close(rate[indexes[j]], match_try[j]))
-//             {
-//                 match = false;
-//                 break;
-//             }
-//         }
-//         if (match)
-//             return i;
-//     }
-//     return -1;
-// }
+void cWCAnalyzer::_analyse(cNetwork &net, info_array_type::reference sub)
+{
+    _wiggle(net);
+
+    // Construct the row marginals for each regulatory channel
+    off_on_vector_type row_sums(world.reg_channels, {{0.0, 0.0}});
+    for (auto &rate_detail : rate_detail_map)
+    {
+        auto &detail = rate_detail.second;
+        if (detail.used_for == processing_index)
+        {
+            for (size_t j = 0; j < world.reg_channels; ++j)
+            {
+                row_sums[j][0] += detail.probs[j][0];
+                row_sums[j][1] += detail.probs[j][1];
+            }
+        }
+    }
+
+    // Now constructed the two weighted info sums
+    off_on_vector_type info(world.reg_channels, {{0.0, 0.0}});
+    for (auto &rate_detail : rate_detail_map)
+    {
+        auto &detail = rate_detail.second;
+
+        // Only process currently used ones
+        if (detail.used_for == processing_index)
+        {
+            for (size_t j = 0; j < world.reg_channels; ++j)
+            {
+                // calculate the column sum
+                double colsum = detail.probs[j][0] + detail.probs[j][1];
+
+                // Calculate pointwise mutual info for the two rows 
+                for (size_t k = 0; k < 2; ++k)
+                {
+                    double denom = row_sums[j][k] * colsum;
+                    double val = detail.probs[j][k];
+                    if (not_zeroish(val) && not_zeroish(denom))
+                    {
+                        double pmi = val * log2(val / denom);
+
+                        // We want to use the opposite weights for each index...
+                        info[j][0] += pmi * detail.similarity[k % 2];
+                        info[j][1] += pmi * detail.similarity[(k + 1) % 2];
+                    }
+                }
+            }
+        }
+    }
+
+    for (size_t j = 0; j < world.reg_channels; ++j)
+    {
+        // Summarize info into something that we can return via numpy
+        sub[j][0] = std::max(info[j][0], info[j][1]);
+    }
+}
+
 
 cJointProbabilities *cWCAnalyzer::get_joint(cNetwork &net)
 {
-    // Mainly for testing
-    _analyse(net);
+    _wiggle(net);
 
     cJointProbabilities *joint =
         new cJointProbabilities(world_ptr,

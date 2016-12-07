@@ -215,7 +215,8 @@ struct cWCAnalyzer
     cWCAnalyzer(cWorld_ptr &world, 
                 const cIndexes &indexes,
                 const cRates &t1, 
-                const cRates &t2);
+                const cRates &t2,
+                double weighting);
 
     // Keep this around for general sizes
     const cWorld_ptr world_ptr;
@@ -228,6 +229,9 @@ struct cWCAnalyzer
 
     // What are the values of the targets?
     const cRates target1, target2;
+
+    // Weighting value 
+    double weighting;
 
     // What values have we found?
     cRatesVector rates_found;
@@ -265,8 +269,9 @@ struct cWCAnalyzer
 
     // The internal functions
     // void _calc_weightings();
-    inline double similarity(const cRates &a, const cRates &b, double s);
-    void _analyse(cNetwork &net);
+    void _analyse(cNetwork &net, info_array_type::reference sub);
+    inline double _similarity(const cRates &a, const cRates &b);
+    void _wiggle(cNetwork &net);
     inline void _add_probability(const cRates &rates, size_t gindex, size_t is_on, double pr);
     inline RateDetail& _match(const cRates &rates);
     // void _clear();
