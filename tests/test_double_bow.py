@@ -189,6 +189,5 @@ def test_cpp(net1):
 
     cat = get_joint(net1, range(4), [0, 0, 1, 1], [1, 1, 0, 0])
     j_p = cat.make_joint()
-
     assert j_c.shape == j_p.shape
     numpy.testing.assert_allclose(j_c, j_p)

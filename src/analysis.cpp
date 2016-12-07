@@ -1004,12 +1004,9 @@ cWCAnalyzer::cWCAnalyzer(cWorld_ptr &w,
     , indexes(ind)
     , target1(t1)
     , target2(t2)
+    , processing_index(0)
     , empty_probs(world.reg_channels, {{0.0, 0.0}})
 {
-    // off_on_type empty;
-    // empty[0] = 0.0;
-    // empty[1] = 0.0;
-    // std::fill_n(std::back_inserter(empty_probs), world.reg_channels, empty);
 }
 
 cInformation *cWCAnalyzer::analyse_network(
@@ -1097,52 +1094,59 @@ void cWCAnalyzer::_analyse(cNetwork &net)
 inline void cWCAnalyzer::_add_probability(const cRates &rate, 
                                           size_t gindex, size_t is_on, double pr)
 {
-    int found = _match(rate);
-
-    if (found < 0)
-    {
-        // Construct a rate that just contains what we are interested in
-        cRates matched;
-        for (size_t j = 0; j < indexes.size(); ++j)
-            matched.push_back(rate[indexes[j]]);
-
-        // Add a new entry.
-        rates_found.emplace_back(matched);
-        rates_probabilities.emplace_back(empty_probs);
-        rates_probabilities[rates_probabilities.size() - 1][gindex][is_on] = pr;
-    }
-    else
-    {
-        // Just update the existing entries
-        rates_probabilities[found][gindex][is_on] += pr;
-    }
+    RateDetail &found = _match(rate);
+    found.probs[gindex][is_on] += pr;
 }
 
 // Simple linear search
-inline int cWCAnalyzer::_match(const cRates &rate) const
+inline cWCAnalyzer::RateDetail& cWCAnalyzer::_match(const cRates &rate)
 {
-    bool match;
-    int i = 0;
-    for (; i < rates_found.size(); ++i)
-    {
-        match = true;
-        auto &match_try = rates_found[i];
+    cRates to_match;
+    for (size_t i = 0; i < indexes.size(); ++i)
+        to_match.push_back(rate[indexes[i]]);
 
-        for (size_t j = 0; j < indexes.size(); ++j)
-        {
-            // If any of the rates don't match, then it is NOT a match. So we
-            // can quit early.
-            if (!is_close(rate[indexes[j]], match_try[j]))
-            {
-                match = false;
-                break;
-            }
-        }
-        if (match)
-            return i;
+    rate_detail_map_type::iterator iter = rate_detail_map.find(to_match);
+    if (iter == rate_detail_map.end())
+    {
+        auto result = rate_detail_map.emplace(to_match, 
+            RateDetail(rate_detail_map.size(), processing_index, world.reg_channels));
+        iter = result.first;
+        auto &new_detail = (*iter).second;
+        new_detail.similarity[0] = .55;
     }
-    return -1;
+    else
+    {
+        auto &detail = (*iter).second;
+        // Reset this if we're processing something new
+        if (detail.used_for != processing_index)
+            detail.probs = empty_probs;
+    }
+    return (*iter).second;
 }
+
+//
+//     bool match;
+//     int i = 0;
+//     for (; i < rates_found.size(); ++i)
+//     {
+//         match = true;
+//         auto &match_try = rates_found[i];
+//
+//         for (size_t j = 0; j < indexes.size(); ++j)
+//         {
+//             // If any of the rates don't match, then it is NOT a match. So we
+//             // can quit early.
+//             if (!is_close(rate[indexes[j]], match_try[j]))
+//             {
+//                 match = false;
+//                 break;
+//             }
+//         }
+//         if (match)
+//             return i;
+//     }
+//     return -1;
+// }
 
 cJointProbabilities *cWCAnalyzer::get_joint(cNetwork &net)
 {
@@ -1153,14 +1157,18 @@ cJointProbabilities *cWCAnalyzer::get_joint(cNetwork &net)
         new cJointProbabilities(world_ptr,
                                 1,
                                 1,
-                                rates_found.size());
+                                rate_detail_map.size());
 
-    for (size_t i = 0; i < rates_found.size(); ++i)
+    for (auto &rate_detail : rate_detail_map)
     {
-        for (size_t j = 0; j < world.reg_channels; ++j)
+        auto &detail = rate_detail.second;
+        if (detail.used_for == processing_index)
         {
-            joint->_array[0][j][0][0][i] = rates_probabilities[i][j][0];
-            joint->_array[0][j][0][1][i] = rates_probabilities[i][j][1];
+            for (size_t j = 0; j < world.reg_channels; ++j)
+            {
+                joint->_array[0][j][0][0][detail.encountered] = detail.probs[j][0];
+                joint->_array[0][j][0][1][detail.encountered] = detail.probs[j][1];
+            }
         }
     }
 

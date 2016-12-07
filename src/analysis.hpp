@@ -232,17 +232,22 @@ struct cWCAnalyzer
     // What values have we found?
     cRatesVector rates_found;
 
+    size_t processing_index;
+
     // What probabilities do these rates have 
     typedef std::array<double, 2> off_on_type;
     typedef std::vector<off_on_type> off_on_vector_type;
+    off_on_vector_type empty_probs;
 
     struct RateDetail
     {
-        RateDetail(size_t idx, size_t sz) 
-            : used_for(idx)
+        RateDetail(size_t enc, size_t idx, size_t sz) 
+            : encountered(enc)
+            , used_for(idx)
             , probs(sz, {{0.0, 0.0}})
         {}
 
+        size_t encountered; // the order it was encountered
         size_t used_for; // indicates if it is in use for this index;
         off_on_vector_type probs; // OFF/ON per reg channel
         std::array<double, 2> similarity; // target1, target2
@@ -263,7 +268,7 @@ struct cWCAnalyzer
     inline double similarity(const cRates &a, const cRates &b, double s);
     void _analyse(cNetwork &net);
     inline void _add_probability(const cRates &rates, size_t gindex, size_t is_on, double pr);
-    inline int _match(const cRates &rates) const;
+    inline RateDetail& _match(const cRates &rates);
     // void _clear();
 
 };
