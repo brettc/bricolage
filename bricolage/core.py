@@ -48,8 +48,9 @@ class Parameters(object):
         self.trans_mutation_rate = 0.0
         self.duplication_rate = 0.0
         self.mutate_type = MutateType.JUMP
-        self.score_method = ScoringMethod.EXPONENTIAL_VEC
-        self.score_strength = .25
+        # No longer defaulted
+        # self.score_method = ScoringMethod.EXPONENTIAL_VEC
+        # self.score_strength = .25
         self.add_zeros = 0
         self.input_type = InputType.PULSE
         self.pulse_for = 1
@@ -73,7 +74,13 @@ class Parameters(object):
                 d['score_method'] = ScoringMethod.LINEAR
             if 'score_strength' not in d:
                 d['score_strength'] = 1.0
-            # if 'input_type' not in d:
+            if 'pulse_for' not in d:
+                d['pulse_for'] = 1
+            if 'score_method' in d:
+                del d['score_method']
+            if 'score_strength' in d:
+                del d['score_strength']
+
             d['input_type'] = InputType.PULSE
 
         if set(sdict.keys()) != set(odict.keys()):
