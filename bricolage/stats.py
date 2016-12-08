@@ -2,12 +2,16 @@
 """
 import logtools
 import numpy as np
-from .analysis_ext import (MutualInfoAnalyzer, OutputControlAnalyzer, RelevantControlAnalyzer)
+from .analysis_ext import (MutualInfoAnalyzer, 
+                           OutputControlAnalyzer, 
+                           RelevantControlAnalyzer, 
+                           WCAnalyzer)
 from .analysis import AverageControlAnalyzer
 from .lineage import FullLineage
 from .experimentdb import StatsGroupRecord, StatsRecord, StatsReplicateRecord
 from .neighbourhood import PopulationNeighbourhood
 from bricolage.experiment import Experiment
+import inspect
 
 log = logtools.get_logger()
 
@@ -23,7 +27,10 @@ class StatsVisitor(object):
         self.todo = set()
         # Make sure there are not repeats
         for kls in set(stats_classes):
-            k = kls()
+            if inspect.isclass(kls):
+                k = kls()
+            else:
+                k = kls
             # We need a tag attribute.
             assert hasattr(k, 'tag')
             self.todo.add(k)
@@ -193,6 +200,43 @@ class StatsRelevantControl(object):
             ('C_MEAN', reg_mean),
             ('C_MAX', rc.max()),
             ('C_MNMX', ameans.max()),
+        ])
+        return vals
+
+
+class StatsWeightedControl(object):
+    def __init__(self, tag, indexes, target1, target2, weighting):
+        self.tag = tag
+        self.indexes = indexes
+        self.target1 = target1
+        self.target2 = target2
+        self.weighting = weighting
+        self.analyzer = None
+
+    def init_lineage(self, rep, lin):
+        self.analyzer = WCAnalyzer(
+            lin.world, self.indexes, self.target1, self.target2, self.weighting)
+        self.regs = lin.params.reg_channels
+
+    def calc_stats(self, pop):
+        rc = self.analyzer.analyse_collection(pop)
+        assert not np.any(np.isnan(rc.ravel()))
+
+        # Summarize across the population
+        ameans = np.mean(rc, axis=0)
+
+        vals = []
+
+        # Record the mean of all information measures
+        regs = self.regs
+        for i, c in enumerate(range(regs)):
+            vals.append(('{}'.format(c + 1), ameans[i]))
+
+        reg_mean = ameans.mean(axis=0)
+        vals.extend([
+            ('MEAN', reg_mean),
+            ('MAX', rc.max()),
+            ('MNMX', ameans.max()),
         ])
         return vals
 

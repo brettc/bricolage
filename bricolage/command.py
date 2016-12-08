@@ -61,27 +61,27 @@ def run(overwrite, verbose, treatment, replicate):
                       only_replicate=the_rep)
 
 
-@bricolage.command()
-@every_
-@treatment_
-@replicate_
-@verbose_
-def stats(every, treatment, replicate, verbose):
-    """Gather statistics about the simulation"""
-    set_logging(verbose)
-
-    try:
-        the_t, the_rep = NS.experiment.find_matching(treatment, replicate)
-    except ExperimentError as e:
-        raise click.BadParameter(e.message)
-
-    visitor = StatsVisitor(NS.experiment,
-                           [StatsRelevantControl, StatsFitness,
-                            StatsMutualInformation, StatsBindings])
-    NS.experiment.visit_generations(visitor,
-                                    only_treatment=the_t,
-                                    only_replicate=the_rep,
-                                    every=every)
+# @bricolage.command()
+# @every_
+# @treatment_
+# @replicate_
+# @verbose_
+# def stats(every, treatment, replicate, verbose):
+#     """Gather statistics about the simulation"""
+#     set_logging(verbose)
+#
+#     try:
+#         the_t, the_rep = NS.experiment.find_matching(treatment, replicate)
+#     except ExperimentError as e:
+#         raise click.BadParameter(e.message)
+#
+#     visitor = StatsVisitor(NS.experiment,
+#                            [StatsRelevantControl, StatsFitness,
+#                             StatsMutualInformation, StatsBindings])
+#     NS.experiment.visit_generations(visitor,
+#                                     only_treatment=the_t,
+#                                     only_replicate=the_rep,
+#                                     every=every)
 
 
 @bricolage.command()
