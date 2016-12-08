@@ -191,14 +191,14 @@ struct cRelevantControlAnalyzer : public cBaseCausalAnalyzer
 };
 
 //---------------------------------------------------------------------------
-// New information measures that handle multiple categories
+// New information measures 
 //
 struct cMIAnalyzer
 {
     cMIAnalyzer(cWorld_ptr &world, const cIndexes &cats);
     cWorld_ptr world;
     cIndexes categories;
-    size_t num_categories;
+    // double p_cat[2]
 
     // Note you need to delete the return values from these!
     cInformation *analyse_network(cNetwork &net);

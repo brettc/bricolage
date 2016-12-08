@@ -938,14 +938,26 @@ void cRelevantControlAnalyzer::_analyse(cNetwork &net, info_array_type::referenc
 cMIAnalyzer::cMIAnalyzer(cWorld_ptr &w, const cIndexes &cats)
     : world(w)
     , categories(cats)
-    , num_categories(1 + *std::max_element(cats.begin(), cats.end()))
+    // , p_cat({{0.0, 0.0}})
 {
+    // double p_cat = 1.0 / (double)categories.size();
+    for (auto &c : categories)
+    {
+        if (c == 0)
+            ;
+            // p_cat[0] += p_cat;
+        else if (c == 1)
+            ;
+            // p_cat[1] += p_cat;
+        else
+            throw std::out_of_range("categories must be 0 or 1");
+    }
 }
 
 cInformation *cMIAnalyzer::analyse_network(
     cNetwork &net)
 {
-    cJointProbabilities joint(world, 1, num_categories, 2);
+    cJointProbabilities joint(world, 1, 1, 2);
     _analyse(net, joint._array[0]);
     return new cInformation(joint);
 }
@@ -953,7 +965,7 @@ cInformation *cMIAnalyzer::analyse_network(
 cInformation *cMIAnalyzer::analyse_collection(
     const cNetworkVector &networks)
 {
-    cJointProbabilities joint(world, networks.size(), num_categories, 2);
+    cJointProbabilities joint(world, networks.size(), 1, 2);
 
     for (size_t i = 0; i < networks.size(); ++i)
         _analyse(*networks[i], joint._array[i]);
@@ -971,24 +983,20 @@ void cMIAnalyzer::_analyse(
     {
         auto attrs = net.attractors[ei];
 
-        // Go through each category, making it "focal"
-        for (size_t fc = 0; fc < num_categories; ++fc)
+        // We categorise the environments into two cats, depending on
+        // whether they are the focal category or not.
+        size_t cat = categories[ei];
+        double p_event = normal_p_event / double(attrs.size());
+        for (auto &att : attrs)
         {
-            // We categorise the environments into two cats, depending on
-            // whether they are the focal category or not.
-            size_t cat = (categories[ei] == fc) ? 1: 0;
-            double p_event = normal_p_event / double(attrs.size());
-            for (auto &att : attrs)
+            // Each attractor state...
+            for (size_t ci = 0; ci < world->reg_channels; ++ci)
             {
-                // Each attractor state...
-                for (size_t ci = 0; ci < world->reg_channels; ++ci)
-                {
-                    // Is this gene on or off?
-                    size_t on_off = att.unchecked_test(reg_base + ci);
-                    // What information does this carry about the particular
-                    // category assigned to this environment
-                    sub[ci][fc][on_off][cat] += p_event;
-                }
+                // Is this gene on or off?
+                size_t on_off = att.unchecked_test(reg_base + ci);
+                // What information does this carry about the particular
+                // category assigned to this environment
+                sub[ci][0][on_off][cat] += p_event;
             }
         }
     }

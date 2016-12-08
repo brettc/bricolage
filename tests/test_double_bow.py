@@ -4,7 +4,7 @@
 import pytest
 # from math import log as logarithm
 from bricolage.core_ext import Collection
-from bricolage.analysis_ext import MIAnalyzer, WCAnalyzer
+from bricolage.analysis_ext import MIAnalyzer, WCAnalyzer, MutualInfoAnalyzer
 from bricolage.core import InterventionState
 from bricolage.dot_layout import DotMaker
 from bricolage.graph_draw import SmallDiagram, TextDiagram
@@ -237,3 +237,56 @@ def test_pop_info(small_pop):
         numpy.testing.assert_allclose(i_c, i_c_coll)
 
 
+def make_cats(world):
+    def fn1(a, b, c, d, e, f):
+        if (a and not b) or (b and not c):
+            return 1
+        return 0
+
+    def fn2(a, b, c, d, e, f):
+        if (d and not e) or (d and not f) or (not e and not f):
+            return 1
+        return 0
+
+    a, b =  world.cue_range
+    c1 = []
+    c2 = []
+
+    # Stolen from targets_ext.pyx
+    for i, e in enumerate(world.environments):
+        # TODO: Clean up the refs here
+        args = e.as_array()[a:b]
+        c1.append(fn1(*args))
+        c2.append(fn2(*args))
+
+    return c1, c2
+
+
+def test_mi(double_bow, net2):
+    # from bricolage.dot_layout import save_network_as_fullgraph
+    # from bricolage.graph_maker import GraphType
+    # p = three_database.population
+    t = double_bow.targets[0]
+    c1, c2 = make_cats(double_bow.world)
+    mi1 = MIAnalyzer(double_bow.world, c1)
+    mi2 = MIAnalyzer(double_bow.world, c2)
+    print mi1.analyse_network(net2)
+    print mi2.analyse_network(net2)
+
+    mi3 = MutualInfoAnalyzer(double_bow.world, c1)
+    print mi3.numpy_info_from_network(net2).ravel()
+    mi4 = MutualInfoAnalyzer(double_bow.world, c2)
+    print mi4.numpy_info_from_network(net2).ravel()
+
+    # print t.as_array()
+    # cats = t.calc_categories()
+    # print cats
+    # n = p.get_best()[0]
+    # print n.fitness
+    # print n.identifier
+    # save_network_as_fullgraph(n, graph_type=GraphType.GENE)
+    # print cats
+    # print calc_mutual_info(n, cats)
+    #
+    # cmi = MIAnalyzer(n.factory.world, cats)
+    # print cmi.numpy_info_from_network(n)

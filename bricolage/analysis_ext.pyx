@@ -330,8 +330,8 @@ cdef class MIAnalyzer:
 
         catset = set(list(categories))
         ncats = len(catset)
-        if ncats < 2:
-            raise ValueError("There must be at least two categories")
+        if ncats != 2:
+            raise ValueError("There must be only two categories")
 
         self._this = new cMIAnalyzer(w._shared, categories)
 
@@ -344,22 +344,18 @@ cdef class MIAnalyzer:
         cdef cInformation *c_info = NULL 
         c_info = self._this.analyse_network(deref(n._this))
         info.bind(c_info)
-        return info
+        i = numpy.asarray(info)
+        return i.ravel()
 
     def analyse_collection(self, CollectionBase coll):
         info = Information()
         cdef cInformation *c_info= NULL 
         c_info = self._this.analyse_collection(deref(coll._collection))
         info.bind(c_info)
-        return info
-
-    def numpy_info_from_network(self, Network n):
-        i = self.analyse_network(n)
-        return numpy.asarray(i)
-
-    def numpy_info_from_collection(self, CollectionBase coll):
-        i = self.analyse_collection(coll)
-        return numpy.asarray(i)
+        i = numpy.asarray(info)
+        sh = i.shape
+        i.shape = sh[0], sh[1]
+        return i
 
 
 cdef class WCAnalyzer:
