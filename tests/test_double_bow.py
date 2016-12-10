@@ -2,6 +2,7 @@
 """
 
 import pytest
+import itertools
 # from math import log as logarithm
 from bricolage.core_ext import Collection
 from bricolage.analysis_ext import MIAnalyzer, WCAnalyzer, MutualInfoAnalyzer
@@ -290,3 +291,21 @@ def test_mi(double_bow, net2):
     #
     # cmi = MIAnalyzer(n.factory.world, cats)
     # print cmi.numpy_info_from_network(n)
+
+
+def test_envs(double_bow):
+    """Test that we can create environments the same as the c++"""
+    # We have to reverse things to match the way we construct environments
+    p_envs = [_[::-1] for _ in itertools.product([0, 1], repeat=6)]
+
+    world = double_bow.world
+    a, b =  world.cue_range
+    c_envs = []
+    for i, e in enumerate(world.environments):
+        # TODO: Clean up the refs here
+        args = e.as_array()[a:b]
+        c_envs.append(tuple(args))
+
+    for a, b in zip(p_envs, c_envs):
+        assert a == b
+
