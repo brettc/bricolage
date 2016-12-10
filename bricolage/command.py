@@ -4,7 +4,7 @@ from logtools import set_logging, get_logger
 from bricolage.stats import (
     StatsFitness, StatsVisitor, StatsMutualInformation, StatsRelevantControl,
     StatsLag, StatsRobustness, StatsGenerations, StatsBindings,
-    StatsEnvironmental)
+    StatsEnvironmental, StatsFirstWinner)
 from experiment import ExperimentError
 from bricolage.graph_maker import GraphType
 
@@ -216,6 +216,22 @@ def env_robustness(verbose, treatment, replicate, every, only):
                                     every=every,
                                     only=only)
 
+@bricolage.command()
+@verbose_
+@treatment_
+@replicate_
+def first_winner(verbose, treatment, replicate):
+    set_logging(verbose)
+
+    try:
+        the_t, the_rep = NS.experiment.find_matching(treatment, replicate)
+    except ExperimentError as e:
+        raise click.BadParameter(e.message)
+
+    # First, let's find the first fitness
+    NS.experiment.visit_lineages(StatsFirstWinner(NS.experiment),
+                                 only_treatment=the_t,
+                                 only_replicate=the_rep)
 
 # def status(verbose):
 #     """Show status of experiment"""

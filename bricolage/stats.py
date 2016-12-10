@@ -5,7 +5,7 @@ import numpy as np
 from .analysis_ext import (MutualInfoAnalyzer, 
                            OutputControlAnalyzer, 
                            RelevantControlAnalyzer, 
-                           WCAnalyzer)
+                           WCAnalyzer, MIAnalyzer)
 from .analysis import AverageControlAnalyzer
 from .lineage import FullLineage
 from .experimentdb import StatsGroupRecord, StatsRecord, StatsReplicateRecord
@@ -535,3 +535,79 @@ class StatsGenerations(object):
 
         self.session.commit()
         log.pop()
+
+
+class StatsFirstWinner(object):
+    def __init__(self, experiment):
+        self.experiment = experiment
+        self.session = experiment.database.session
+        self.replicate = None
+        self.lineage = None
+        self.done = {}
+
+        self.first_winner = 'FIRST_WINNER'
+
+        # TODO: should only load relevant ones
+        for srep in self.session.query(StatsReplicateRecord).all():
+            self.done[(srep.treatment_id, srep.replicate_id, srep.kind)] = srep
+
+    def is_done(self, rep, kind):
+        return (rep.treatment.seq, rep.seq, kind) in self.done
+
+    def visit_lineage(self, rep, lin):
+        log.info("{}".format(rep)).push().add()
+
+        # Setup
+        self.replicate = rep
+        self.lineage = lin
+
+        # Analysis
+        if not self.is_done(rep, self.first_winner):
+            fgen = self.find_first_winner()
+            self.session.add(StatsReplicateRecord(rep, self.first_winner, fgen))
+
+        self.session.commit()
+        log.pop()
+
+    def find_first_winner(self):
+        first_win = None
+        for g in self.lineage._generations.where("best == 1.0"):
+            first_win = g['generation']
+            break
+
+        log.info("Found first winner at generation {}".format(first_win))
+        return first_win
+
+
+class StatsMI(object):
+    def __init__(self, tag, categories):
+        self.tag = tag
+        self.categories = categories
+        self.analyzer = None
+        self.regs = None
+
+    def init_lineage(self, rep, lin):
+        assert isinstance(lin, FullLineage)
+        # TODO: Should really use the target that is configured in the
+        # generations.
+        self.regs = lin.params.reg_channels
+        self.analyzer = MIAnalyzer(lin.world, self.categories)
+
+    def calc_stats(self, pop):
+        mi = self.analyzer.analyse_collection(pop)
+
+        # Summarize across the population
+        ameans = mi.mean(axis=0)
+
+        vals = []
+
+        # Record the mean of all information measures
+        regs = self.regs
+        for i, c in enumerate(range(regs)):
+            vals.append(('{}'.format(c + 1), ameans[i]))
+
+        vals.extend([
+            ('MEAN', ameans.mean()),
+            ('MAX', mi.max()),
+        ])
+        return vals
