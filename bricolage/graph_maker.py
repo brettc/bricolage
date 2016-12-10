@@ -143,11 +143,13 @@ class BaseGraph(object):
         except (AttributeError, KeyError):
             return ""
         else:
+            if not a:
+                return ""
             keys = a.keys()
             keys.sort()
-            return ", ".join(
-                ["{}:{}".format(k, round(a[k], 2))
-                 for k in keys])
+            return "[{}]".format(
+                ", ".join(["{}:{}".format(k, round(a[k], 2))
+                 for k in keys]))
 
 
 class FullGraph(BaseGraph):
@@ -185,7 +187,7 @@ class GeneSignalGraph(FullGraph):
         gene = self.network.genes[i]
         equation = text_for_gene(gene)
         ann = self.format_annotations(i)
-        return "{} : {} [{}]".format(glabel, equation, ann)
+        return "{} : {} {}".format(glabel, equation, ann)
 
 
 class GeneGraph(GeneSignalGraph):
@@ -198,7 +200,7 @@ class GeneGraph(GeneSignalGraph):
         equation = text_for_gene(g)
         w = self.network.factory.world
         ann = self.format_annotations(i)
-        return "{} => {} [{}]".format(equation, w.name_for_channel(g.pub), ann)
+        return "{} => {} {}".format(equation, w.name_for_channel(g.pub), ann)
 
 
 class SignalFlowGraph(FullGraph):
