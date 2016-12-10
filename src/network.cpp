@@ -92,6 +92,7 @@ void cNetwork::stabilise(const cAttractor &external,
     size_t attractor_begins_at;
     bool found;
 
+    // This is a bit repetitive
     for (;;)
     {
         // Update the current state.
