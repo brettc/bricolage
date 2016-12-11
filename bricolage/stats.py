@@ -580,18 +580,21 @@ class StatsFirstWinner(object):
 
 
 class StatsMI(object):
-    def __init__(self, tag, categories):
+    def __init__(self, tag, indexes, target_num=0):
         self.tag = tag
-        self.categories = categories
+        self.target_num = target_num
+        self.indexes = indexes
         self.analyzer = None
         self.regs = None
 
     def init_lineage(self, rep, lin):
         assert isinstance(lin, FullLineage)
-        # TODO: Should really use the target that is configured in the
-        # generations.
+
         self.regs = lin.params.reg_channels
-        self.analyzer = MIAnalyzer(lin.world, self.categories)
+        target = lin.targets[self.target_num]
+        categories = target.calc_categories(self.indexes)
+        assert set(categories) == set([0, 1])
+        self.analyzer = MIAnalyzer(lin.world, categories)
 
     def calc_stats(self, pop):
         mi = self.analyzer.analyse_collection(pop)
