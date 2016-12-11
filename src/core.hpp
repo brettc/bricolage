@@ -125,6 +125,7 @@ public:
 
     // Once all the values are in place we call this
     cAttractor environments;
+    cAttractorSet inputs;
 
     // Randomising stuff
     random_engine_t rand;

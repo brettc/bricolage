@@ -92,7 +92,13 @@ void cWorld::init_environments()
         // Turn on bias channel
         c.unchecked_set(on_channel);
         environments.push_back(c);
+
+        // Need to construct the pulse for
+        cAttractor input;
+        std::fill_n(std::back_inserter(input), pulse_for, c);
+        inputs.push_back(input);
     }
+
 }
 
 std::string cWorld::get_random_state()

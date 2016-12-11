@@ -47,11 +47,8 @@ void cNetwork::_calc_attractors(bool intervention)
     attractors.clear();
     rates.clear();
 
-    cAttractor external;
-    std::fill_n(std::back_inserter(external), world->pulse_for, world->environments[0]);
-
     // Go through each environment.
-    for (auto &env : world->environments)
+    for (auto const &external : world->inputs)
     {
         // Set the state to current environment, and set it as the start of the
         // path to the attractor.
@@ -63,7 +60,6 @@ void cNetwork::_calc_attractors(bool intervention)
         transients.emplace_back();
         cAttractor &this_trans = transients.back();
 
-        std::fill_n(external.begin(), world->pulse_for, env);
         stabilise(external, intervention, this_attr, this_trans, this_rate);
     }
 }
