@@ -182,43 +182,43 @@ def get_relevant_control(net, targets):
     return info.mean(axis=1)
 
 
-def test_1(three_database):
-    from bricolage.dot_layout import save_network_as_fullgraph
-    from bricolage.graph_maker import GraphType
-    p = three_database.population
-    t = three_database.targets[0]
-    cats = t.calc_categories()
-    n = p.get_best()[0]
-    print n.fitness
-    print n.identifier
-    save_network_as_fullgraph(n, graph_type=GraphType.GENE)
-    print cats
-    print calc_mutual_info(n, cats)
-
-    cmi = MIAnalyzer(n.factory.world, cats)
-    print cmi.numpy_info_from_network(n)
+# def test_1(three_database):
+#     from bricolage.dot_layout import save_network_as_fullgraph
+#     from bricolage.graph_maker import GraphType
+#     p = three_database.population
+#     t = three_database.targets[0]
+#     cats = t.calc_categories()
+#     n = p.get_best()[0]
+#     print n.fitness
+#     print n.identifier
+#     save_network_as_fullgraph(n, graph_type=GraphType.GENE)
+#     print cats
+#     print calc_mutual_info(n, cats)
+#
+#     cmi = MIAnalyzer(n.factory.world, cats)
+#     print cmi.numpy_info_from_network(n)
 
     # targs = t.calc_distinct_outputs() 
     # rc = get_relevant_control(n, targs)
     # print rc
 
-def test_3(three_database):
-    p = three_database.population
-    n = p.get_best()[1]
-    print n.fitness
-    print n.attractor_robustness
-    print n.rates
-    print n.attractors[-1]
-    # n.genes[1].intervene = InterventionState.INTERVENE_ON
-    n.genes[5].intervene = InterventionState.INTERVENE_OFF
-    print n.rates
-    print n.attractors[-1]
+# def test_3(three_database):
+#     p = three_database.population
+#     n = p.get_best()[1]
+#     print n.fitness
+#     print n.attractor_robustness
+#     print n.rates
+#     print n.attractors[-1]
+#     # n.genes[1].intervene = InterventionState.INTERVENE_ON
+#     n.genes[5].intervene = InterventionState.INTERVENE_OFF
+#     print n.rates
+#     print n.attractors[-1]
 
 
-def test_2(three_database):
-    p = three_database.population
-    t = three_database.targets[0]
-    n = p.get_best()[0]
-    cats = t.calc_categories()
-    calc_mutual_info(n, cats)
-
+# def test_3(three_database):
+#     p = three_database.population
+#     t = three_database.targets[0]
+#     n = p.get_best()[0]
+#     cats = t.calc_categories()
+#     calc_mutual_info(n, cats)
+#
