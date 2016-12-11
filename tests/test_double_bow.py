@@ -309,3 +309,15 @@ def test_envs(double_bow):
     for a, b in zip(p_envs, c_envs):
         assert a == b
 
+def test_categories(double_bow):
+    """See if we can recover the indexes of environments
+    """
+    targ = double_bow.targets[0]
+    t = targ.calc_categories(range(4))
+    assert len(set(t)) == 2
+    t = targ.calc_categories(range(4, 8))
+    assert len(set(t)) == 2
+    t = targ.calc_categories()
+    assert len(set(t)) == 4
+
+

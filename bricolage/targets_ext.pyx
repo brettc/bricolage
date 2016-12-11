@@ -71,13 +71,18 @@ cdef class BaseTarget:
         def __set__(self, double s):
             self._base.strength = s
 
-    def calc_categories(self):
-        """Categorise the targets"""
+    def calc_categories(self, indexes=None):
+        """Categorise the targets based on subset of outputs"""
         cat_dict = {}
         cats = []
         cat_n = 0
+        arr = self.as_array()
+        if indexes is None:
+            indexes = numpy.asarray(range(len(arr[0])))
+
         for et in self.as_array():
-            et = tuple(et)
+            et = tuple(et[indexes])
+            assert len(et) == len(indexes)
             if et in cat_dict:
                 cats.append(cat_dict[et])
             else:
