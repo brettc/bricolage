@@ -270,6 +270,12 @@ cdef class Factory:
         def __set__(self, cIndexes ch):
             self._this.set_draw_from_regs(ch)
 
+    property gene_count:
+        def __get__(self):
+            return self._this.gene_count
+    property module_count:
+        def __get__(self):
+            return self._this.module_count
 
 def _construct_network(Factory factory, array):
     c = Collection(factory)
@@ -685,6 +691,42 @@ cdef class CollectionBase:
             c_robustness[i] = deref(self._collection)[i].get().attractor_robustness()
 
         return robustness
+
+    def active_cis(self):
+
+        cdef:
+            cFactory *fact = self.factory._this
+
+        mod_count = fact.gene_count * fact.module_count
+        bindings = numpy.zeros((mod_count), dtype=float)
+
+        cdef:
+            size_t i, offset #, gene_id, cis_id, module_id
+            np.npy_double[:] c_bindings = bindings
+            Edge_t edge 
+            cEdgeList edges
+            std_set[Edge_t].iterator edges_iter
+            cNetworkAnalysis *analysis
+
+        for i in range(self._collection.size()):
+            # TODO: make this more sensible 
+            analysis = new cNetworkAnalysis(deref(self._collection)[i])
+            analysis.make_active_edges(edges)
+            edges_iter = edges.begin()
+            while edges_iter != edges.end():
+                edge = deref(edges_iter)
+                if edge.second.first == NT_MODULE:
+                    module_id = edge.second.second
+                    gene_id = (0xff00 & module_id) >> 8
+                    cis_id = 0xff & module_id
+                    offset = gene_id * fact.module_count + cis_id
+                    c_bindings[offset] += 1.0
+                preinc(edges_iter)
+
+
+            del analysis
+
+        return bindings / self._collection.size()
 
 
 cdef class Collection(CollectionBase):

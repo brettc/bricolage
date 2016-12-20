@@ -4,9 +4,16 @@ from core cimport *
 
 cdef extern from "<src/analysis.hpp>" namespace "bricolage":
 
+    cdef enum NodeType:
+        NT_GENE = 0
+        NT_MODULE = 1
+        NT_CHANNEL = 2
+
     ctypedef pair[char, size_t] Node_t
     ctypedef pair[Node_t, Node_t] Edge_t
     ctypedef std_set[Edge_t] cEdgeList
+
+    size_t encode_module_id(size_t i, size_t j)
 
     cdef cppclass cNetworkAnalysis:
         cNetworkAnalysis(const cNetwork_ptr &n)

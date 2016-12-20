@@ -1,5 +1,7 @@
+import numpy
 from bricolage.analysis import NetworkAnalysis, AverageControlAnalyzer
-from bricolage import dot_layout
+from bricolage.graph_maker import encode_module_id, decode_module_id, NodeType
+# from bricolage import dot_layout
 
 
 def get_max_bindings(net):
@@ -54,4 +56,32 @@ def test_analysis_control(bowtie_database):
     info.control.mean(axis=0)
     info.entropy.mean(axis=0)
     print info.with_control
+
+
+def test_module_id_encoding():
+    for i in range(10):
+        for j in range(3):
+            x = encode_module_id(i, j)
+            di, dj = decode_module_id(x)
+            assert i == di
+            assert j == dj
+
+
+def test_active_cis(bowtie_database):
+    pop = bowtie_database.population
+    c_arr = pop.active_cis()
+
+    cis_size = pop.factory.gene_count * pop.factory.module_count
+    p_arr = numpy.zeros(cis_size, float)
+
+    for net in pop:
+        ana = NetworkAnalysis(net)
+        for (et1, en1), (et2, en2) in ana.get_active_edges():
+            if et2 == NodeType.MODULE:
+                g, c = decode_module_id(en2)
+                p_arr[g * pop.factory.module_count + c] += 1.0
+
+    p_arr /= pop.size
+
+    numpy.testing.assert_allclose(p_arr, c_arr)
 

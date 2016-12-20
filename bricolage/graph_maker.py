@@ -31,7 +31,7 @@ def decode_module_id(module_id):
     return (0xff00 & module_id) >> 8, 0xff & module_id
 
 
-def _encode_module_id(gene_id, module_id):
+def encode_module_id(gene_id, module_id):
     return gene_id << 8 | module_id
 
 
@@ -110,7 +110,7 @@ class BaseGraph(object):
         ntype = self._ntype_lookup[name[:1]]
         if ntype == NodeType.MODULE:
             gindex, mindex = map(int, name[1:].split("-"))
-            nindex = _encode_module_id(gindex, mindex)
+            nindex = encode_module_id(gindex, mindex)
         else:
             nindex = int(name[1:])
         return ntype, nindex
