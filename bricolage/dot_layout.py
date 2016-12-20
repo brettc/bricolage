@@ -2,7 +2,7 @@ import pathlib
 from pygraphviz import AGraph
 from pyx_drawing import Diagram
 from bricolage.graph_maker import (NodeType, BaseGraph, GraphType,
-                                   _decode_module_id, get_graph_by_type)
+                                   decode_module_id, get_graph_by_type)
 from analysis import NetworkAnalysis
 
 _dot_default_args = '-Nfontname="Helvetica-8"'
@@ -205,7 +205,7 @@ class DotDiagram(Diagram):
             self.add_object(shape, zorder=2)
 
         elif ntype == NodeType.MODULE:
-            gi, mi = _decode_module_id(ident)
+            gi, mi = decode_module_id(ident)
             mod = self.graph.network.genes[gi].modules[mi]
             shape = self.get_module_shape(px, py, mod)
             self.add_object(shape, zorder=2)

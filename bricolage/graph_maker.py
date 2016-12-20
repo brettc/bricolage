@@ -27,7 +27,7 @@ class ChannelType(IntEnum):
 
 
 # NOTE: Should mirror "encode_module_id" in pubsub2_c.h
-def _decode_module_id(module_id):
+def decode_module_id(module_id):
     return (0xff00 & module_id) >> 8, 0xff & module_id
 
 
@@ -91,7 +91,7 @@ class BaseGraph(object):
         if ntype == NodeType.GENE:
             return "G{}".format(nindex)
         elif ntype == NodeType.MODULE:
-            gindex, mindex = _decode_module_id(nindex)
+            gindex, mindex = decode_module_id(nindex)
             return "M{}-{}".format(gindex, mindex)
         elif ntype == NodeType.CHANNEL:
             return "C{}".format(nindex)
