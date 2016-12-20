@@ -37,6 +37,13 @@ treatment_ = click.option('--treatment', default=-1,
 replicate_ = click.option('--replicate', default=-1,
                           help="Filter replicates by number.")
 
+def composed(*decs):
+    def deco(f):
+        for dec in reversed(decs):
+            f = dec(f)
+        return f
+
+stats_ = composed(verbose_, treatment_, replicate_, every_, only_)
 
 @bricolage.command()
 @verbose_
