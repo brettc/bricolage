@@ -614,3 +614,42 @@ class StatsMI(object):
             ('MAX', mi.max()),
         ])
         return vals
+
+
+class StatsMaster(object):
+    """Work out how many master genes there are"""
+    def __init__(self, tag, indexes, target1, target2, weighting, target_num=0):
+        self.tag = tag
+        self.indexes = indexes
+        self.target1 = target1
+        self.target2 = target2
+        self.weighting = weighting
+        self.target_num = target_num
+        self.r_analyzer = None
+        self.m_analyzer = None
+
+    def init_lineage(self, rep, lin):
+        self.r_analyzer = WCAnalyzer(
+            lin.world, self.indexes, self.target1, self.target2, self.weighting)
+        target = lin.targets[self.target_num]
+        categories = target.calc_categories(self.indexes)
+        self.m_analyzer = MIAnalyzer(lin.world, categories)
+        self.regs = lin.params.reg_channels
+
+    def calc_stats(self, pop):
+        rc = self.r_analyzer.analyse_collection(pop)
+        assert not np.any(np.isnan(rc.ravel()))
+        mi = self.m_analyzer.analyse_collection(pop)
+
+        res = ((rc == 1.0) & (mi == 1.0)).sum(axis=1)
+        res = res >= 1
+
+        master = res.sum()
+        res = res & (pop.fitnesses == 1.0)
+        fit_master = res.sum()
+
+        vals = [
+            ('MASTER', master),
+            ('FIT_MASTER', fit_master),
+        ]
+        return vals
