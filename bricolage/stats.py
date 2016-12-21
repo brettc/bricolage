@@ -653,3 +653,17 @@ class StatsMaster(object):
             ('FIT_MASTER', fit_master),
         ]
         return vals
+
+
+class StatsCisInDegree(object):
+    tag = "CIS"
+
+    def __init__(self):
+        pass
+
+    def init_lineage(self, rep, lin):
+        pass
+
+    def calc_stats(self, pop):
+        cis = pop.active_cis()
+        return [("{:02d}".format(i), n) for (i, n) in enumerate(cis)]
