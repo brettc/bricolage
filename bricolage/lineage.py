@@ -393,6 +393,17 @@ class FullLineage(BaseLineage):
         self.factory.from_numpy(arr, temp)
         return temp[0]
 
+    def first_winning_generation(self):
+        for g in self._h5.root.generations.where("best == 1.0"):
+            return g['generation']
+        return None
+
+        # bests = self._h5.root.generations.cols.best[:]
+        # indexes = numpy.where(bests == 1.0)[]
+        # if indexes.size():
+        #     return indexes[0]
+        # return None
+
     def _check_integrity(self):
         num_networks = len(self._networks)
 
