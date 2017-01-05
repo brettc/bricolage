@@ -667,3 +667,71 @@ class StatsCisInDegree(object):
     def calc_stats(self, pop):
         cis = pop.active_cis()
         return [("{:02d}".format(i), n) for (i, n) in enumerate(cis)]
+
+
+class StatsFirstMaster(object):
+    """Work out how many master genes there are"""
+    def __init__(self, experiment, tag, indexes, target1, target2, weighting, target_num=0):
+        self.session = experiment.database.session
+        self.tag = tag
+        self.indexes = indexes
+        self.target1 = target1
+        self.target2 = target2
+        self.weighting = weighting
+        self.target_num = target_num
+
+        self.first_master = self.tag + "_FIRST_MASTER"
+        self.r_analyzer = None
+        self.m_analyzer = None
+        self.replicate = None
+        self.done = {}
+
+        # TODO: should only load relevant ones
+        for srep in self.session.query(StatsReplicateRecord).all():
+            self.done[(srep.treatment_id, srep.replicate_id, srep.kind)] = srep
+
+    def is_done(self, rep, kind):
+        return (rep.treatment.seq, rep.seq, kind) in self.done
+
+    def visit_lineage(self, rep, lin):
+        self.replicate = rep
+        log.info("{}".format(rep)).push().add()
+        if not self.is_done(rep, self.first_master):
+            fgen = self.find_first_master(lin)
+            self.session.add(StatsReplicateRecord(rep, self.first_master, fgen))
+            self.session.commit()
+        log.pop()
+
+    def find_first_master(self, lin):
+        self.r_analyzer = WCAnalyzer(
+            lin.world, self.indexes, self.target1, self.target2, self.weighting)
+        target = lin.targets[self.target_num]
+        categories = target.calc_categories(self.indexes)
+        self.m_analyzer = MIAnalyzer(lin.world, categories)
+
+        # Is there any in the last population?
+        last_pop_i = self.master_indexes(lin.population)
+        if len(last_pop_i) == 0:
+            log.info("No Master")
+            return None
+
+        log.info("Found master in final pop, loading ancestry")
+
+        net = lin.population[last_pop_i[0]]
+
+        # Load the lineage
+        anc = lin.get_ancestry(net.identifier)
+        log.info("Ancestry size is {}".format(anc.size))
+        anc_i = self.master_indexes(anc)
+        first_master = anc[anc_i[0]]
+        log.info("Master at {}".format(first_master.generation))
+        target.assess_collection(anc)
+        self.replicate.draw_net('first-control', first_master, target=target)
+        return first_master.generation
+
+    def master_indexes(self, coll):
+        rc = self.r_analyzer.analyse_collection(coll)
+        mi = self.m_analyzer.analyse_collection(coll)
+
+        res = ((rc == 1.0) & (mi == 1.0)).sum(axis=1)
+        return np.where(res >= 1)[0]
