@@ -363,7 +363,7 @@ cdef class WCAnalyzer:
         self.world = w
         assert ind.size() == t1.size() == t2.size()
         for i in ind:
-            assert 0 <= i < w.reg_channels
+            assert 0 <= i < w.out_channels
 
         self._this = new cWCAnalyzer(w._shared, ind, t1, t2, weighting)
 
