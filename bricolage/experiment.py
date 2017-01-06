@@ -437,7 +437,12 @@ class Experiment(object):
                     continue
 
                 with rep.get_lineage() as lin:
-                    visitor.visit_lineage(rep, lin)
+                    # Check for list of visitors
+                    try:
+                        for v in visitor:
+                            v.visit_lineage(rep, lin)
+                    except TypeError:
+                        visitor.visit_lineage(rep, lin)
 
     def visit_generations(self, visitor, every=1, only=None,
                           only_treatment=None,
