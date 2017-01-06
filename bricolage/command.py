@@ -129,7 +129,8 @@ class DrawVisitor(object):
 @treatment_
 @replicate_
 @verbose_
-def draw(every, treatment, replicate, verbose):
+@only_
+def draw(every, treatment, replicate, verbose, only):
     """Draw graphs of the best networks."""
     try:
         the_t, the_rep = NS.experiment.find_matching(treatment, replicate)
@@ -139,7 +140,8 @@ def draw(every, treatment, replicate, verbose):
     NS.experiment.visit_generations(DrawVisitor(),
                                     only_treatment=the_t,
                                     only_replicate=the_rep,
-                                    every=every)
+                                    every=every,
+                                    only=only)
 
 
 @bricolage.command()
