@@ -538,14 +538,16 @@ class StatsGenerations(object):
 
 
 class StatsFirstWinner(object):
-    def __init__(self, experiment):
+    def __init__(self, experiment, length=25):
         self.experiment = experiment
         self.session = experiment.database.session
         self.replicate = None
         self.lineage = None
         self.done = {}
+        self.length = length
 
         self.first_winner = 'FIRST_WINNER'
+        self.first_streak = 'FIRST_STREAK'
 
         # TODO: should only load relevant ones
         for srep in self.session.query(StatsReplicateRecord).all():
@@ -563,20 +565,17 @@ class StatsFirstWinner(object):
 
         # Analysis
         if not self.is_done(rep, self.first_winner):
-            fgen = self.find_first_winner()
+            fgen = lin.first_winning_generation()
+            log.info("Found first winner at generation {}".format(fgen))
             self.session.add(StatsReplicateRecord(rep, self.first_winner, fgen))
+
+        if not self.is_done(rep, self.first_streak):
+            fgen = lin.first_winning_streak(self.length)
+            log.info("Found first streak at generation {}".format(fgen))
+            self.session.add(StatsReplicateRecord(rep, self.first_streak, fgen))
 
         self.session.commit()
         log.pop()
-
-    def find_first_winner(self):
-        first_win = None
-        for g in self.lineage._generations.where("best == 1.0"):
-            first_win = g['generation']
-            break
-
-        log.info("Found first winner at generation {}".format(first_win))
-        return first_win
 
 
 class StatsMI(object):

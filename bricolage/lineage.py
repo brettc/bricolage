@@ -2,8 +2,9 @@ import logtools
 import numpy
 import pathlib
 import tables
+import pandas as pd
+import numpy as np
 from . import core_ext
-from core import ScoringMethod
 
 log = logtools.get_logger()
 
@@ -398,11 +399,20 @@ class FullLineage(BaseLineage):
             return g['generation']
         return None
 
-        # bests = self._h5.root.generations.cols.best[:]
-        # indexes = numpy.where(bests == 1.0)[]
-        # if indexes.size():
-        #     return indexes[0]
-        # return None
+    def first_winning_streak(self, length):
+        bests = pd.Series(self._h5.root.generations.cols.best[:])
+
+        # The sum of the window where everything is 1.0
+        streaks = np.where((bests.rolling(length, win_type='boxcar').sum()) == length)[0]
+        if len(streaks) == 0:
+            return None
+
+        # Get the beginning of the streak
+        gen = streaks[0] - (length - 1)
+        assert bests.values[gen] == 1.0
+        if gen != 0:
+            assert bests.values[gen - 1] != 1.0
+        return gen
 
     def _check_integrity(self):
         num_networks = len(self._networks)
