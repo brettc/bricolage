@@ -11,6 +11,8 @@ from .lineage import FullLineage
 from .experimentdb import StatsGroupRecord, StatsRecord, StatsReplicateRecord
 from .neighbourhood import PopulationNeighbourhood
 from bricolage.experiment import Experiment
+from bricolage.graph_maker import SignalFlowGraph
+from bricolage.analysis_ext import NetworkAnalysis
 import inspect
 
 log = logtools.get_logger()
@@ -666,6 +668,36 @@ class StatsCisInDegree(object):
     def calc_stats(self, pop):
         cis = pop.active_cis()
         return [("{:02d}".format(i), n) for (i, n) in enumerate(cis)]
+
+
+class StatsBowtie(object):
+    tag = "CUT"
+
+    def __init__(self, target_num=0):
+        self.target_num = target_num
+
+    def init_lineage(self, rep, lin):
+        self.target = lin.targets[self.target_num]
+
+    def calc_stats(self, pop):
+        # Get the fitnesses
+        self.target.assess_collection(pop)
+
+        bowties = 0
+        for net in pop:
+            if net.fitness != 1.0:
+                continue
+
+            ana = NetworkAnalysis(net)
+            fg = SignalFlowGraph(ana)
+            try:
+                if len(fg.minimum_cut()) == 1:
+                    bowties += 1
+            except:
+                pass
+        
+        log.info("Successful Bowties: {}".format(bowties))
+        return [("1", bowties)]
 
 
 class StatsFirstMaster(object):
