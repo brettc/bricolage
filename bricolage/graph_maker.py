@@ -215,9 +215,13 @@ class SignalFlowGraph(FullGraph):
         for n in inp_nodes:
             gr.add_edge(self.begin_node, n)
 
+        self.n_inp_nodes = len(inp_nodes)
+
         out_nodes = [n for n in gr.nodes_iter() if self.is_output(n)]
         for n in out_nodes:
             gr.add_edge(n, self.end_node)
+
+        self.n_out_nodes = len(out_nodes)
 
         # Now remove the other stuff
         self.remove_nodes(NodeType.MODULE)
@@ -226,12 +230,31 @@ class SignalFlowGraph(FullGraph):
         # We've replaced the outside channels with the begin/end nodes
         self.remove_nodes(NodeType.CHANNEL, external_only=True)
 
+    def has_bowtie(self):
+        # First figure out whether all inputs and outputs are there
+        max_in = self.analysis.network.factory.world.cue_channels
+        max_out = self.analysis.network.factory.world.out_channels
+
+        if self.n_inp_nodes < max_in:
+            return False
+        if self.n_out_nodes < max_out:
+            return False
+
+        cut = self.minimum_cut()
+        if len(cut) > 1:
+            return False
+
+        return True
+
+
     def minimum_cut(self):
         # Sometimes begin nodes may not even be in the graph!
         if self.begin_node not in self.nx_graph.nodes():
             return None
         return nx.minimum_node_cut(
             self.nx_graph, self.begin_node, self.end_node)
+
+
 
 
 _type_map = {
