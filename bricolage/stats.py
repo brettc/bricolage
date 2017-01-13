@@ -626,32 +626,54 @@ class StatsMaster(object):
         self.target2 = target2
         self.weighting = weighting
         self.target_num = target_num
+        self.target = None
         self.r_analyzer = None
         self.m_analyzer = None
 
     def init_lineage(self, rep, lin):
         self.r_analyzer = WCAnalyzer(
             lin.world, self.indexes, self.target1, self.target2, self.weighting)
-        target = lin.targets[self.target_num]
-        categories = target.calc_categories(self.indexes)
+        self.target = lin.targets[self.target_num]
+        categories = self.target.calc_categories(self.indexes)
         self.m_analyzer = MIAnalyzer(lin.world, categories)
         self.regs = lin.params.reg_channels
 
     def calc_stats(self, pop):
+        # Get the fitnesses
+        self.target.assess_collection(pop)
+        fits = pop.fitnesses
+
+        # Analyse
         rc = self.r_analyzer.analyse_collection(pop)
-        assert not np.any(np.isnan(rc.ravel()))
         mi = self.m_analyzer.analyse_collection(pop)
 
-        res = ((rc == 1.0) & (mi == 1.0)).sum(axis=1)
-        res = res >= 1
+        def any_true_for_net(bool_arr):
+            # Is anything true?
+            return bool_arr.sum(axis=1) >= 1
 
-        master = res.sum()
-        res = res & (pop.fitnesses == 1.0)
-        fit_master = res.sum()
+        def freq(bool_arr):
+            return bool_arr.sum() / float(pop.size)
+
+        has_info = (mi == 1.0)
+        has_control = (rc == 1.0)
+
+        # Look at what is going on in combinations
+        nets_fit = (fits == 1.0)
+        nets_with_info = any_true_for_net(has_info)
+        nets_with_control = any_true_for_net(has_control)
+        nets_with_master = any_true_for_net(has_info & has_control)
+        nets_fit_master = (nets_fit & nets_with_master)
+        nets_fit_info = (nets_with_info & nets_fit)
+        nets_fit_control = (nets_with_control & nets_fit)
 
         vals = [
-            ('MASTER', master),
-            ('FIT_MASTER', fit_master),
+            ('FIT', freq(nets_fit)),
+            ('INFO', freq(nets_with_info)),
+            ('CONTROL', freq(nets_with_control)),
+            ('MASTER', freq(nets_with_master)),
+            ('FIT_MASTER', freq(nets_fit_master)),
+            ('FIT_INFO', freq(nets_fit_info)),
+            ('FIT_CONTROL', freq(nets_fit_control)),
         ]
         return vals
 
@@ -671,7 +693,7 @@ class StatsCisInDegree(object):
 
 
 class StatsBowtie(object):
-    tag = "CUT"
+    tag = "BOW"
 
     def __init__(self, target_num=0):
         self.target_num = target_num
@@ -684,20 +706,20 @@ class StatsBowtie(object):
         self.target.assess_collection(pop)
 
         bowties = 0
+        fit_bowties = 0
         for net in pop:
-            if net.fitness != 1.0:
-                continue
-
             ana = NetworkAnalysis(net)
             fg = SignalFlowGraph(ana)
-            try:
-                if len(fg.minimum_cut()) == 1:
-                    bowties += 1
-            except:
-                pass
+            if fg.has_bowtie():
+                bowties += 1
+                if net.fitness == 1.0:
+                    fit_bowties += 1
         
-        log.info("Successful Bowties: {}".format(bowties))
-        return [("1", bowties)]
+        log.info("Successful Bowties: {} - fit {}".format(bowties, fit_bowties))
+        return [
+            ("PROB", bowties / float(pop.size)),
+            ("FIT_PROB", fit_bowties / float(pop.size)),
+        ]
 
 
 class StatsFirstMaster(object):
