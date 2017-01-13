@@ -14,12 +14,14 @@ class TreatmentRecord(SQLBase):
     __tablename__ = 'treatment'
     treatment_id = Column(Integer, primary_key=True)
     name = Column(String(30))
+    # seed = Column(Integer)
     replicates = relationship("ReplicateRecord", cascade="all, delete-orphan",
                               backref='treatment')
 
     def __init__(self, t):
         self.treatment_id = t.seq
         self.name = t.name
+        # self.seed = t.seed
 
     def __str__(self):
         return "Treatment:{0.treatment_id:03d}, {0.name:}".format(self)

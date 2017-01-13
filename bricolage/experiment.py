@@ -219,13 +219,13 @@ class Replicate(object):
 class Treatment(object):
     """Replicate a set of experiments into different folders"""
 
-    def __init__(self, name, params, count):
+    def __init__(self, name, params, count, seed=None):
         self.name = name
         self.params = params
         self.count = count
         self.experiment = None
         self.seq = None
-        self.seed = None
+        self.seed = seed
         self.rng = None
         self.replicates = None
 
@@ -233,7 +233,8 @@ class Treatment(object):
         assert self.experiment is None
         self.experiment = experiment
         self.seq = experiment.get_next_treatment_seq()
-        self.seed = experiment.rng.randint(0, 1 << 16)
+        if self.seed is None:
+            self.seed = experiment.rng.randint(0, 1 << 16)
         self.rng = random.Random(self.seed)
         self.replicates = [Replicate(self, i) for i in
                            range(1, self.count + 1)]
