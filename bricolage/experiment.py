@@ -229,6 +229,13 @@ class Treatment(object):
         self.rng = None
         self.replicates = None
 
+    def __repr__(self):
+        return "<Treatment: {} R-{} Seed-{}>".format(
+            self.name,
+            self.count,
+            self.seed,
+        )
+
     def _bind(self, experiment):
         assert self.experiment is None
         self.experiment = experiment
@@ -274,15 +281,20 @@ class Treatment(object):
                 r.run()
 
 class DependentTreatment(Treatment):
-    def __init__(self, name, params, count, exp, tnum, repnum):
+    def __init__(self, name, params, count, exp, tnum, repnum, generation=-1):
         super(DependentTreatment, self).__init__(name, params, count)
         assert isinstance(exp, Experiment)
         self.starting_rep = exp.get_replicate(tnum, repnum)
+        self.starting_generation = generation
 
     def make_initial_population(self, replicate, factory, size):
         # This is a very ugly way to load a population into a new factory!
         with self.starting_rep.get_lineage() as lin:
-            other_pop = lin.population
+            if self.starting_generation > 0:
+                other_pop = lin.get_generation(self.starting_generation)
+            else:
+                other_pop = lin.population
+
             pop = Population(factory, size)
             arr_old = lin.factory.pop_to_numpy(other_pop)
             arr_new = factory.pop_to_numpy(pop)
