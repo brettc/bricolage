@@ -1,5 +1,6 @@
 #!env python
 import click
+import cPickle as pickle
 from logtools import set_logging, get_logger
 from bricolage.stats import (
     StatsFitness, StatsVisitor, StatsMutualInformation, StatsRelevantControl,
@@ -241,6 +242,23 @@ def first_winner(verbose, treatment, replicate):
     NS.experiment.visit_lineages(StatsFirstWinner(NS.experiment),
                                  only_treatment=the_t,
                                  only_replicate=the_rep)
+
+@bricolage.command()
+@click.argument('treatment', type=int)
+@click.argument('replicate', type=int)
+@click.argument('network', type=int)
+def export_network(treatment, replicate, network):
+    """Export an network."""
+    try:
+        the_t, the_rep = NS.experiment.find_matching(treatment, replicate)
+    except ExperimentError as e:
+        raise click.BadParameter(e.message)
+
+    with the_rep.get_lineage() as lin:
+        net = lin.get_network(network)
+        name = "network-{}".format(net.identifier)
+        with open('{}.pickle'.format(name), 'wb') as f:
+            pickle.dump(net, f, -1)
 
 # def status(verbose):
 #     """Show status of experiment"""
