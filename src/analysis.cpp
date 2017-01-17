@@ -76,8 +76,13 @@ void cNetworkAnalysis::make_active_edges(cEdgeList &edges)
     // Incrementally add knockouts that have no effect on the rates. Start big,
     // at the gene level and then move down.
     //
-    // This isn't perfect, but it will do for now.  TODO: Fix this so it handle
-    // double knockouts etc.
+    // TODO: Fix this so it handle double knockouts etc? Maybe randomize the
+    // order, do multiple passes and then then return the union?
+    //
+    // It appears we need to run this twice to clean it up. So I'll simply call
+    // non-edgemaking one first
+    calc_active_bindings();
+    
     edges.clear();
     active_bindings = 0;
     for (size_t i=0; i < modified->gene_count(); ++i)
@@ -139,6 +144,8 @@ void cNetworkAnalysis::make_active_edges(cEdgeList &edges)
                         Node_t cnode = std::make_pair(NT_CHANNEL, original_channel);
                         edges.insert(Edge_t(cnode, mnode));
                     }
+
+                    // If we get to here there is an active binding
                     active_bindings++;
 
                 }
