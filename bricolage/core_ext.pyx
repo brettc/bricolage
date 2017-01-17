@@ -552,16 +552,17 @@ cdef class CisModule:
         return self._this.get_site(i)
 
     def set_site(self, size_t i, size_t c):
-        assert c in self.gene.network.world.sub_signals
+        assert c in self.gene.network.factory.world.sub_signals
         old = self._this.set_site(i, c)
-        self.gene.network.recalculate()
+        self.gene.network.recalculate(with_intervention=True)
         return old
 
     property intervene:
         def __get__(self):
             return self._this.intervene
-        # def __set__(self):
-        #     return self._this.intervene
+        def __set__(self, InterventionState i):
+            self._this.intervene = i
+            self.gene.network.recalculate(with_intervention=True)
 
     property channels:
         def __get__(self):
