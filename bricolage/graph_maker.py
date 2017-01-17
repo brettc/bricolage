@@ -153,14 +153,17 @@ class BaseGraph(object):
 
 
 class FullGraph(BaseGraph):
-    def __init__(self, analysis, knockouts=True):
+    def __init__(self, analysis, knockouts=True, edges=None):
         BaseGraph.__init__(self, analysis, knockouts)
-        # Build the nx_graph
-        if self.knockouts:
-            edges = analysis.get_active_edges()
-        else:
-            edges = analysis.get_edges()
 
+        # Passing in edges is DEBUG only
+        if edges is None:
+            if self.knockouts:
+                edges = analysis.get_active_edges()
+            else:
+                edges = analysis.get_edges()
+
+        # Build the nx_graph
         for nfrom, nto in edges:
             self.nx_graph.add_edge(nfrom, nto)
 
@@ -169,7 +172,7 @@ class FullGraph(BaseGraph):
         return "G{}".format(i + 1)
 
     def get_module_label(self, i):
-        gi, mi = _decode_module_id(i)
+        gi, mi = decode_module_id(i)
         m = self.network.genes[gi].modules[mi]
         return text_for_cis_mod(m)
 
@@ -178,7 +181,7 @@ class FullGraph(BaseGraph):
 
 
 class GeneSignalGraph(FullGraph):
-    def __init__(self, analysis, knockouts=True):
+    def __init__(self, analysis, knockouts=True, edges=None):
         FullGraph.__init__(self, analysis, knockouts)
         self.remove_nodes(NodeType.MODULE)
 
@@ -191,7 +194,7 @@ class GeneSignalGraph(FullGraph):
 
 
 class GeneGraph(GeneSignalGraph):
-    def __init__(self, analysis, knockouts=True):
+    def __init__(self, analysis, knockouts=True, edges=None):
         GeneSignalGraph.__init__(self, analysis, knockouts)
         self.remove_nodes(NodeType.CHANNEL, internal_only=True)
 
@@ -208,7 +211,7 @@ class SignalFlowGraph(FullGraph):
     end_node = (NodeType.END, 0)
 
     def __init__(self, analysis):
-        FullGraph.__init__(self, analysis, knockouts=True)
+        FullGraph.__init__(self, analysis, knockouts=True, edges=None)
         gr = self.nx_graph
 
         inp_nodes = [n for n in gr.nodes_iter() if self.is_input(n)]
