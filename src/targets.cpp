@@ -80,6 +80,25 @@ double cBaseTarget::score_rates(const cRatesVector &rates) const
         }
         break;
 
+    case SCORE_POWER_HAMMING:
+        {
+        // Need to divide through by the max value (getting all osize right)
+        // and by the number of envs (nsize).
+        normalize = 1.0 / (std::pow(strength, double(osize)) - 1.0) / double(nsize);
+        size_t matches;
+
+        for (size_t i = 0; i < nsize; ++i)
+        {
+            matches = 0.0;
+            for (size_t j = 0; j < osize; ++j)
+                matches += is_close(rates[i][j], optimal_rates[i][j]);
+
+            final_score += std::pow(strength, double(matches)) - 1.0;
+        }
+        final_score *= normalize;
+        break;
+        }
+
     case SCORE_EXPONENTIAL:
         {
         cRates scores;

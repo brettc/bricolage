@@ -7,6 +7,8 @@ cdef extern from "<src/targets.hpp>" namespace "bricolage":
     cdef enum ScoringMethod:
         SCORE_LINEAR = 0
         SCORE_EXPONENTIAL = 1
+        SCORE_EXPONENTIAL_VEC = 2
+        SCORE_POWER_HAMMING = 3
 
     cdef cppclass cBaseTarget:
         cBaseTarget(cWorld_ptr &w, string name, int_t ident,

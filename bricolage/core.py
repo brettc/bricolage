@@ -25,6 +25,7 @@ class ScoringMethod(IntEnum):
     LINEAR = 0
     EXPONENTIAL = 1
     EXPONENTIAL_VEC = 2
+    POWER_HAMMING = 3
 
 
 class InputType(IntEnum):

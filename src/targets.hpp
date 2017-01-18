@@ -8,7 +8,8 @@ enum ScoringMethod
 {
     SCORE_LINEAR = 0,
     SCORE_EXPONENTIAL = 1,
-    SCORE_EXPONENTIAL_VEC = 2
+    SCORE_EXPONENTIAL_VEC = 2,
+    SCORE_POWER_HAMMING = 3
 };
 
 struct cBaseTarget
