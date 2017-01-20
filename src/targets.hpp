@@ -91,13 +91,14 @@ struct cMultiTarget: public cBaseTarget
 
 struct cSelectionModel
 {
-    cSelectionModel(cWorld_ptr &world);
+    cSelectionModel(cWorld_ptr &world, bool r=false);
     cWorld_ptr world;
+    bool relative;
 
-    // TODO: Make this virtual -- come up with different selection models
     bool select(const cRates &scores,
                 size_t number, cIndexes &selected) const;
 };
+
 
 } // end namespace bricolage
 // vim: path=.,/usr/include/c++/4.2.1,/usr/include/c++/4.2.1/tr1,/usr/local/include fdm=syntax

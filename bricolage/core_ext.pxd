@@ -68,11 +68,6 @@ cdef class CisModule:
         readonly:
             Gene gene
 
-cdef class SelectionModel:
-    cdef:
-        cSelectionModel *_this
-        readonly:
-            World world
 
 cdef class CollectionBase:
     cdef:
@@ -94,3 +89,8 @@ cdef class Population(CollectionBase):
     cdef:
         cPopulation *_this
 
+cdef class SelectionModel:
+    cdef:
+        cSelectionModel *_this
+        readonly:
+            World world

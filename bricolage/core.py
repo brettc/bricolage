@@ -2,9 +2,10 @@ import logging
 log = logging.getLogger("core")
 
 from enum import IntEnum
-from .core_ext import SelectionModel, World, Channels, Population
+from .core_ext import World, Channels, Population
 from .analysis_ext import NetworkAnalysis
 from .targets_ext import DefaultTarget, NoisyTarget
+from .core_ext import SelectionModel
 
 __all__ = ["World", "SelectionModel", "Parameters", "DefaultTarget", "NoisyTarget",
            "Channels", "NetworkAnalysis", "Population"]
@@ -49,6 +50,7 @@ class Parameters(object):
         self.trans_mutation_rate = 0.0
         self.duplication_rate = 0.0
         self.mutate_type = MutateType.JUMP
+        self.relative_selection = False
         # No longer defaulted
         # self.score_method = ScoringMethod.EXPONENTIAL_VEC
         # self.score_strength = .25
@@ -71,6 +73,8 @@ class Parameters(object):
 
         # For now!
         for d in sdict, odict:
+            if 'relative_selection' not in d:
+                d['relative_selection'] = False
             if 'score_method' not in d:
                 d['score_method'] = ScoringMethod.LINEAR
             if 'score_strength' not in d:

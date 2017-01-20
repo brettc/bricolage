@@ -583,15 +583,6 @@ cdef class CisModule:
             return [w.name_for_channel(c) for c in self.channels]
 
 
-cdef class SelectionModel:
-    def __cinit__(self, World w):
-        self.world = w
-        self._this = new cSelectionModel(w._shared)
-
-    def __dealloc__(self):
-        del self._this
-
-
 cdef class CollectionBase:
     def __cinit__(self, Factory c, size_t size=0):
         self.factory = c
@@ -842,5 +833,15 @@ cdef class Population(CollectionBase):
             for i in range(self._this.fitnesses.size()):
                 np_ret[i] = self._this.fitnesses[i]
             return ret
+
+
+cdef class SelectionModel:
+    def __cinit__(self, World w, bint relative):
+        self.world = w
+        self._this = new cSelectionModel(w._shared, relative)
+
+    def __dealloc__(self):
+        del self._this
+
 
 

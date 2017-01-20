@@ -48,11 +48,11 @@ cdef extern from "<src/targets.hpp>" namespace "bricolage":
         cAttractor pulses
 
     cdef cppclass cSelectionModel:
-        cSelectionModel(cWorld_ptr &factory)
+        cSelectionModel(cWorld_ptr &factory, bint relative)
         cWorld_ptr factory
+        bint relative
 
         bint select(
             const cNetworkVector &networks, size_t number, 
             cIndexes &selected, const cBaseTarget &target)
-
 

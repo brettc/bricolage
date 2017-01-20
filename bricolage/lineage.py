@@ -191,14 +191,20 @@ class BaseLineage(object):
             assert self.population.size == self._size
             assert self.factory == self.population.factory
 
-        self.selection_model = self.params.selection_class(self.world)
+        if not hasattr(self.params, 'relative_selection'):
+            self.params.relative_selection = False
+        self.selection_model = self.params.selection_class(self.world, 
+                                                           self.params.relative_selection)
 
     def _load(self):
         self._load_header()
+        if not hasattr(self.params, 'relative_selection'):
+            self.params.relative_selection = False
 
         # Don't bother creating anything, we're about to fill it out
         self.population = core_ext.Population(self.factory, 0)
-        self.selection_model = self.params.selection_class(self.world)
+        self.selection_model = self.params.selection_class(self.world,
+                                                           self.params.relative_selection)
 
         # Load the last generation
         rec = self._generations[-1]

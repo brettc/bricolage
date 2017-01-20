@@ -388,8 +388,9 @@ double cMultiTarget::assess(const cNetwork &net) const
 }
 
 
-cSelectionModel::cSelectionModel(cWorld_ptr &w)
+cSelectionModel::cSelectionModel(cWorld_ptr &w, bool r)
     : world(w)
+    , relative(r)
 {
 }
 
@@ -402,6 +403,8 @@ bool cSelectionModel::select(const cRates &scores,
     cRates cum_scores;
     cIndexes indexes;
     double score, cum_score = 0.0;
+    double max_score = 0.0, min_score = 1.0;
+
     // First, score everyone
     for (size_t i = 0; i < scores.size(); ++i)
     {
@@ -412,11 +415,32 @@ bool cSelectionModel::select(const cRates &scores,
         if (score <= 0.0)
             continue;
 
-        // TODO: Maybe add some scaling factor to the fitness here
-        // ie. score * score, exp(score * y)
-        cum_score += score;
-        cum_scores.push_back(cum_score);
+        if (relative)
+        {
+            if (score > max_score)
+                max_score = score;
+
+            if (score < min_score)
+                min_score = score;
+        }
+        else
+        {
+            cum_score += score;
+            cum_scores.push_back(cum_score);
+        }
         indexes.push_back(i);
+    }
+
+    if (relative)
+    {
+        // renormalise scores so that they are relative
+        double denom = max_score - min_score;
+        for (auto i: indexes)
+        {
+            score = (scores[i] - min_score) / denom;
+            cum_score += score;
+            cum_scores.push_back(cum_score);
+        }
     }
 
     // Everyone was crap.

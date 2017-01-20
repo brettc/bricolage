@@ -268,3 +268,6 @@ cdef class MultiTarget(BaseTarget):
             self._this.weighting,
             self._this.scoring_method,
             self._this.strength)
+
+
+
