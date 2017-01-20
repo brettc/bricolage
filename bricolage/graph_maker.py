@@ -179,10 +179,48 @@ class FullGraph(BaseGraph):
     def get_channel_label(self, i):
         return self.world.name_for_channel(i)
 
+    def get_label(self, node, simple=False):
+        ntype, nindex = node
+        if simple:
+            if ntype == NodeType.GENE:
+                gene = self.analysis.network.genes[nindex]
+                return self.world.name_for_channel(gene.pub)
+            elif ntype == NodeType.MODULE:
+                return "M"
+            elif ntype == NodeType.CHANNEL:
+                return self.world.name_for_channel(nindex)
+
+        ntype, nindex = node
+        if ntype == NodeType.GENE:
+            return self.get_gene_label(nindex)
+        elif ntype == NodeType.MODULE:
+            return self.get_module_label(nindex)
+        elif ntype == NodeType.CHANNEL:
+            return self.get_channel_label(nindex)
+        return "<ERROR>"
+
+
+def node_logic_differs(g1, g2, node):
+    net1 = g1.analysis.network
+    net2 = g2.analysis.network
+    ntype, i = node
+    if ntype == NodeType.GENE:
+        eq1 = text_for_gene(net1.genes[i])
+        eq2 = text_for_gene(net2.genes[i])
+        if eq1 != eq2:
+            return True
+    elif ntype == NodeType.MODULE:
+        gi, mi = decode_module_id(i)
+        eq1 = text_for_cis_mod(net1.genes[gi].modules[mi])
+        eq2 = text_for_cis_mod(net2.genes[gi].modules[mi])
+        if eq1 != eq2:
+            return True
+    return False
+
 
 class GeneSignalGraph(FullGraph):
-    def __init__(self, analysis, knockouts=True, edges=None):
-        FullGraph.__init__(self, analysis, knockouts)
+    def __init__(self, analysis, knockouts=True, edges=None, **kw):
+        FullGraph.__init__(self, analysis, knockouts, **kw)
         self.remove_nodes(NodeType.MODULE)
 
     def get_gene_label(self, i):
@@ -194,8 +232,8 @@ class GeneSignalGraph(FullGraph):
 
 
 class GeneGraph(GeneSignalGraph):
-    def __init__(self, analysis, knockouts=True, edges=None):
-        GeneSignalGraph.__init__(self, analysis, knockouts)
+    def __init__(self, analysis, knockouts=True, edges=None, **kw):
+        GeneSignalGraph.__init__(self, analysis, knockouts, **kw)
         self.remove_nodes(NodeType.CHANNEL, internal_only=True)
 
     def get_gene_label(self, i):
@@ -210,8 +248,8 @@ class SignalFlowGraph(FullGraph):
     begin_node = (NodeType.BEGIN, 0)
     end_node = (NodeType.END, 0)
 
-    def __init__(self, analysis):
-        FullGraph.__init__(self, analysis, knockouts=True, edges=None)
+    def __init__(self, analysis, **kw):
+        FullGraph.__init__(self, analysis, knockouts=True, edges=None, **kw)
         gr = self.nx_graph
 
         inp_nodes = [n for n in gr.nodes_iter() if self.is_input(n)]

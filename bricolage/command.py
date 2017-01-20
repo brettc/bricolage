@@ -7,7 +7,10 @@ from bricolage.stats import (
     StatsLag, StatsRobustness, StatsGenerations, StatsBindings,
     StatsEnvironmental, StatsFirstWinner)
 from experiment import ExperimentError
-from bricolage.graph_maker import GraphType
+from bricolage.dot_layout import DotMaker
+from bricolage.graph_maker import get_graph_by_type, GraphType
+from bricolage.analysis_ext import NetworkAnalysis
+import pathlib
 
 log = get_logger()
 
@@ -259,6 +262,30 @@ def export_network(treatment, replicate, network):
         name = "network-{}".format(net.identifier)
         with open('{}.pickle'.format(name), 'wb') as f:
             pickle.dump(net, f, -1)
+
+
+@bricolage.command()
+@click.argument('treatment', type=int)
+@click.argument('replicate', type=int)
+@click.argument('network', type=int)
+def export_dot(treatment, replicate, network):
+    """Export an network."""
+    try:
+        the_t, the_rep = NS.experiment.find_matching(treatment, replicate)
+    except ExperimentError as e:
+        raise click.BadParameter(e.message)
+
+    with the_rep.get_lineage() as lin:
+        net = lin.get_network(network)
+        ana = NetworkAnalysis(net)
+        curpath = pathlib.Path('.')
+        name = curpath / "T{}-R{}-network-{}".format(treatment, replicate, net.identifier)
+        g = get_graph_by_type(GraphType.GENE, ana, simple_labels=True)
+        d = DotMaker(g)
+        d.save_dot(name.with_suffix('.dot').as_posix())
+        g = get_graph_by_type(GraphType.GENE, ana)
+        d = DotMaker(g)
+        d.save_picture(name.with_suffix('.png').as_posix())
 
 # def status(verbose):
 #     """Show status of experiment"""

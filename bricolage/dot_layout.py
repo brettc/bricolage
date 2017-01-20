@@ -2,7 +2,8 @@ import pathlib
 from pygraphviz import AGraph
 from pyx_drawing import Diagram
 from bricolage.graph_maker import (NodeType, BaseGraph, GraphType,
-                                   decode_module_id, get_graph_by_type)
+                                   decode_module_id, get_graph_by_type,
+                                   node_logic_differs)
 from analysis import NetworkAnalysis
 
 _dot_default_args = '-Nfontname="Helvetica-8"'
@@ -18,74 +19,71 @@ class DotMaker(object):
         self.graph = graph
         self.labeller = None
 
-    def get_label(self, node_type, ident):
-        if self.labeller is not None:
-            return self.labeller.get_label(node_type, ident)
+    # def get_label(self, graph, node_type, ident):
+    #     if self.labeller is not None:
+    #         return self.labeller.get_label(node_type, ident)
+    #
+    #     return graph.get_label((node_type, ident))
 
-        if node_type == NodeType.GENE:
-            return self.graph.get_gene_label(ident)
-        elif node_type == NodeType.MODULE:
-            return self.graph.get_module_label(ident)
-        elif node_type == NodeType.CHANNEL:
-            return self.graph.get_channel_label(ident)
+    def get_node_attributes(self, node, use_graph=None, simple=False):
+        if use_graph is None:
+            use_graph = self.graph
 
-        raise RuntimeError
-
-    def get_node_attributes(self, node):
-        name = self.graph.node_to_name(node)
+        name = use_graph.node_to_name(node)
         ntype, ident = node
         if ntype == NodeType.GENE:
-            shape = 'hexagon' if self.graph.is_structural(node) else 'box'
+            shape = 'hexagon' if use_graph.is_structural(node) else 'box'
             attrs = {
                 'shape': shape,
-                'label': self.get_label(ntype, ident),
+                'label': use_graph.get_label((ntype, ident), simple),
             }
         elif ntype == NodeType.MODULE:
             attrs = {
                 'shape': 'oval',
-                'label': self.get_label(ntype, ident),
+                'label': use_graph.get_label((ntype, ident), simple),
             }
 
         elif ntype == NodeType.CHANNEL:
-            if self.graph.is_input(node):
-                shape = 'invtriangle'
-            elif self.graph.is_output(node):
+            if use_graph.is_input(node):
+                shape = 'oval'
+                # shape = 'invtriangle'
+            elif use_graph.is_output(node):
                 shape = 'triangle'
             else:
                 shape = 'diamond'
 
             attrs = {
                 'shape': shape,
-                'label': self.get_label(ntype, ident),
+                'label': use_graph.get_label((ntype, ident), simple),
             }
         else:
             attrs = {}
 
         return name, attrs
 
-    def get_dot(self, labeller=None):
+    def categorize_node(self, node, name, 
+                        input_nodes, structural_nodes, output_nodes):
+        if self.graph.is_input(node):
+            input_nodes.append(name)
+        elif self.graph.is_structural(node):
+            structural_nodes.append(name)
+        elif self.graph.is_output(node):
+            output_nodes.append(name)
+
+    def get_dot(self, labeller=None, simple=False):
         self.labeller = labeller
 
         a_graph = AGraph(directed=True)
         nx_graph = self.graph.nx_graph
-
-        # TODO: Add some default stuff?
-        # a_graph.graph_attr.update(N.graph.get('graph',{}))
-        # a_graph.node_attr.update(N.graph.get('node',{}))
-        # a_graph.edge_attr.update(N.graph.get('edge',{}))
 
         structural_nodes = []
         output_nodes = []
         input_nodes = []
         # First, add nodes
         for node in nx_graph.nodes():
-            name, attrs = self.get_node_attributes(node)
-            if self.graph.is_input(node):
-                input_nodes.append(name)
-            elif self.graph.is_structural(node):
-                structural_nodes.append(name)
-            elif self.graph.is_output(node):
-                output_nodes.append(name)
+            name, attrs = self.get_node_attributes(node, simple=simple)
+
+            self.categorize_node(node, name, input_nodes, structural_nodes, output_nodes)
 
             # Keep a reference to the original node
             a_graph.add_node(name, **attrs)
@@ -107,12 +105,85 @@ class DotMaker(object):
 
         return a_graph
 
+    def get_dot_diff(self, other, simple=False):
+        self.simple = simple
+
+        a_graph = AGraph(directed=True)
+        nx_to_graph = self.graph.nx_graph
+        nx_from_graph = other.nx_graph
+
+        structural_nodes = []
+        output_nodes = []
+        input_nodes = []
+
+        # First, Add the nodes from the "to" Graph, marking those that are
+        # changed and new.
+        for node in nx_to_graph.nodes():
+            name, attrs = self.get_node_attributes(node, simple=simple)
+
+            if node in nx_from_graph.nodes():
+                if node_logic_differs(self.graph, other, node):
+                    attrs['color'] = 'blue'
+            else:
+                attrs['color'] = 'green'
+
+            self.categorize_node(node, name, 
+                                 input_nodes, structural_nodes, output_nodes)
+
+            # Keep a reference to the original node
+            a_graph.add_node(name, **attrs)
+
+        for node in nx_from_graph.nodes():
+            name, attrs = self.get_node_attributes(node, use_graph=other, simple=simple)
+            if node not in nx_to_graph.nodes():
+                attrs['color'] = 'red'
+                self.categorize_node(node, name, 
+                                     input_nodes, structural_nodes, output_nodes)
+                a_graph.add_node(name, **attrs)
+
+
+        # We need to add subgraphs to cluster stuff on rank
+        sub = a_graph.add_subgraph(input_nodes, name='input')
+        sub.graph_attr['rank'] = 'source'
+        sub = a_graph.add_subgraph(structural_nodes, name='structural')
+        sub.graph_attr['rank'] = 'same'
+        sub = a_graph.add_subgraph(output_nodes, name='output')
+        sub.graph_attr['rank'] = 'sink'
+
+        # Now add edges
+        for u, v, edgedata in nx_to_graph.edges_iter(data=True):
+            attrs = {}
+            if (u, v) not in nx_from_graph.edges():
+                attrs['color'] = 'green'
+
+            a_graph.add_edge(self.graph.node_to_name(u),
+                             self.graph.node_to_name(v),
+                             **attrs)
+
+        for edge in nx_from_graph.edges_iter():
+            if edge not in nx_to_graph.edges():
+                attrs = {'color': 'red'}
+                a_graph.add_edge(self.graph.node_to_name(edge[0]),
+                                self.graph.node_to_name(edge[1]),
+                                **attrs)
+
+
+        return a_graph
+
     def save_picture(self, f):
         a = self.get_dot()
         a.draw(f, prog='dot', args=_dot_default_args)
 
     def save_dot(self, f):
         a = self.get_dot()
+        a.write(f)
+
+    def save_diff_picture(self, f, other):
+        a = self.get_dot_diff(other)
+        a.draw(f, prog='dot', args=_dot_default_args)
+
+    def save_diff_dot(self, f, other):
+        a = self.get_dot_diff(other)
         a.write(f)
 
 
