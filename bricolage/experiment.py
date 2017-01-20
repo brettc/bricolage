@@ -419,8 +419,9 @@ class Experiment(object):
             only_treatment=None, only_replicate=None):
         """Run the experiment."""
         if overwrite:
-            self._remove_paths()
-            self._construct()
+            raise RuntimeError("Overwrite not currently supported")
+            # self._remove_paths()
+            # self._construct()
 
         if dry:
             log.info("Dry run -- exiting without simulating")
