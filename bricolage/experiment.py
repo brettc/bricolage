@@ -216,6 +216,7 @@ class Replicate(object):
             d.save_dot(str(p.with_suffix('.dot')))
 
 
+
 class Treatment(object):
     """Replicate a set of experiments into different folders"""
 
@@ -279,6 +280,58 @@ class Treatment(object):
                 continue
             if not self.experiment.user_interrupt:
                 r.run()
+
+    def run_variable(self, replicate, lineage, 
+                     targfun, 
+                     streak_len,
+                     overrun_len,
+                     max_gens,
+                     log_every=1000,
+                     ):
+
+        # assert isinstance(lineage, lineage.FullLineage)
+        if len(lineage.targets) == 0:
+            lineage.add_target(targfun())
+
+        streak_try = None
+        streak_begin = lineage.first_winning_streak(streak_len)
+
+        log.info("First streak found at {}".format(streak_begin))
+
+        while True:
+            g = lineage.generation
+
+            if g >= max_gens:
+                log.info("Reached max gens")
+                if g > max_gens:
+                    raise RuntimeError("Generations are > {}".format(max_gens))
+                break
+
+            w, b = lineage.population.worst_and_best()
+
+            # Have we gone as far as we want?
+            if streak_begin is None:
+                # Look for a streak
+                if b == 1.0:
+                    if streak_try is None:
+                        streak_try = g
+                else:
+                    streak_try = None
+
+                if streak_try and ((g - streak_try + 1) == streak_len):
+                    streak_begin = streak_try
+                    log.info("Found a streak at {}".format(streak_begin))
+
+            # Now see if we can die yet
+            if streak_begin and g == (streak_begin + overrun_len):
+                break
+
+            if g % log_every == 0:
+                replicate.draw_winners(lineage)
+
+            lineage.next_generation()
+
+        replicate.draw_winners(lineage)
 
 class DependentTreatment(Treatment):
     def __init__(self, name, params, count, exp, tnum, repnum, generation=-1):
