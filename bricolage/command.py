@@ -78,10 +78,11 @@ def list():
     """
 
     for t in NS.experiment.treatments:
-        info = "{:02d} : {} with {} replicates".format(
+        info = "{:02d} : Seed {}, {} replicates, name {}".format(
             t.seq,
-            t.name,
-            len(t.replicates))
+            t.seed,
+            len(t.replicates),
+            t.name)
         click.echo(info)
 
 
