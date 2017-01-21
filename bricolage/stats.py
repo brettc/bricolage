@@ -788,3 +788,52 @@ class StatsFirstMaster(object):
 
         res = ((rc == 1.0) & (mi == 1.0)).sum(axis=1)
         return np.where(res >= 1)[0]
+
+
+class StatsNetworkDiffs(object):
+    def __init__(self, experiment):
+        self.experiment = experiment
+        self.session = experiment.database.session
+        self.replicate = None
+        self.lineage = None
+        self.done = {}
+        # self.length = length
+
+        # self.first_winner = 'FIRST_WINNER'
+        # self.first_streak = 'FIRST_STREAK'
+
+        # TODO: should only load relevant ones
+        # for srep in self.session.query(StatsReplicateRecord).all():
+        #     self.done[(srep.treatment_id, srep.replicate_id, srep.kind)] = srep
+
+    # def is_done(self, rep, kind):
+    #     return (rep.treatment.seq, rep.seq, kind) in self.done
+
+    def visit_lineage(self, rep, lin):
+        log.info("{}".format(rep)).push().add()
+
+        # Setup
+        self.replicate = rep
+        self.lineage = lin
+
+        fgen = lin.first_winning_generation()
+        pop = lin.get_generation(fgen)
+        winner = pop.get_best(1)[0]
+
+        # now load the ancestry
+        anc = lin.get_ancestry(winner.identifier)
+
+        # # Analysis
+        # if not self.is_done(rep, self.first_winner):
+        #     fgen = lin.first_winning_generation()
+        #     log.info("Found first winner at generation {}".format(fgen))
+        #     self.session.add(StatsReplicateRecord(rep, self.first_winner, fgen))
+        #
+        # if not self.is_done(rep, self.first_streak):
+        #     fgen = lin.first_winning_streak(self.length)
+        #     log.info("Found first streak at generation {}".format(fgen))
+        #     self.session.add(StatsReplicateRecord(rep, self.first_streak, fgen))
+        #
+        self.session.commit()
+        log.pop()
+
