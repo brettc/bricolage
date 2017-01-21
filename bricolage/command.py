@@ -72,6 +72,19 @@ def run(overwrite, verbose, treatment, replicate):
                       only_replicate=the_rep)
 
 
+@bricolage.command()
+def list():
+    """List Treatments and Replicates.
+    """
+
+    for t in NS.experiment.treatments:
+        info = "{:02d} : {} with {} replicates".format(
+            t.seq,
+            t.name,
+            len(t.replicates))
+        click.echo(info)
+
+
 # @bricolage.command()
 # @every_
 # @treatment_
@@ -286,6 +299,40 @@ def export_dot(treatment, replicate, network):
         g = get_graph_by_type(GraphType.GENE, ana)
         d = DotMaker(g)
         d.save_picture(name.with_suffix('.png').as_posix())
+
+@bricolage.command()
+@click.argument('treatment', type=int)
+@click.argument('replicate', type=int)
+def best_diff(treatment, replicate):
+    """Export an network."""
+    try:
+        the_t, the_rep = NS.experiment.find_matching(treatment, replicate)
+    except ExperimentError as e:
+        raise click.BadParameter(e.message)
+
+    with the_rep.get_lineage() as lin:
+        gfirst = lin.first_winning_generation()
+        gen = lin.get_generation(gfirst)
+        log.info("First generation is {}".format(gen))
+        cur_net = gen.get_best(1)[0]
+
+        anc = lin.get_ancestry(cur_net.identifier)
+        first_net = anc[0]
+        log.info("Loaded ancestry")
+
+        cur_ana = NetworkAnalysis(cur_net)
+        first_ana = NetworkAnalysis(first_net)
+        cur_graph = get_graph_by_type(GraphType.GENE, cur_ana)
+        first_graph = get_graph_by_type(GraphType.GENE, first_ana)
+
+        curpath = pathlib.Path('.')
+        name = curpath / "T{}-R{}-network-{}".format(treatment, replicate, cur_net.identifier)
+        d = DotMaker(cur_graph)
+        d.save_diff_dot(name.with_suffix('.dot').as_posix(), first_graph)
+        d.save_diff_picture(name.with_suffix('.png').as_posix(), first_graph)
+        # g = get_graph_by_type(GraphType.GENE, ana)
+        # d = DotMaker(g)
+        # d.save_picture(name.with_suffix('.png').as_posix())
 
 # def status(verbose):
 #     """Show status of experiment"""
