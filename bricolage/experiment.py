@@ -529,19 +529,34 @@ class Experiment(object):
 
                     if only is not None:
                         only = int(only)
-                        if visitor.wants_generation(only):
-                            pop = lin.get_generation(only)
-                            visitor.visit_generation(only, pop)
+                        if only < 0:
+                            g = lin.generation + only + 1
+                        else:
+                            g = only
+
+                        if visitor.wants_generation(g):
+                            pop = lin.get_generation(g)
+                            visitor.visit_generation(g, pop)
                     else:
                         # Now iterate through the generations
                         gen_num = 0
+                        last_gen = False
                         while gen_num <= lin.generation:
                             # Check if the visitor wants this generation (as loading is
                             # expensive)
                             if visitor.wants_generation(gen_num):
                                 pop = lin.get_generation(gen_num)
                                 visitor.visit_generation(gen_num, pop)
+
+                            # Make sure we always do the last generation
+                            if gen_num == lin.generation:
+                                last_gen = True
+
                             gen_num += every
+
+                            if gen_num > lin.generation and not last_gen:
+                                # We overshot, let's go back
+                                gen_num = lin.generation
 
                     if hasattr(visitor, 'leave_lineage'):
                         visitor.leave_lineage(rep, lin)
@@ -560,11 +575,7 @@ class Experiment(object):
                     # If they've supplied a replicate...
                 else:
                     # Otherwise just match the only treament
-                    matches.append(self.treatments[0])
-            else:
-                matches = [None]
-        else:
-            matching_treatment = self.with_treatment_id(treatnum)
+                    matching_treatment = 1
 
         if repnum >= 1:
             matching_replicate = matching_treatment.with_replicate_id(repnum)
