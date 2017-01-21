@@ -201,18 +201,21 @@ class FullGraph(BaseGraph):
 
 
 def node_logic_differs(g1, g2, node):
-    net1 = g1.analysis.network
-    net2 = g2.analysis.network
+    net1 = g1.analysis.modified
+    net2 = g2.analysis.modified
+
     ntype, i = node
     if ntype == NodeType.GENE:
         eq1 = text_for_gene(net1.genes[i])
         eq2 = text_for_gene(net2.genes[i])
+        print eq1, eq2
         if eq1 != eq2:
             return True
     elif ntype == NodeType.MODULE:
         gi, mi = decode_module_id(i)
         eq1 = text_for_cis_mod(net1.genes[gi].modules[mi])
         eq2 = text_for_cis_mod(net2.genes[gi].modules[mi])
+        print eq1, eq2
         if eq1 != eq2:
             return True
     return False
