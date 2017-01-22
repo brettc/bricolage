@@ -791,49 +791,59 @@ class StatsFirstMaster(object):
 
 
 class StatsNetworkDiffs(object):
+    tag = 'MUT' 
+
     def __init__(self, experiment):
         self.experiment = experiment
         self.session = experiment.database.session
         self.replicate = None
         self.lineage = None
         self.done = {}
-        # self.length = length
 
-        # self.first_winner = 'FIRST_WINNER'
-        # self.first_streak = 'FIRST_STREAK'
+        self.gens = 'GEN_DIFF'
+        self.edges = 'EDGE_DIFF'
 
         # TODO: should only load relevant ones
-        # for srep in self.session.query(StatsReplicateRecord).all():
-        #     self.done[(srep.treatment_id, srep.replicate_id, srep.kind)] = srep
+        for srep in self.session.query(StatsReplicateRecord).all():
+            self.done[(srep.treatment_id, srep.replicate_id, srep.kind)] = srep
 
-    # def is_done(self, rep, kind):
-    #     return (rep.treatment.seq, rep.seq, kind) in self.done
+    def is_done(self, rep, kind):
+        return (rep.treatment.seq, rep.seq, kind) in self.done
 
     def visit_lineage(self, rep, lin):
-        log.info("{}".format(rep)).push().add()
-
-        # Setup
-        self.replicate = rep
-        self.lineage = lin
-
-        fgen = lin.first_winning_generation()
-        pop = lin.get_generation(fgen)
-        winner = pop.get_best(1)[0]
-
-        # now load the ancestry
-        anc = lin.get_ancestry(winner.identifier)
+        log.info("{}".format(rep))
 
         # # Analysis
-        # if not self.is_done(rep, self.first_winner):
-        #     fgen = lin.first_winning_generation()
-        #     log.info("Found first winner at generation {}".format(fgen))
-        #     self.session.add(StatsReplicateRecord(rep, self.first_winner, fgen))
-        #
-        # if not self.is_done(rep, self.first_streak):
-        #     fgen = lin.first_winning_streak(self.length)
-        #     log.info("Found first streak at generation {}".format(fgen))
-        #     self.session.add(StatsReplicateRecord(rep, self.first_streak, fgen))
-        #
+        if self.is_done(rep, self.gens):
+            return
+
+        gfirst = lin.first_winning_generation()
+        if gfirst is not None:
+
+            gen = lin.get_generation(gfirst)
+            log.info("First generation is {}".format(gen))
+            cur_net = gen.get_best(1)[0]
+
+            gen_diff = cur_net.generation
+            log.info("Generations for change {}".format(gen_diff))
+
+            anc = lin.get_ancestry(cur_net.identifier)
+            first_net = anc[0]
+            log.info("Loaded ancestry")
+
+            cur_ana = NetworkAnalysis(cur_net)
+            first_ana = NetworkAnalysis(first_net)
+
+            cur_edges = cur_ana.get_active_edges()
+            first_edges = first_ana.get_active_edges()
+
+            edge_diff = len(cur_edges ^ first_edges)
+            log.info("Causal diffs {}".format(edge_diff))
+        else:
+            gen_diff = None
+            edge_diff = None
+
+        self.session.add(StatsReplicateRecord(rep, self.gens, gen_diff))
+        self.session.add(StatsReplicateRecord(rep, self.edges, edge_diff))
         self.session.commit()
-        log.pop()
 
