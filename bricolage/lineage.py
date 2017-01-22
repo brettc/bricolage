@@ -420,6 +420,36 @@ class FullLineage(BaseLineage):
             assert bests.values[gen - 1] != 1.0
         return gen
 
+    def final_streak_length(self, sample_size):
+        best_col = self._h5.root.generations.cols.best
+
+        # Fail if we can't get our sample size
+        if sample_size > self.generation + 1:
+            return -1
+
+        # Load the last sample_size of best scores
+        sample = best_col[-sample_size:]
+
+        # Find the last one that is not equal to 1.0
+        found, = np.where(sample != 1.0)
+        if len(found) == 0:
+            # They're all ones. So we can't really tell if it is a streak or
+            # not. Really need to increase the sample size...
+            return -1
+
+        last_not_1 = found[-1]
+
+        # Get the actual generation of this.
+        last_actual_gen = self.generation - sample_size + last_not_1 + 1
+
+        # Check we've found the switch from < 1.0 to 1.0
+        assert best_col[last_actual_gen] != 1.0
+        assert best_col[last_actual_gen + 1] == 1.0
+
+        # Everything after this is 1.0, so the length is...
+        return self.generation - last_actual_gen
+
+
     def _check_integrity(self):
         num_networks = len(self._networks)
 
