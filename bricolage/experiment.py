@@ -284,53 +284,45 @@ class Treatment(object):
     def run_variable(self, replicate, lineage, 
                      targfun, 
                      streak_len,
-                     overrun_len,
                      max_gens,
                      log_every=1000,
                      ):
 
-        # assert isinstance(lineage, lineage.FullLineage)
         if len(lineage.targets) == 0:
+            # Only occurs if it is new
             lineage.add_target(targfun())
 
-        streak_try = None
-        streak_begin = lineage.first_winning_streak(streak_len)
+        cur_len = lineage.final_streak_length(streak_len + 1)
+        log.info("Last streak length {}".format(cur_len))
 
-        log.info("First streak found at {}".format(streak_begin))
+        first_round = True
 
         while True:
             g = lineage.generation
 
-            if g >= max_gens:
-                log.info("Reached max gens")
-                if g > max_gens:
-                    raise RuntimeError("Generations are > {}".format(max_gens))
+            if cur_len >= streak_len:
+                log.info("Reached streak of {}".format(streak_len))
+                if cur_len > streak_len:
+                    raise RuntimeError("Streak > {}".format(streak_len))
                 break
 
-            w, b = lineage.population.worst_and_best()
-
-            # Have we gone as far as we want?
-            if streak_begin is None:
-                # Look for a streak
-                if b == 1.0:
-                    if streak_try is None:
-                        streak_try = g
-                else:
-                    streak_try = None
-
-                if streak_try and ((g - streak_try + 1) == streak_len):
-                    streak_begin = streak_try
-                    log.info("Found a streak at {} in generation".format(streak_begin, g))
-
-            # Now see if we can die yet
-            if streak_begin and g == (streak_begin + overrun_len):
-                log.info("Breaking as streak_begin is {} and generation is {}".format(streak_begin, g))
+            if g >= max_gens:
+                log.info("Reached max gens of {}".format(max_gens))
+                if g > max_gens:
+                    raise RuntimeError("Generations are > {}".format(max_gens))
                 break
 
             if g % log_every == 0:
                 replicate.draw_winners(lineage)
 
             lineage.next_generation()
+            w, b = lineage.population.worst_and_best()
+
+            # Have we gone as far as we want?
+            if b == 1.0:
+                cur_len += 1
+            else:
+                cur_len = 0
 
         replicate.draw_winners(lineage)
 
@@ -530,8 +522,6 @@ class Experiment(object):
 
                     if only is not None:
                         only = int(only)
-                        if only == -1:
-                            only = lin.generation
 
                         if visitor.wants_generation(only):
                             pop = lin.get_generation(only)

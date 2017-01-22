@@ -74,6 +74,12 @@ class BaseLineage(object):
         # Make sure our population is assessed by the current target
         self.population.assess(self.current_target)
 
+        # Update the generations record
+        w, b = self.population.worst_and_best()
+        self._h5.root.generations.cols.best[self.generation] = b
+        self._h5.root.generations.cols.target[self.generation] = index
+
+
     def next_generation(self):
         """Make a new generation"""
         assert self.current_target is not None
@@ -352,10 +358,16 @@ class FullLineage(BaseLineage):
         self.save_generation()
 
     def get_generation(self, wanted_g):
-        assert wanted_g <= self.generation
-        rec = self._generations[wanted_g]
+        if wanted_g < 0:
+            # Translate negative indices
+            actual_g = self.generation + wanted_g + 1
+        else:
+            actual_g = wanted_g
+
+        assert actual_g <= self.generation
+        rec = self._generations[actual_g]
         gen = rec['generation']
-        assert gen == wanted_g
+        assert gen == actual_g
         t_index = rec['target']
         indexes = rec['indexes']
 
@@ -423,9 +435,9 @@ class FullLineage(BaseLineage):
     def final_streak_length(self, sample_size):
         best_col = self._h5.root.generations.cols.best
 
-        # Fail if we can't get our sample size
-        if sample_size > self.generation + 1:
-            return -1
+        # Send a -1 if we can't get our sample size
+        if sample_size > len(best_col):
+            sample_size = len(best_col)
 
         # Load the last sample_size of best scores
         sample = best_col[-sample_size:]
@@ -433,9 +445,7 @@ class FullLineage(BaseLineage):
         # Find the last one that is not equal to 1.0
         found, = np.where(sample != 1.0)
         if len(found) == 0:
-            # They're all ones. So we can't really tell if it is a streak or
-            # not. Really need to increase the sample size...
-            return -1
+            return sample_size
 
         last_not_1 = found[-1]
 
@@ -444,7 +454,8 @@ class FullLineage(BaseLineage):
 
         # Check we've found the switch from < 1.0 to 1.0
         assert best_col[last_actual_gen] != 1.0
-        assert best_col[last_actual_gen + 1] == 1.0
+        if sample_size > 1:
+            assert best_col[last_actual_gen + 1] == 1.0
 
         # Everything after this is 1.0, so the length is...
         return self.generation - last_actual_gen
