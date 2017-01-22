@@ -320,10 +320,11 @@ class Treatment(object):
 
                 if streak_try and ((g - streak_try + 1) == streak_len):
                     streak_begin = streak_try
-                    log.info("Found a streak at {}".format(streak_begin))
+                    log.info("Found a streak at {} in generation".format(streak_begin, g))
 
             # Now see if we can die yet
             if streak_begin and g == (streak_begin + overrun_len):
+                log.info("Breaking as streak_begin is {} and generation is {}".format(streak_begin, g))
                 break
 
             if g % log_every == 0:
@@ -334,8 +335,8 @@ class Treatment(object):
         replicate.draw_winners(lineage)
 
 class DependentTreatment(Treatment):
-    def __init__(self, name, params, count, exp, tnum, repnum, generation=-1):
-        super(DependentTreatment, self).__init__(name, params, count)
+    def __init__(self, name, params, count, exp, tnum, repnum, generation=-1, **kw):
+        super(DependentTreatment, self).__init__(name, params, count, **kw)
         assert isinstance(exp, Experiment)
         self.starting_rep = exp.get_replicate(tnum, repnum)
         self.starting_generation = generation
@@ -529,14 +530,12 @@ class Experiment(object):
 
                     if only is not None:
                         only = int(only)
-                        if only < 0:
-                            g = lin.generation + only + 1
-                        else:
-                            g = only
+                        if only == -1:
+                            only = lin.generation
 
-                        if visitor.wants_generation(g):
-                            pop = lin.get_generation(g)
-                            visitor.visit_generation(g, pop)
+                        if visitor.wants_generation(only):
+                            pop = lin.get_generation(only)
+                            visitor.visit_generation(only, pop)
                     else:
                         # Now iterate through the generations
                         gen_num = 0
@@ -573,9 +572,10 @@ class Experiment(object):
                 if len(self.treatments) > 1:
                     raise ExperimentError("No treatment supplied and more than one is possible.")
                     # If they've supplied a replicate...
-                else:
-                    # Otherwise just match the only treament
-                    matching_treatment = 1
+                    
+            matching_treatment = self.with_treatment_id(1)
+        else:
+            matching_treatment = self.with_treatment_id(treatnum)
 
         if repnum >= 1:
             matching_replicate = matching_treatment.with_replicate_id(repnum)
