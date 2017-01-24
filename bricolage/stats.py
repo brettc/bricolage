@@ -539,17 +539,17 @@ class StatsGenerations(object):
         log.pop()
 
 
-class StatsFirstWinner(object):
-    def __init__(self, experiment, length=25):
+class StatsTime(object):
+    def __init__(self, experiment, streak_length):
         self.experiment = experiment
         self.session = experiment.database.session
         self.replicate = None
         self.lineage = None
         self.done = {}
-        self.length = length
+        self.streak_length = streak_length
 
-        self.first_winner = 'FIRST_WINNER'
-        self.first_streak = 'FIRST_STREAK'
+        self.last_generation = 'LAST_GENERATION'
+        self.begin_streak = 'BEGIN_STREAK'
 
         # TODO: should only load relevant ones
         for srep in self.session.query(StatsReplicateRecord).all():
@@ -566,15 +566,16 @@ class StatsFirstWinner(object):
         self.lineage = lin
 
         # Analysis
-        if not self.is_done(rep, self.first_winner):
-            fgen = lin.first_winning_generation()
-            log.info("Found first winner at generation {}".format(fgen))
-            self.session.add(StatsReplicateRecord(rep, self.first_winner, fgen))
+        if not self.is_done(rep, self.last_generation):
+            fgen = lin.generation
+            log.info("Last generation is {}".format(fgen))
+            self.session.add(StatsReplicateRecord(rep, self.last_generation, fgen))
 
-        if not self.is_done(rep, self.first_streak):
-            fgen = lin.first_winning_streak(self.length)
-            log.info("Found first streak at generation {}".format(fgen))
-            self.session.add(StatsReplicateRecord(rep, self.first_streak, fgen))
+        if not self.is_done(rep, self.begin_streak):
+            l = lin.final_streak_length(self.streak_length + 1)
+            beg = lin.generation - l + 1
+            log.info("Last streak begins at generation {}".format(beg))
+            self.session.add(StatsReplicateRecord(rep, self.begin_streak, beg))
 
         self.session.commit()
         log.pop()
@@ -818,6 +819,7 @@ class StatsNetworkDiffs(object):
             return
 
         gfirst = lin.first_winning_generation()
+        log.info("First generation is {}".format(gfirst))
         if gfirst is not None:
 
             gen = lin.get_generation(gfirst)
