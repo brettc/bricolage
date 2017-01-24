@@ -3,8 +3,8 @@ import pytest
 import numpy
 from bricolage import logic2 as T
 from bricolage import operand
-from bricolage.core import Channels, SelectionModel
-from bricolage.targets_ext import DefaultTarget
+from bricolage.core import Channels
+from bricolage.core_ext import Collection
 
 @pytest.fixture
 def c_one_unit():
@@ -302,55 +302,27 @@ def test_trans_pop():
     # print world.reg_range
     # print world.out_range
     # print [g.pub for g in n1.genes]
-# def xor_target(a, b):
-#     if (a or b) and not (a and b):
-#         return [.5, 1]
-#     return [0, 0]
-#
-# def test_big():
-#     p = T.Parameters(
-#         seed=1, cis_count=3, reg_channels=8, out_channels=2, cue_channels=2,
-#     )
-#     world = T.World(p)
-#     print world.reg_channels
-#     factory = T.Factory(world)
-#     target = DefaultTarget(world, xor_target)
-#     pop = T.Population(factory, 100)
-#     select = SelectionModel(world)
-#     for i in range(1000):
-#         pop.select(select)
-#         pop.mutate(.002, .001)
-#         pop.assess(target)
-#         print pop.worst_and_best()
-        
-# @pytest.fixture
-# def target_3x3():
-#     """Return a function for initialising a target that has 3 inputs and 2
-#     outputs"""
-#     def make_target(a, b, c):
-#         res = (a and b) or (b and c)
-#         if res:
-#             return 0, 1, .5
-#         return 1, .5, 0
-#     return make_target
-#
-# def test_selection(p_3x2, target_3x2):
-#     # TODO: Finish testing selection by python
-#     factory = T.Factory(p_3x2)
-#     target = T.DefaultTarget(factory, target_3x2)
-#     population = factory.create_collection(1000)
-#
-#     # What does c++ do?
-#     factory.seed_random_engine(1)
-#     c_selection_indexes = population.selection_indexes(target)
-#
-#     # Now, do it in python
-#     factory.seed_random_engine(1)
-#     p_selection_indexes = []
-#     cum_scores = []
-#     cum_score = 0.0
-#     for net in population:
-#         cum_scores.append(cum_score)
-#         cum_score += target.assess(net)
-#
-#     indexes = []
+    #
+
+def test_diff():
+    params = T.Parameters(seed=1, cis_count=3, reg_channels=4, out_channels=2,
+                        cue_channels=2)
+    world = T.World(params)
+    fact = T.Factory(world)
+    n = fact.create_network()
+    coll = Collection(fact)
+    coll.add(n)
+    np = fact.to_numpy(coll)
+    coll2 = Collection(fact)
+    coll2.fill_with_mutations(n, numpy.asarray(range(20)))
+
+    q = fact.to_numpy(coll2)
+
+    for i in range(20):
+        # print (q['sub'][i] != np['sub'][0]).sum(axis=2)
+        # print (q['op'][i] != np['op'][0])
+        # print q['op'][i] != np['op'][0]
+        # print (q['sub'][i] != np['sub'][0]).sum()
+        # print (q['op'][i] != np['op'][0]).sum()
+
+        print T.count_diff_networks(n, coll2[i])
