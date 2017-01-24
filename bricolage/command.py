@@ -40,7 +40,7 @@ start_ = click.option('--start', default=0,
 only_ = click.option('--only', help="Only do this generation")
 treatment_ = click.option('--treatment', '-t', default=-1,
                           help="Filter treatments by name.")
-replicate_ = click.option('--replicate', default=-1,
+replicate_ = click.option('--replicate', '-r', default=-1,
                           help="Filter replicates by number.")
 
 def composed(*decs):
