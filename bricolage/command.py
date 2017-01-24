@@ -5,7 +5,7 @@ from logtools import set_logging, get_logger
 from bricolage.stats import (
     StatsFitness, StatsVisitor, StatsMutualInformation, StatsRelevantControl,
     StatsLag, StatsRobustness, StatsGenerations, StatsBindings,
-    StatsEnvironmental, StatsFirstWinner)
+    StatsEnvironmental)
 from experiment import ExperimentError
 from bricolage.dot_layout import DotMaker
 from bricolage.graph_maker import get_graph_by_type, GraphType
@@ -35,8 +35,10 @@ verbose_ = click.option('--verbose', is_flag=True, default=False,
                         help="Show debug output.")
 every_ = click.option('--every', default=1000,
                       help="Only do every N generations")
+start_ = click.option('--start', default=0,
+                      help="Start at this generation (could be negative)")
 only_ = click.option('--only', help="Only do this generation")
-treatment_ = click.option('--treatment', default=-1,
+treatment_ = click.option('--treatment', '-t', default=-1,
                           help="Filter treatments by name.")
 replicate_ = click.option('--replicate', default=-1,
                           help="Filter replicates by number.")
@@ -243,22 +245,6 @@ def env_robustness(verbose, treatment, replicate, every, only):
                                     every=every,
                                     only=only)
 
-@bricolage.command()
-@verbose_
-@treatment_
-@replicate_
-def first_winner(verbose, treatment, replicate):
-    set_logging(verbose)
-
-    try:
-        the_t, the_rep = NS.experiment.find_matching(treatment, replicate)
-    except ExperimentError as e:
-        raise click.BadParameter(e.message)
-
-    # First, let's find the first fitness
-    NS.experiment.visit_lineages(StatsFirstWinner(NS.experiment),
-                                 only_treatment=the_t,
-                                 only_replicate=the_rep)
 
 @bricolage.command()
 @click.argument('treatment', type=int)
@@ -328,6 +314,7 @@ def best_diff(treatment, replicate):
 
         curpath = pathlib.Path('.')
         name = curpath / "T{}-R{}-network-{}".format(treatment, replicate, cur_net.identifier)
+        log.info("Name is {}".format(name.as_posix()))
         d = DotMaker(cur_graph)
         d.save_diff_dot(name.with_suffix('.dot').as_posix(), first_graph)
         d.save_diff_picture(name.with_suffix('.png').as_posix(), first_graph)
