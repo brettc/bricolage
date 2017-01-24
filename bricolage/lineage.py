@@ -75,11 +75,10 @@ class BaseLineage(object):
         self.population.assess(self.current_target)
 
         # Update the generations record
-        if not self.readonly:
-            w, b = self.population.worst_and_best()
-            self._h5.root.generations.cols.best[self.generation] = b
-            self._h5.root.generations.cols.target[self.generation] = index
+        self.post_set_target(index)
 
+    def post_set_target(self, index):
+        pass
 
     def next_generation(self):
         """Make a new generation"""
@@ -341,9 +340,14 @@ class FullLineage(BaseLineage):
             self._new_database()
             self.save_generation(initial=True)
 
-
     def __repr__(self):
         return "<FullLineage: {}>".format(str(self.path.as_posix()))
+
+    def post_set_target(self, index):
+        if not self.readonly:
+            w, b = self.population.worst_and_best()
+            self._h5.root.generations.cols.best[self.generation] = b
+            self._h5.root.generations.cols.target[self.generation] = index
 
     def save_generation(self, initial=False):
         # If it is not the initial save, then just save the mutations only
