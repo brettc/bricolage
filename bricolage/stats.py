@@ -2,10 +2,9 @@
 """
 import logtools
 import numpy as np
-from .analysis_ext import (MutualInfoAnalyzer, 
-                           OutputControlAnalyzer, 
-                           RelevantControlAnalyzer, 
-                           WCAnalyzer, MIAnalyzer)
+from .analysis_ext import (MutualInfoAnalyzer, OutputControlAnalyzer,
+                           RelevantControlAnalyzer, FastCAnalyzer, MIAnalyzer,
+                           WCAnalyzer)
 from .analysis import AverageControlAnalyzer
 from .lineage import FullLineage
 from .experimentdb import StatsGroupRecord, StatsRecord, StatsReplicateRecord
@@ -202,6 +201,42 @@ class StatsRelevantControl(object):
             ('C_MEAN', reg_mean),
             ('C_MAX', rc.max()),
             ('C_MNMX', ameans.max()),
+        ])
+        return vals
+
+
+class StatsFastControl(object):
+    def __init__(self, tag, indexes, target1, target2):
+        self.tag = tag
+        self.indexes = indexes
+        self.target1 = target1
+        self.target2 = target2
+        self.analyzer = None
+
+    def init_lineage(self, rep, lin):
+        self.analyzer = FastCAnalyzer(
+            lin.world, self.indexes, self.target1, self.target2)
+        self.regs = lin.params.reg_channels
+
+    def calc_stats(self, pop):
+        rc = self.analyzer.analyse_collection(pop)
+        assert not np.any(np.isnan(rc.ravel()))
+
+        # Summarize across the population
+        ameans = np.mean(rc, axis=0)
+
+        vals = []
+
+        # Record the mean of all information measures
+        regs = self.regs
+        for i, c in enumerate(range(regs)):
+            vals.append(('{}'.format(c + 1), ameans[i]))
+
+        reg_mean = ameans.mean(axis=0)
+        vals.extend([
+            ('MEAN', reg_mean),
+            ('MAX', rc.max()),
+            ('MNMX', ameans.max()),
         ])
         return vals
 
@@ -620,20 +655,19 @@ class StatsMI(object):
 
 class StatsMaster(object):
     """Work out how many master genes there are"""
-    def __init__(self, tag, indexes, target1, target2, weighting, target_num=0):
+    def __init__(self, tag, indexes, target1, target2, target_num=0):
         self.tag = tag
         self.indexes = indexes
         self.target1 = target1
         self.target2 = target2
-        self.weighting = weighting
         self.target_num = target_num
         self.target = None
         self.r_analyzer = None
         self.m_analyzer = None
 
     def init_lineage(self, rep, lin):
-        self.r_analyzer = WCAnalyzer(
-            lin.world, self.indexes, self.target1, self.target2, self.weighting)
+        self.r_analyzer = FastCAnalyzer(
+            lin.world, self.indexes, self.target1, self.target2)
         self.target = lin.targets[self.target_num]
         categories = self.target.calc_categories(self.indexes)
         self.m_analyzer = MIAnalyzer(lin.world, categories)
