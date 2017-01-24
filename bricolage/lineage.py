@@ -454,8 +454,8 @@ class FullLineage(BaseLineage):
 
         # Check we've found the switch from < 1.0 to 1.0
         assert best_col[last_actual_gen] != 1.0
-        if sample_size > 1:
-            assert best_col[last_actual_gen + 1] == 1.0
+        # if sample_size > 1:
+        #     assert best_col[last_actual_gen + 1] == 1.0
 
         # Everything after this is 1.0, so the length is...
         return self.generation - last_actual_gen

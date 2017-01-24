@@ -504,7 +504,7 @@ class Experiment(object):
                     except TypeError:
                         visitor.visit_lineage(rep, lin)
 
-    def visit_generations(self, visitor, every=1, only=None,
+    def visit_generations(self, visitor, every=1, start=0, only=None,
                           only_treatment=None,
                           only_replicate=None):
         """Try and visit everything with the least amount of loading"""
@@ -528,24 +528,32 @@ class Experiment(object):
                             visitor.visit_generation(only, pop)
                     else:
                         # Now iterate through the generations
-                        gen_num = 0
+                        # Note: index may be negative!
+                        pos_indexing = start >= 0
+
+                        gen_index = start
+                        gen_num = gen_index if pos_indexing else lin.generation + gen_index + 1
                         last_gen = False
+                        print gen_index, gen_num
                         while gen_num <= lin.generation:
                             # Check if the visitor wants this generation (as loading is
                             # expensive)
-                            if visitor.wants_generation(gen_num):
-                                pop = lin.get_generation(gen_num)
-                                visitor.visit_generation(gen_num, pop)
+                            if visitor.wants_generation(gen_index):
+                                pop = lin.get_generation(gen_index)
+                                visitor.visit_generation(gen_index, pop)
 
                             # Make sure we always do the last generation
                             if gen_num == lin.generation:
                                 last_gen = True
 
-                            gen_num += every
+                            gen_index += every
+                            gen_num = gen_index if pos_indexing else lin.generation + gen_index + 1
 
                             if gen_num > lin.generation and not last_gen:
                                 # We overshot, let's go back
                                 gen_num = lin.generation
+                                if not pos_indexing:
+                                    gen_index = -1
 
                     if hasattr(visitor, 'leave_lineage'):
                         visitor.leave_lineage(rep, lin)
@@ -559,11 +567,7 @@ class Experiment(object):
         if treatnum < 1:
             # If they've selected a replicate too, then we need a treatment.
             if repnum >= 1:
-                if len(self.treatments) > 1:
-                    raise ExperimentError("No treatment supplied and more than one is possible.")
-                    # If they've supplied a replicate...
-                    
-            matching_treatment = self.with_treatment_id(1)
+                raise ExperimentError("Need a treat if replicate supplied")
         else:
             matching_treatment = self.with_treatment_id(treatnum)
 
