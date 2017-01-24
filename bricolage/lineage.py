@@ -75,9 +75,10 @@ class BaseLineage(object):
         self.population.assess(self.current_target)
 
         # Update the generations record
-        w, b = self.population.worst_and_best()
-        self._h5.root.generations.cols.best[self.generation] = b
-        self._h5.root.generations.cols.target[self.generation] = index
+        if not self.readonly:
+            w, b = self.population.worst_and_best()
+            self._h5.root.generations.cols.best[self.generation] = b
+            self._h5.root.generations.cols.target[self.generation] = index
 
 
     def next_generation(self):
