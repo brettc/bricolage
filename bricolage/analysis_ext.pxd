@@ -74,3 +74,7 @@ cdef class WCAnalyzer:
         cWCAnalyzer *_this;
         World world
 
+cdef class FastCAnalyzer:
+    cdef:
+        cFastCAnalyzer *_this;
+        World world

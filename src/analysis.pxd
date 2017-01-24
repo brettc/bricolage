@@ -90,15 +90,21 @@ cdef extern from "<src/analysis.hpp>" namespace "bricolage":
         cInformation *analyse_collection(const cNetworkVector &networks) except +
 
     cdef cppclass cMIAnalyzer:
-        cMIAnalyzer(const cWorld_ptr& world, const cIndexes categories);
+        cMIAnalyzer(const cWorld_ptr& world, const cIndexes categories)
         cIndexes categories
         cInformation *analyse_network(cNetwork &net) except +
         cInformation *analyse_collection(const cNetworkVector &networks) except +
 
     cdef cppclass cWCAnalyzer:
         cWCAnalyzer(const cWorld_ptr& world, const cIndexes ind, 
-                    const cRates t1, const cRates t2, double weighting);
+                    const cRates t1, const cRates t2, double weighting)
         cJointProbabilities *get_joint(cNetwork &net) except +
+        cInformation *analyse_network(cNetwork &net) except +
+        cInformation *analyse_collection(const cNetworkVector &networks) except +
+
+    cdef cppclass cFastCAnalyzer:
+        cFastCAnalyzer(const cWorld_ptr& world, const cIndexes ind, 
+                    const cRates t1, const cRates t2)
         cInformation *analyse_network(cNetwork &net) except +
         cInformation *analyse_collection(const cNetworkVector &networks) except +
 

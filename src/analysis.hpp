@@ -279,5 +279,47 @@ struct cWCAnalyzer
 };
 
 
+// Weighted control
+struct cFastCAnalyzer
+{
+    // Construct using two targets
+    cFastCAnalyzer(cWorld_ptr &world, 
+                const cIndexes &indexes,
+                const cRates &t1, 
+                const cRates &t2);
+
+    // Keep this around for general sizes
+    const cWorld_ptr world_ptr;
+
+    // Convenience
+    const cWorld &world; 
+    
+    // Which particular rates do we want?
+    cIndexes indexes;
+
+    // What are the values of the targets?
+    const cRates target1, target2;
+
+    boost::multi_array<double, 3> joint;
+
+    // What values have we found?
+    // cRatesVector rates_found;
+    // size_t processing_index;
+
+    // Getting actual values back.
+    // Note you need to delete the return values from these!
+    cInformation *analyse_network(cNetwork &net);
+    cInformation *analyse_collection(const cNetworkVector &networks);
+
+    // cJointProbabilities *get_joint(cNetwork &net);
+    //
+    // The internal functions
+    bool _match(const cRates &rate, const cRates &t1_or_t2);
+    void _analyse(cNetwork &net, info_array_type::reference sub);
+    void _wiggle(cNetwork &net);
+    void _clear();
+
+};
+
 } // end namespace bricolage
 // vim: path=.,/usr/include/c++/4.2.1,/usr/include/c++/4.2.1/tr1,/usr/local/include fdm=syntax

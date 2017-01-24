@@ -1220,3 +1220,156 @@ cJointProbabilities *cWCAnalyzer::get_joint(cNetwork &net)
 
     return joint;
 }
+
+
+cFastCAnalyzer::cFastCAnalyzer(cWorld_ptr &w,
+                         const cIndexes &ind,
+                         const cRates &t1, 
+                         const cRates &t2)
+    : world_ptr(w)
+    , world(*w)
+    , indexes(ind)
+    , target1(t1)
+    , target2(t2)
+    , joint(boost::extents[world.reg_channels][2][2])
+    // , processing_index(0)
+{
+}
+
+cInformation *cFastCAnalyzer::analyse_network(
+    cNetwork &net)
+{
+    // Entropies and mutual info
+    cInformation *info = new cInformation(world_ptr, 1, 1);
+    _analyse(net, info->_array[0]);
+    return info;
+}
+
+cInformation *cFastCAnalyzer::analyse_collection(
+    const cNetworkVector &networks)
+{
+    cInformation *info = new cInformation(world_ptr, networks.size(), 1);
+    for (size_t i = 0; i < networks.size(); ++i)
+        _analyse(*networks[i], info->_array[i]);
+    return info;
+}
+
+void cFastCAnalyzer::_clear()
+{
+    std::fill(joint.origin(), joint.origin() + joint.num_elements(), 0.0);
+}
+
+// Simple linear search
+bool cFastCAnalyzer::_match(const cRates &rate, 
+                            const cRates &t1_or_t2)
+{
+    for (size_t i = 0; i < indexes.size(); ++i)
+    {
+        double incoming = rate[indexes[i]];
+        double compare = t1_or_t2[i]; 
+        if (!is_close(incoming, compare))
+            return false;
+    }
+    return true;
+}
+
+void cFastCAnalyzer::_wiggle(cNetwork &net)
+{
+    double pr = 0.5 / (world.environments.size());
+
+    // Note the reversed order here (j, i); it is very expensive to recalculate
+    // the attractors. So we do it as little as possible.
+    for (size_t j = 0; j < world.reg_channels; ++j)
+    {
+        cGene *gene = net.get_gene(j);
+
+        // Force gene OFF
+        gene->intervene = INTERVENE_OFF;
+        net.calc_attractors_with_intervention();
+
+        // For each environment and each output channel
+        for (auto const &r : net.rates)
+            if (_match(r, target1))
+                joint[j][0][0] += pr;
+            else if (_match(r, target2))
+                joint[j][0][1] += pr;
+
+        // Force gene ON
+        gene->intervene = INTERVENE_ON;
+        net.calc_attractors_with_intervention();
+
+        for (auto const &r : net.rates)
+            if (_match(r, target1))
+                joint[j][1][0] += pr;
+            else if (_match(r, target2))
+                joint[j][1][1] += pr;
+
+        // Reset the current gene
+        gene->intervene = INTERVENE_NONE;
+    }
+
+    // Recalculate one more time without using interventions. This just resets
+    // everything.
+    net.calc_attractors();
+}
+
+inline double pmi(double val, double denom)
+{
+    if (not_zeroish(val))
+        return val * log2(val / denom);
+    return 0.0;
+}
+
+
+void cFastCAnalyzer::_analyse(cNetwork &net, info_array_type::reference sub)
+{
+    _clear();
+    _wiggle(net);
+
+    for (size_t j = 0; j < world.reg_channels; ++j)
+    {
+        double info = 0.0;
+        double denom_target1 = (joint[j][0][0] + joint[j][1][0]) * 0.5;
+        double denom_target2 = (joint[j][0][1] + joint[j][1][1]) * 0.5;
+
+        if (not_zeroish(denom_target1))
+        {
+            info += pmi(joint[j][0][0], denom_target1);
+            info += pmi(joint[j][1][0], denom_target1);
+        }
+        if (not_zeroish(denom_target2))
+        {
+            info += pmi(joint[j][0][1], denom_target2);
+            info += pmi(joint[j][1][1], denom_target2);
+        }
+
+        sub[j][0] = info;
+    }
+}
+
+
+// cJointProbabilities *cFastCAnalyzer::get_joint(cNetwork &net)
+// {
+//     _wiggle(net);
+//
+//     cJointProbabilities *joint =
+//         new cJointProbabilities(world_ptr,
+//                                 1,
+//                                 1,
+//                                 rate_detail_map.size());
+//
+//     for (auto &rate_detail : rate_detail_map)
+//     {
+//         auto &detail = rate_detail.second;
+//         if (detail.used_for == processing_index)
+//         {
+//             for (size_t j = 0; j < world.reg_channels; ++j)
+//             {
+//                 joint->_array[0][j][0][0][detail.encountered] = detail.probs[j][0];
+//                 joint->_array[0][j][0][1][detail.encountered] = detail.probs[j][1];
+//             }
+//         }
+//     }
+//
+//     return joint;
+// }
