@@ -836,7 +836,7 @@ cdef class Population(CollectionBase):
 
 
 cdef class SelectionModel:
-    def __cinit__(self, World w, bint relative):
+    def __cinit__(self, World w, bint relative=False):
         self.world = w
         self._this = new cSelectionModel(w._shared, relative)
 
