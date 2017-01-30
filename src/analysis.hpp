@@ -279,14 +279,14 @@ struct cWCAnalyzer
 };
 
 
-// Weighted control
-struct cFastCAnalyzer
+struct cFastBaseAnalyzer
 {
     // Construct using two targets
-    cFastCAnalyzer(cWorld_ptr &world, 
+    cFastBaseAnalyzer(cWorld_ptr &world, 
                 const cIndexes &indexes,
                 const cRates &t1, 
                 const cRates &t2);
+    virtual ~cFastBaseAnalyzer() {}
 
     // Keep this around for general sizes
     const cWorld_ptr world_ptr;
@@ -302,23 +302,48 @@ struct cFastCAnalyzer
 
     boost::multi_array<double, 3> joint;
 
-    // What values have we found?
-    // cRatesVector rates_found;
-    // size_t processing_index;
 
     // Getting actual values back.
     // Note you need to delete the return values from these!
     cInformation *analyse_network(cNetwork &net);
     cInformation *analyse_collection(const cNetworkVector &networks);
 
-    // cJointProbabilities *get_joint(cNetwork &net);
-    //
     // The internal functions
     bool _match(const cRates &rate, const cRates &t1_or_t2);
     void _analyse(cNetwork &net, info_array_type::reference sub);
-    void _wiggle(cNetwork &net);
     void _clear();
+    virtual void _wiggle(cNetwork &net)=0;
 
+};
+
+// Weighted control
+struct cFastCAnalyzer : public cFastBaseAnalyzer
+{
+    // Construct using two targets
+    cFastCAnalyzer(cWorld_ptr &world, 
+                const cIndexes &indexes,
+                const cRates &t1, 
+                const cRates &t2);
+
+    void _wiggle(cNetwork &net);
+
+};
+
+
+// Weighted control
+struct cFastCandBAnalyzer : public cFastBaseAnalyzer
+{
+    // Construct using two targets
+    cFastCandBAnalyzer(cWorld_ptr &world, 
+                const cIndexes &indexes,
+                const cRates &t1, 
+                const cRates &t2);
+
+
+    cRatesVector off_rates, on_rates;
+    cIndexes not_target;
+
+    void _wiggle(cNetwork &net);
 };
 
 } // end namespace bricolage

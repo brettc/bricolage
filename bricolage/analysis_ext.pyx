@@ -432,3 +432,35 @@ cdef class FastCAnalyzer:
     def __dealloc__(self):
         if self._this != NULL:
             del self._this
+
+
+cdef class FastCandBAnalyzer:
+    def __cinit__(self, World w, cIndexes ind, cRates t1, cRates t2):
+        self.world = w
+        assert ind.size() == t1.size() == t2.size()
+        for i in ind:
+            assert 0 <= i < w.out_channels
+
+        self._this = new cFastCandBAnalyzer(w._shared, ind, t1, t2)
+
+    def analyse_network(self, Network n):
+        info = Information()
+        cdef cInformation *c_info = NULL 
+        c_info = self._this.analyse_network(deref(n._this))
+        info.bind(c_info)
+        arr = numpy.asarray(info)
+        return arr.ravel()
+
+    def analyse_collection(self, CollectionBase coll):
+        info = Information()
+        cdef cInformation *c_info= NULL 
+        c_info = self._this.analyse_collection(deref(coll._collection))
+        info.bind(c_info)
+        arr = numpy.asarray(info)
+        s = arr.shape
+        arr.shape = s[0], s[1]
+        return arr
+
+    def __dealloc__(self):
+        if self._this != NULL:
+            del self._this

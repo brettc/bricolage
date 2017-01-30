@@ -108,6 +108,12 @@ cdef extern from "<src/analysis.hpp>" namespace "bricolage":
         cInformation *analyse_network(cNetwork &net) except +
         cInformation *analyse_collection(const cNetworkVector &networks) except +
 
+    cdef cppclass cFastCandBAnalyzer:
+        cFastCandBAnalyzer(const cWorld_ptr& world, const cIndexes ind, 
+                    const cRates t1, const cRates t2)
+        cInformation *analyse_network(cNetwork &net) except +
+        cInformation *analyse_collection(const cNetworkVector &networks) except +
+
 
 cdef extern from "<src/core.hpp>" namespace "bricolage::cBaseCausalAnalyzer":
     # Hack for allowing access to static class functions

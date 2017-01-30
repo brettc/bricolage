@@ -1222,7 +1222,8 @@ cJointProbabilities *cWCAnalyzer::get_joint(cNetwork &net)
 }
 
 
-cFastCAnalyzer::cFastCAnalyzer(cWorld_ptr &w,
+//---------------------------------------------------------------------------
+cFastBaseAnalyzer::cFastBaseAnalyzer(cWorld_ptr &w,
                          const cIndexes &ind,
                          const cRates &t1, 
                          const cRates &t2)
@@ -1232,11 +1233,10 @@ cFastCAnalyzer::cFastCAnalyzer(cWorld_ptr &w,
     , target1(t1)
     , target2(t2)
     , joint(boost::extents[world.reg_channels][2][2])
-    // , processing_index(0)
 {
 }
 
-cInformation *cFastCAnalyzer::analyse_network(
+cInformation *cFastBaseAnalyzer::analyse_network(
     cNetwork &net)
 {
     // Entropies and mutual info
@@ -1245,7 +1245,7 @@ cInformation *cFastCAnalyzer::analyse_network(
     return info;
 }
 
-cInformation *cFastCAnalyzer::analyse_collection(
+cInformation *cFastBaseAnalyzer::analyse_collection(
     const cNetworkVector &networks)
 {
     cInformation *info = new cInformation(world_ptr, networks.size(), 1);
@@ -1254,13 +1254,13 @@ cInformation *cFastCAnalyzer::analyse_collection(
     return info;
 }
 
-void cFastCAnalyzer::_clear()
+void cFastBaseAnalyzer::_clear()
 {
     std::fill(joint.origin(), joint.origin() + joint.num_elements(), 0.0);
 }
 
 // Simple linear search
-bool cFastCAnalyzer::_match(const cRates &rate, 
+bool cFastBaseAnalyzer::_match(const cRates &rate, 
                             const cRates &t1_or_t2)
 {
     for (size_t i = 0; i < indexes.size(); ++i)
@@ -1271,6 +1271,49 @@ bool cFastCAnalyzer::_match(const cRates &rate,
             return false;
     }
     return true;
+}
+
+
+inline double pmi(double val, double denom)
+{
+    if (not_zeroish(val))
+        return val * log2(val / denom);
+    return 0.0;
+}
+
+void cFastBaseAnalyzer::_analyse(cNetwork &net, info_array_type::reference sub)
+{
+    _clear();
+    _wiggle(net);
+
+    for (size_t j = 0; j < world.reg_channels; ++j)
+    {
+        double info = 0.0;
+        double denom_target1 = (joint[j][0][0] + joint[j][1][0]) * 0.5;
+        double denom_target2 = (joint[j][0][1] + joint[j][1][1]) * 0.5;
+
+        if (not_zeroish(denom_target1))
+        {
+            info += pmi(joint[j][0][0], denom_target1);
+            info += pmi(joint[j][1][0], denom_target1);
+        }
+        if (not_zeroish(denom_target2))
+        {
+            info += pmi(joint[j][0][1], denom_target2);
+            info += pmi(joint[j][1][1], denom_target2);
+        }
+
+        sub[j][0] = info;
+    }
+}
+
+//---------------------------------------------------------------------------
+cFastCAnalyzer::cFastCAnalyzer(cWorld_ptr &w,
+                         const cIndexes &ind,
+                         const cRates &t1, 
+                         const cRates &t2)
+    : cFastBaseAnalyzer(w, ind, t1, t2)
+{
 }
 
 void cFastCAnalyzer::_wiggle(cNetwork &net)
@@ -1313,63 +1356,84 @@ void cFastCAnalyzer::_wiggle(cNetwork &net)
     net.calc_attractors();
 }
 
-inline double pmi(double val, double denom)
+//---------------------------------------------------------------------------
+cFastCandBAnalyzer::cFastCandBAnalyzer(cWorld_ptr &w,
+                         const cIndexes &ind,
+                         const cRates &t1, 
+                         const cRates &t2)
+    : cFastBaseAnalyzer(w, ind, t1, t2)
 {
-    if (not_zeroish(val))
-        return val * log2(val / denom);
-    return 0.0;
+    for (size_t i = 0; i < world.out_channels; ++i)
+        // put anything not in indexes into the not_target indexes
+        if (std::find(indexes.begin(), indexes.end(), i) == indexes.end())
+            not_target.push_back(i);
 }
 
-
-void cFastCAnalyzer::_analyse(cNetwork &net, info_array_type::reference sub)
+void cFastCandBAnalyzer::_wiggle(cNetwork &net)
 {
-    _clear();
-    _wiggle(net);
+    double pr = 0.5 / (world.environments.size());
 
+    // Note the reversed order here (j, i); it is very expensive to recalculate
+    // the attractors. So we do it as little as possible.
     for (size_t j = 0; j < world.reg_channels; ++j)
     {
-        double info = 0.0;
-        double denom_target1 = (joint[j][0][0] + joint[j][1][0]) * 0.5;
-        double denom_target2 = (joint[j][0][1] + joint[j][1][1]) * 0.5;
+        cGene *gene = net.get_gene(j);
 
-        if (not_zeroish(denom_target1))
+        // Force gene OFF
+        gene->intervene = INTERVENE_OFF;
+        net.calc_attractors_with_intervention();
+
+        // Swap these out; they'll be redone below anyway
+        off_rates.swap(net.rates);
+
+        // Force gene ON
+        gene->intervene = INTERVENE_ON;
+        net.calc_attractors_with_intervention();
+
+        // As above
+        on_rates.swap(net.rates);
+
+        // Reset the current gene
+        gene->intervene = INTERVENE_NONE;
+        
+        // For each environment and each output channel
+        for (size_t i = 0; i < on_rates.size(); ++i)
         {
-            info += pmi(joint[j][0][0], denom_target1);
-            info += pmi(joint[j][1][0], denom_target1);
-        }
-        if (not_zeroish(denom_target2))
-        {
-            info += pmi(joint[j][0][1], denom_target2);
-            info += pmi(joint[j][1][1], denom_target2);
+            const auto &r_off = off_rates[i];
+            const auto &r_on = on_rates[i];
+
+            bool bequal = true;
+
+            // Are the backgrounds equal?
+            for (size_t k = 0; k < not_target.size(); ++k)
+            {
+                if (r_off[not_target[k]] != r_on[not_target[k]])
+                {
+                    bequal = false;
+                    break;
+                }
+            }
+
+            // Nope! Well, we don't even record the information then.
+            if (!bequal)
+                continue;
+            
+            // Record info for matches that are on
+            if (_match(r_off, target1))
+                joint[j][0][0] += pr;
+            else if (_match(r_off, target2))
+                joint[j][0][1] += pr;
+
+            // Record info for matches that are off
+            if (_match(r_on, target1))
+                joint[j][1][0] += pr;
+            else if (_match(r_on, target2))
+                joint[j][1][1] += pr;
         }
 
-        sub[j][0] = info;
     }
+
+    // Recalculate one more time without using interventions. This just resets
+    // everything.
+    net.calc_attractors();
 }
-
-
-// cJointProbabilities *cFastCAnalyzer::get_joint(cNetwork &net)
-// {
-//     _wiggle(net);
-//
-//     cJointProbabilities *joint =
-//         new cJointProbabilities(world_ptr,
-//                                 1,
-//                                 1,
-//                                 rate_detail_map.size());
-//
-//     for (auto &rate_detail : rate_detail_map)
-//     {
-//         auto &detail = rate_detail.second;
-//         if (detail.used_for == processing_index)
-//         {
-//             for (size_t j = 0; j < world.reg_channels; ++j)
-//             {
-//                 joint->_array[0][j][0][0][detail.encountered] = detail.probs[j][0];
-//                 joint->_array[0][j][0][1][detail.encountered] = detail.probs[j][1];
-//             }
-//         }
-//     }
-//
-//     return joint;
-// }
