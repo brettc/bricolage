@@ -5,7 +5,7 @@ from logtools import set_logging, get_logger
 from bricolage.stats import (
     StatsFitness, StatsVisitor, StatsMutualInformation, StatsRelevantControl,
     StatsLag, StatsRobustness, StatsGenerations, StatsBindings,
-    StatsEnvironmental)
+    StatsEnvironmental, StatsNetworkChanges)
 from experiment import ExperimentError
 from bricolage.dot_layout import DotMaker
 from bricolage.graph_maker import get_graph_by_type, GraphType
@@ -321,6 +321,22 @@ def best_diff(treatment, replicate):
         # g = get_graph_by_type(GraphType.GENE, ana)
         # d = DotMaker(g)
         # d.save_picture(name.with_suffix('.png').as_posix())
+        
+@bricolage.command()
+@verbose_
+@treatment_
+@replicate_
+def mods_changed(verbose, treatment, replicate):
+    set_logging(verbose)
+
+    try:
+        the_t, the_rep = NS.experiment.find_matching(treatment, replicate)
+    except ExperimentError as e:
+        raise click.BadParameter(e.message)
+
+    NS.experiment.visit_lineages(StatsNetworkChanges(NS.experiment),
+                                 only_treatment=the_t,
+                                 only_replicate=the_rep)
 
 # def status(verbose):
 #     """Show status of experiment"""

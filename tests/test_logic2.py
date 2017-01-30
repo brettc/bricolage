@@ -325,4 +325,5 @@ def test_diff():
         # print (q['sub'][i] != np['sub'][0]).sum()
         # print (q['op'][i] != np['op'][0]).sum()
 
-        print T.count_diff_networks(n, coll2[i])
+        # print T.count_diff_networks(n, coll2[i])
+        print T.modules_changed(n, coll2[i])

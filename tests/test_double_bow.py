@@ -5,7 +5,9 @@ import pytest
 import itertools
 # from math import log as logarithm
 from bricolage.core_ext import Collection
-from bricolage.analysis_ext import MIAnalyzer, WCAnalyzer, MutualInfoAnalyzer
+from bricolage.analysis_ext import (
+    MIAnalyzer, WCAnalyzer, MutualInfoAnalyzer, RelevantControlAnalyzer, FastCAnalyzer
+)
 from bricolage.core import InterventionState
 from bricolage.dot_layout import DotMaker
 from bricolage.graph_draw import SmallDiagram, TextDiagram
@@ -171,12 +173,12 @@ def get_joint(net, outputs, target_1, target_2):
     # Now, build the joint probabilities!
     return categorizer
 
-# def test_graph(double_bow, net2):
-#     ana = NetworkAnalysis(net2)
-#     ana.annotate(double_bow.targets[0])
-#     g = graph_maker.GeneSignalGraph(ana)
-#     d = DotMaker(g)
-#     d.save_picture('signal.png')
+def test_graph(double_bow, net1):
+    ana = NetworkAnalysis(net1)
+    ana.annotate(double_bow.targets[0])
+    g = graph_maker.GeneSignalGraph(ana)
+    d = DotMaker(g)
+    d.save_picture('signal.png')
     
 ARGS = [range(4), [0, 0, 1, 1], [1, 1, 0, 0]]
 WEIGHTING = .2
@@ -319,5 +321,21 @@ def test_categories(double_bow):
     assert len(set(t)) == 2
     t = targ.calc_categories()
     assert len(set(t)) == 4
+
+
+def test_outputs(double_bow, net1):
+    """See if we can recover the indexes of environments
+    """
+    targ = double_bow.targets[0]
+    c_args = [net1.factory.world] + ARGS
+    tset = targ.calc_distinct_outputs()
+    rz = RelevantControlAnalyzer(net1.factory.world, tset, use_natural=False)
+    rel_info = rz.numpy_info_from_network(net1)
+    fz = FastCAnalyzer(*c_args)
+    fast_info = fz.analyse_network(net1)
+    print
+    print tset
+    print rel_info
+    print fast_info
 
 

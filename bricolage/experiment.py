@@ -496,6 +496,10 @@ class Experiment(object):
                 if only_replicate is not None and rep != only_replicate:
                     continue
 
+                if hasattr(visitor, 'wants_replicate'):
+                    if not visitor.wants_replicate(rep):
+                        continue
+
                 with rep.get_lineage() as lin:
                     # Check for list of visitors
                     try:

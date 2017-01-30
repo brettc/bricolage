@@ -4,15 +4,16 @@ import logtools
 import numpy as np
 from .analysis_ext import (MutualInfoAnalyzer, OutputControlAnalyzer,
                            RelevantControlAnalyzer, FastCAnalyzer, MIAnalyzer,
-                           WCAnalyzer)
+                           WCAnalyzer, FastCandBAnalyzer)
 from .analysis import AverageControlAnalyzer
 from .lineage import FullLineage
-from .experimentdb import StatsGroupRecord, StatsRecord, StatsReplicateRecord
+from .experimentdb import StatsGroupRecord, StatsRecord, StatsReplicateRecord, NetworkRecord
 from .neighbourhood import PopulationNeighbourhood
 from bricolage.experiment import Experiment
 from bricolage.graph_maker import SignalFlowGraph
 from bricolage.analysis_ext import NetworkAnalysis
 import inspect
+from logic2 import modules_changed
 
 log = logtools.get_logger()
 
@@ -81,17 +82,6 @@ class StatsVisitor(object):
             ])
 
         self.session.commit()
-
-    #     if self.calc_count > 20:
-    #         log.info("Committing to database...")
-    #         self.session.commit()
-    #         self.calc_count = 0
-    #     else:
-    #         self.calc_count += 1
-    #
-    # def leave_lineage(self, gen_num, pop):
-    #     log.info("Committing to database...")
-    #     self.session.commit()
 
 
 class StatsAverageControl(object):
@@ -205,7 +195,7 @@ class StatsRelevantControl(object):
         return vals
 
 
-class StatsFastControl(object):
+class StatsBaseControl(object):
     def __init__(self, tag, indexes, target1, target2):
         self.tag = tag
         self.indexes = indexes
@@ -240,6 +230,23 @@ class StatsFastControl(object):
         ])
         return vals
 
+class StatsFastControl(StatsBaseControl):
+    def __init__(self, tag, indexes, target1, target2):
+        super(StatsFastControl, self).__init__(tag, indexes, target1, target2)
+
+    def init_lineage(self, rep, lin):
+        self.analyzer = FastCAnalyzer(
+            lin.world, self.indexes, self.target1, self.target2)
+        self.regs = lin.params.reg_channels
+
+class StatsFastWithBackgroundControl(StatsBaseControl):
+    def __init__(self, tag, indexes, target1, target2):
+        super(StatsFastWithBackgroundControl, self).__init__(tag, indexes, target1, target2)
+
+    def init_lineage(self, rep, lin):
+        self.analyzer = FastCandBAnalyzer(
+            lin.world, self.indexes, self.target1, self.target2)
+        self.regs = lin.params.reg_channels
 
 class StatsWeightedControl(object):
     def __init__(self, tag, indexes, target1, target2, weighting):
@@ -330,6 +337,7 @@ class StatsMutualInformation(object):
         vals.extend([
             ('MEAN', ameans.mean()),
             ('MAX', mi.max()),
+            ('MNMX', ameans.max()),
         ])
         return vals
 
@@ -649,6 +657,7 @@ class StatsMI(object):
         vals.extend([
             ('MEAN', ameans.mean()),
             ('MAX', mi.max()),
+            ('MNMX', ameans.max()),
         ])
         return vals
 
@@ -666,7 +675,7 @@ class StatsMaster(object):
         self.m_analyzer = None
 
     def init_lineage(self, rep, lin):
-        self.r_analyzer = FastCAnalyzer(
+        self.r_analyzer = FastCandBAnalyzer(
             lin.world, self.indexes, self.target1, self.target2)
         self.target = lin.targets[self.target_num]
         categories = self.target.calc_categories(self.indexes)
@@ -689,14 +698,18 @@ class StatsMaster(object):
         def freq(bool_arr):
             return bool_arr.sum() / float(pop.size)
 
-        has_info = (mi == 1.0)
-        has_control = (rc == 1.0)
+        def gene_freq(bool_arr):
+            return bool_arr.sum() / float(rc.size)
+
+        gene_info = (mi == 1.0)
+        gene_control = (rc == 1.0)
+        gene_master = gene_info & gene_control
 
         # Look at what is going on in combinations
         nets_fit = (fits == 1.0)
-        nets_with_info = any_true_for_net(has_info)
-        nets_with_control = any_true_for_net(has_control)
-        nets_with_master = any_true_for_net(has_info & has_control)
+        nets_with_info = any_true_for_net(gene_info)
+        nets_with_control = any_true_for_net(gene_control)
+        nets_with_master = any_true_for_net(gene_info & gene_control)
         nets_fit_master = (nets_fit & nets_with_master)
         nets_fit_info = (nets_with_info & nets_fit)
         nets_fit_control = (nets_with_control & nets_fit)
@@ -709,6 +722,75 @@ class StatsMaster(object):
             ('FIT_MASTER', freq(nets_fit_master)),
             ('FIT_INFO', freq(nets_fit_info)),
             ('FIT_CONTROL', freq(nets_fit_control)),
+            ('GENE_INFO', gene_freq(gene_info)),
+            ('GENE_CONTROL', gene_freq(gene_control)),
+            ('GENE_MASTER', gene_freq(gene_master)),
+        ]
+        return vals
+
+
+class StatsRCMaster(object):
+    """Work out how many master genes there are"""
+    tag = "RCM"
+
+    def __init__(self, target_num=0):
+        self.target_num = target_num
+        self.target = None
+        self.r_analyzer = None
+        self.m_analyzer = None
+
+    def init_lineage(self, rep, lin):
+        self.target = lin.targets[self.target_num]
+        tset = self.target.calc_distinct_outputs()
+        self.r_analyzer = RelevantControlAnalyzer(lin.world, tset)
+        categories = self.target.calc_categories()
+        self.m_analyzer = MutualInfoAnalyzer(lin.world, categories)
+        self.regs = lin.params.reg_channels
+
+    def calc_stats(self, pop):
+        # Get the fitnesses
+        self.target.assess_collection(pop)
+        fits = pop.fitnesses
+
+        # Analyse
+        rc = self.r_analyzer.numpy_info_from_collection(pop)
+        mi = self.m_analyzer.numpy_info_from_collection(pop)
+        mi.shape = mi.shape[:-1]
+
+        def any_true_for_net(bool_arr):
+            # Is anything true?
+            return bool_arr.sum(axis=1) >= 1
+
+        def freq(bool_arr):
+            return bool_arr.sum() / float(pop.size)
+
+        def gene_freq(bool_arr):
+            return bool_arr.sum() / float(rc.size)
+
+        gene_info = (mi == 1.0)
+        gene_control = (rc == 1.0)
+        gene_master = gene_info & gene_control
+
+        # Look at what is going on in combinations
+        nets_fit = (fits == 1.0)
+        nets_with_info = any_true_for_net(gene_info)
+        nets_with_control = any_true_for_net(gene_control)
+        nets_with_master = any_true_for_net(gene_info & gene_control)
+        nets_fit_master = (nets_fit & nets_with_master)
+        nets_fit_info = (nets_with_info & nets_fit)
+        nets_fit_control = (nets_with_control & nets_fit)
+
+        vals = [
+            ('FIT', freq(nets_fit)),
+            ('INFO', freq(nets_with_info)),
+            ('CONTROL', freq(nets_with_control)),
+            ('MASTER', freq(nets_with_master)),
+            ('FIT_MASTER', freq(nets_fit_master)),
+            ('FIT_INFO', freq(nets_fit_info)),
+            ('FIT_CONTROL', freq(nets_fit_control)),
+            ('GENE_INFO', gene_freq(gene_info)),
+            ('GENE_CONTROL', gene_freq(gene_control)),
+            ('GENE_MASTER', gene_freq(gene_master)),
         ]
         return vals
 
@@ -883,3 +965,76 @@ class StatsNetworkDiffs(object):
         self.session.add(StatsReplicateRecord(rep, self.edges, edge_diff))
         self.session.commit()
 
+
+class StatsNetworkChanges(object):
+    kind = "MC"
+
+    def __init__(self, experiment):
+        self.experiment = experiment
+        self.session = experiment.database.session
+        self.done = set()
+
+        for srep in self.session.query(NetworkRecord)\
+                .filter(NetworkRecord.kind == self.kind)\
+                .all():
+            self.done.add((
+                srep.treatment_id,
+                srep.replicate_id))
+                
+    def wants_replicate(self, rep):
+        wanted = (rep.treatment.seq, rep.seq) not in self.done
+        return wanted
+
+    def visit_lineage(self, rep, lin):
+        log.info("{}".format(rep))
+
+        glast = lin.generation
+        log.info("Last generation is {}".format(glast))
+
+        cur_net = lin.population.get_best(2)[0]
+        if cur_net.fitness == 1.0:
+            anc = lin.get_ancestry(cur_net.identifier)
+            first_net = anc[0]
+            changes = modules_changed(first_net, cur_net)
+            log.info("Total changes = {}".format(len(changes)))
+
+            for g, m in changes:
+                rec = NetworkRecord(rep, cur_net, g, m, self.kind, 1.0)  
+                self.session.add(rec)
+        else:
+            log.info("Didn't find a successful network")
+            # Just add a "failure" record
+            rec = NetworkRecord(rep, cur_net, -1, -1, self.kind, 0.0)  
+
+        self.session.commit()
+
+
+class StatsLastWinner(object):
+    def __init__(self, experiment):
+        self.experiment = experiment
+        self.session = experiment.database.session
+        self.done = set()
+        self.kind = 'LAST_WINNER'
+
+        for srep in self.session.query(StatsReplicateRecord)\
+                .filter(StatsReplicateRecord.kind == self.kind)\
+                .all():
+            self.done.add((srep.treatment_id, srep.replicate_id))
+
+    def wants_replicate(self, rep):
+        wanted = (rep.treatment.seq, rep.seq) not in self.done
+        return wanted
+
+    def visit_lineage(self, rep, lin):
+        log.info("{}".format(rep)).push().add()
+
+        w, b = lin.population.worst_and_best()
+        if b == 1.0:
+            fgen = lin.generation
+        else:
+            fgen = None
+
+        log.info("Last generation is {}".format(fgen))
+        self.session.add(StatsReplicateRecord(rep, self.kind, fgen))
+        self.session.commit()
+        log.pop()

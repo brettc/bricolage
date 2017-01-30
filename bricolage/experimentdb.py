@@ -103,6 +103,29 @@ class StatsReplicateRecord(SQLBase):
         self.kind = kind
         self.value = val
 
+class NetworkRecord(SQLBase):
+    __tablename__ = 'network'
+    treatment_id = Column(Integer,
+                          ForeignKey('treatment.treatment_id'),
+                          primary_key=True)
+    replicate_id = Column(Integer,
+                          ForeignKey('replicate.replicate_id'),
+                          primary_key=True)
+    network = Column(Integer, primary_key=True)
+    gene = Column(Integer, primary_key=True)
+    module = Column(Integer, primary_key=True)
+    kind = Column(String(10), primary_key=True)
+    value = Column(Float())
+
+    def __init__(self, rep, network, gene, mod, kind, value):
+        self.treatment_id = rep.treatment.seq
+        self.replicate_id = rep.seq
+        self.network = network.identifier
+        self.gene = gene
+        self.module = mod
+        self.kind = kind
+        self.value = value
+
 
 class Database(object):
     def __init__(self, folder):

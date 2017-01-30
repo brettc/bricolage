@@ -647,7 +647,6 @@ def test_relevant_control_pop(bowtie_database, bowtie_network):
     pop = bowtie_database.population
     t = bowtie_database.targets[0]
     tset = t.calc_distinct_outputs()
-
     rz = RelevantControlAnalyzer(net.factory.world, tset)
     cy_info = rz.numpy_info_from_collection(pop)
 

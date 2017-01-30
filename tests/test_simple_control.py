@@ -90,15 +90,8 @@ def get_joint(net, outputs, target_1, target_2):
 
     return joint, info
 
-# def test_graph(double_bow, net2):
-#     ana = NetworkAnalysis(net2)
-#     ana.annotate(double_bow.targets[0])
-#     g = graph_maker.GeneSignalGraph(ana)
-#     d = DotMaker(g)
-#     d.save_picture('signal.png')
-    
+
 ARGS = [range(4), [0, 0, 1, 1], [1, 1, 0, 0]]
-WEIGHTING = 0.2
 
 def test_single_joint(net1):
     c_args = [net1.factory.world] + ARGS
