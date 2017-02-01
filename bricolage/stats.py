@@ -161,15 +161,19 @@ class StatsOutputControl(object):
 
 
 class StatsRelevantControl(object):
-    tag = "RC"
+    def __init__(self, use_natural=True):
+        if use_natural:
+            self.tag = "AC"
+        else:
+            self.tag = "PC"
 
-    def __init__(self):
         self.analyzer = None
+        self.use_natural = use_natural
 
     def init_lineage(self, rep, lin):
         targ = lin.targets[0]
         tset = targ.calc_distinct_outputs()
-        self.analyzer = RelevantControlAnalyzer(lin.world, tset)
+        self.analyzer = RelevantControlAnalyzer(lin.world, tset, use_natural=self.use_natural)
         self.regs = lin.params.reg_channels
 
     def calc_stats(self, pop):
@@ -184,13 +188,13 @@ class StatsRelevantControl(object):
         # Record the mean of all information measures
         regs = self.regs
         for i, c in enumerate(range(regs)):
-            vals.append(('C_{}'.format(c + 1), ameans[i]))
+            vals.append(('{}'.format(c + 1), ameans[i]))
 
         reg_mean = ameans.mean(axis=0)
         vals.extend([
-            ('C_MEAN', reg_mean),
-            ('C_MAX', rc.max()),
-            ('C_MNMX', ameans.max()),
+            ('MEAN', reg_mean),
+            ('MAX', rc.max()),
+            ('MNMX', ameans.max()),
         ])
         return vals
 
@@ -1038,3 +1042,58 @@ class StatsLastWinner(object):
         self.session.add(StatsReplicateRecord(rep, self.kind, fgen))
         self.session.commit()
         log.pop()
+
+
+class StatsSwitchboard(object):
+    """Work out how many master genes there are"""
+
+    def __init__(self, tag, sample=0, target_num=0):
+        self.tag = tag
+        self.target_num = target_num
+        self.target = None
+        self.r_analyzer = None
+        self.m_analyzer = None
+        self.sample = sample
+
+    def init_lineage(self, rep, lin):
+        self.target = lin.targets[self.target_num]
+        tset = self.target.calc_distinct_outputs()
+        self.r_analyzer = RelevantControlAnalyzer(lin.world, tset)
+        categories = self.target.calc_categories()
+        self.m_analyzer = MutualInfoAnalyzer(lin.world, categories)
+        self.regs = lin.params.reg_channels
+        
+
+    def calc_stats(self, pop):
+        # Do we want to extend it?
+        if self.sample <= 0:
+            coll = pop
+        else:
+            pn = PopulationNeighbourhood(pop, self.sample)
+            coll = pn.neighbours
+
+        # Calculate the information
+        rc = self.r_analyzer.numpy_info_from_collection(coll)
+        mi = self.m_analyzer.numpy_info_from_collection(coll)
+
+
+        # Get upstream info, and downstream information
+        # TODO: get rid of ugliness.
+        mi.shape = mi.shape[:-1]
+
+        def mean_freq_is_1(arr):
+            freqs = (arr == 1.0).sum(axis=1) / float(self.regs)
+            return freqs.mean()
+
+        upstream = mean_freq_is_1(mi)
+        downstream = mean_freq_is_1(rc)
+        both = upstream * downstream
+        log.info("Up: {}, Down: {}, Both: {}".format(upstream, downstream, both))
+
+
+        vals = [
+            ('UPSTREAM', upstream),
+            ('DOWNSTREAM', downstream),
+            ('BOTH', both),
+        ]
+        return vals
