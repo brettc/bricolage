@@ -1,9 +1,10 @@
 import logging
 
-from sqlalchemy import (create_engine, Column, Integer,
-                        String, Float, ForeignKey)
+from sqlalchemy import (create_engine, Column, Integer, DateTime,
+                        String, Float, ForeignKey, Index)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, Session
+import datetime
 
 log = logging.getLogger("experimentdb")
 
@@ -125,6 +126,43 @@ class NetworkRecord(SQLBase):
         self.module = mod
         self.kind = kind
         self.value = value
+
+
+class GeneMeasureRecord(SQLBase):
+    __tablename__ = 'gene_measure'
+
+    # Auto-generated
+    gid = Column(Integer, primary_key=True, autoincrement=True)
+    # created = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    treatment_id = Column(Integer, ForeignKey('treatment.treatment_id'))
+    replicate_id = Column(Integer, ForeignKey('replicate.replicate_id'))
+    network_id = Column(Integer)
+    gene = Column(Integer)
+
+    # Per run identity of type of measure 
+    tag = Column(String(10))
+
+    # Internal kind (dead, same, etc)
+    kind = Column(String(10))
+
+    # Something we measure about that gene
+    measure = Column(Float())
+
+    # How many "matches" we found with mutations at this gene
+    found = Column(Float())
+
+    Index('treatment_id', 'replicate_id', 'network_id')
+
+    def __init__(self, rep, network, gene, tag, kind):
+        self.treatment_id = rep.treatment.seq
+        self.replicate_id = rep.seq
+        self.network_id = network.identifier
+        self.gene = gene
+        self.tag = tag
+        self.kind = kind
+
+        # Put the rest in yourself!
 
 
 class Database(object):
