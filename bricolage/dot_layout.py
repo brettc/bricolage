@@ -339,7 +339,8 @@ def save_network_as_fullgraph(net, path='.', name=None,
                               simplify=True,
                               graph_type=GraphType.GENE_SIGNAL,
                               target=None,
-                              with_dot=False):
+                              with_dot=False,
+                              diff=None):
         if not isinstance(path, pathlib.Path):
             path = pathlib.Path(path)
         ana = NetworkAnalysis(net)
@@ -349,7 +350,15 @@ def save_network_as_fullgraph(net, path='.', name=None,
         if name is None:
             name = str(net.identifier)
         path = path / name
-        d.save_picture(str(path.with_suffix('.png')))
-        if with_dot:
-            d.save_dot(str(path.with_suffix('.dot')))
+        if diff is None:
+            d.save_picture(str(path.with_suffix('.png')))
+            if with_dot:
+                d.save_dot(str(path.with_suffix('.dot')))
+        else:
+            other_ana = NetworkAnalysis(diff)
+            other_ana.annotate(target)
+            gdiff = get_graph_by_type(graph_type, other_ana, knockouts=simplify)
+            d.save_diff_picture(str(path.with_suffix('.png')), other=gdiff)
+            if with_dot:
+                d.save_diff_dot(str(path.with_suffix('.dot')), other=gdiff)
         return path
