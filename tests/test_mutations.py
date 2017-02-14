@@ -41,3 +41,27 @@ def test_variable():
     subs = get_cis_values(fact, net)
     print subs
 
+
+def make_with_zeros(addz):
+    params = Parameters(cis_count=2, reg_channels=5, out_channels=2,
+                        cue_channels=3, add_zeros=addz)
+    world = World(params)
+    fact = Factory(world)
+    return fact, world, params
+
+def test_add_zeros():
+    f, w, p = make_with_zeros(0)
+    assert f.draw_from_subs == range(*w.sub_range)
+
+    f, w, p = make_with_zeros(5)
+    assert f.draw_from_subs == range(*w.sub_range) + [0] * 5
+
+    env_reg = range(*w.sub_range)[2:]
+    assert len(env_reg) == w.reg_channels + w.cue_channels
+    assert [2 + i for i in range(w.reg_channels + w.cue_channels)] == env_reg
+
+    new_subs = env_reg + [0] * len(env_reg)
+    f, w, p = make_with_zeros(new_subs)
+    assert f.draw_from_subs == new_subs
+    print new_subs
+

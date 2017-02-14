@@ -486,6 +486,9 @@ def test_average_control_pop(bowtie_database):
     pop = bowtie_database.population
     anz = AverageControlAnalyzer(pop.factory.world)
     cy_info = numpy.asarray(anz.analyse_collection(pop))
+    x = cy_info.shape[2] / 2
+    print x
+    print cy_info[:,:,:x].sum(axis=2).mean(axis=0)
 
     for i, net in enumerate(pop):
         py_info = get_average_control(net)
