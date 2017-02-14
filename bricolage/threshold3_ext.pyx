@@ -31,12 +31,6 @@ cdef class Factory(core_ext.Factory):
         # Specialise the python classes
         self.module_class = CisModule
 
-    def __init__(self, core_ext.World w):
-        addz = w._params.__dict__.get('add_zeros', 0)
-        if addz > 0:
-            self.draw_from_subs += [0] * addz
-
-
     def __reduce__(self):
         return _construct_factory, (self.world, )
 
