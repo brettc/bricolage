@@ -147,8 +147,8 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         cFactory_ptr factory
         cWorld_ptr world
         int_t identifier, parent_identifier, generation
-        cAttractorSet attractors
-        cRatesVector rates, transients
+        cAttractorSet attractors, transients
+        cRatesVector rates
         cChannelsRatesMap cached_mappings
         int_t target
         double fitness

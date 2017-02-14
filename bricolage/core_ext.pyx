@@ -253,6 +253,16 @@ cdef class Factory:
         self.network_class = Network
         self._secret_key = 0x8008008
 
+    def __init__(self, World w):
+        addz = w._params.__dict__.get('add_zeros', 0)
+        if isinstance(addz, int):
+            if addz > 0:
+                self.draw_from_subs += [0] * addz
+
+        elif isinstance(addz, list):
+            self.draw_from_subs = addz
+
+
     def create_network(self):
         cdef Network n = self.network_class(self, self._secret_key)
         n.bind_to(self._this.construct(True))
@@ -266,7 +276,7 @@ cdef class Factory:
 
     property draw_from_regs:
         def __get__(self):
-            return self.this.draw_from_regs
+            return self._this.draw_from_regs
         def __set__(self, cIndexes ch):
             self._this.set_draw_from_regs(ch)
 
@@ -276,6 +286,7 @@ cdef class Factory:
     property module_count:
         def __get__(self):
             return self._this.module_count
+
 
 def _construct_network(Factory factory, array):
     c = Collection(factory)
@@ -460,6 +471,16 @@ cdef class Network:
 
             self._attractors = self._make_python_attractors(self._this.attractors)
             return self._attractors
+
+    property transients:
+        """A tuple containing the transients for each environment"""
+        def __get__(self):
+            # Have if we're detached, we have to recalc every time
+            if self._transients is not None:
+                return self._transients
+
+            self._transients = self._make_python_attractors(self._this.transients)
+            return self._transients
 
     property rates:
         """Return a readonly numpy array of the rates"""
