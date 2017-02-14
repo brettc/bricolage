@@ -142,15 +142,15 @@ class GenePotential(object):
         self.optimal_rates = self.target.as_array()
         log.info("Calculating information measure")
 
-        # self.rz = RelevantControlAnalyzer(lin.world, tset, use_natural=self.use_natural)
-        # self.rz_full = self.rz.numpy_info_from_collection(lin.population)
-        # self.rz_info = self.rz_full.mean(axis=0) 
+        self.rz = RelevantControlAnalyzer(lin.world, tset, use_natural=self.use_natural)
+        self.rz_full = self.rz.numpy_info_from_collection(lin.population)
+        self.rz_info = self.rz_full.mean(axis=0) 
 
-        self.rz = AverageControlAnalyzer(lin.world)
-        info = np.asarray(self.rz.analyse_collection(lin.population))
-        info_dim = info.shape[2] / 3
-        self.rz_full = info[:,:,:info_dim].sum(axis=2)
-        self.rz_info = self.rz_full.mean(axis=0)
+        # self.rz = AverageControlAnalyzer(lin.world)
+        # info = np.asarray(self.rz.analyse_collection(lin.population))
+        # info_dim = info.shape[2] / 3
+        # self.rz_full = info[:,:,:info_dim].sum(axis=2)
+        # self.rz_info = self.rz_full.mean(axis=0)
 
         categories = self.target.calc_categories()
         self.mz = MutualInfoAnalyzer(lin.world, categories)
@@ -163,6 +163,9 @@ class GenePotential(object):
     def get_networks(self):
         # Just work on the last population
         best = self.lineage.population.get_best()
+        if best[0].fitness != 1.0:
+            return []
+
         uniq_idents = set()
         uniq_best = []
         for net in best:
@@ -180,8 +183,14 @@ class GenePotential(object):
         nets = self.get_networks()
         log.info("Generating {} mutants for {} networks".format(self.explore_samples,
                                                                 self.net_samples))
-        # self.analyse_multiple(rep, nets)
-        self.analyse_single(rep, nets)
+
+        if nets:
+            # self.analyse_multiple(rep, nets)
+            self.analyse_single(rep, nets)
+        # else:
+        #     gm = GeneMeasureRecord(rep, cur_net, i + 1, self.tag, mtype.name)
+
+
         self.session.commit()
         log.pop()
 
@@ -237,7 +246,7 @@ class GenePotential(object):
 
             for i in range(self.regs):
                 rz = self.rz_info[i]
-                mz = self.mz_info[i]
+                # mz = self.mz_info[i]
                 for count, kind in zip((same_count, nov_count, dead_count), 
                                        "SAME NOVEL DEAD".split()):
                     gene_counts, total = count
@@ -252,3 +261,64 @@ class GenePotential(object):
 
 
 
+class CausalDist(object):
+    def __init__(self, bins=5, target_num=0):
+        self.tag = "BINS_{}".format(bins)
+        self.target_num = target_num
+        self.target = None
+        self.r_analyzer = None
+        self.bins = bins
+        self.net_samples = 50
+        self.explore_samples = 1000
+
+    def init_lineage(self, rep, lin):
+        self.target = lin.targets[self.target_num]
+        tset = self.target.calc_distinct_outputs()
+        self.r_analyzer = RelevantControlAnalyzer(lin.world, tset)
+        self.valid_patterns = np.asarray(list(tset))
+        self.optimal_rates = self.target.as_array()
+
+    def get_networks(self, pop):
+        # Just work on the last population
+        best = pop.get_best()
+        if best[0].fitness != 1.0:
+            return []
+
+        uniq_idents = set()
+        uniq_best = []
+        for net in best:
+            if net.identifier not in uniq_idents:
+                uniq_idents.add(net.identifier)
+                uniq_best.append(net)
+
+        assert len(uniq_best) >= self.net_samples
+        return random.sample(uniq_best, self.net_samples)
+
+    def mutations(self, pop):
+        nets = self.get_networks(pop)
+
+        counts = [0, 0, 0]
+
+        # Assemble everything
+        for cur_net in nets:
+            mutants = get_novel(
+                cur_net, self.explore_samples, self.valid_patterns, self.optimal_rates)
+            for i in range(3):
+                counts[i] += len(mutants[i])
+
+        return [
+            ("SAME", counts[0]), 
+            ("NOVEL", counts[1]), 
+            ("DEAD", counts[2])
+        ]
+
+    def calc_stats(self, pop):
+        # Analyse
+        rc = self.r_analyzer.numpy_info_from_collection(pop)
+
+        # Just collect everything into bins
+        hist, _ = np.histogram(rc.ravel(), bins=np.arange(0, 1.0001, 1.0/self.bins))
+
+        vals = [("{:02d}".format(i), amt) for i, amt in enumerate(hist)]
+        vals.extend(self.mutations(pop))
+        return vals
