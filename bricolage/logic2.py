@@ -63,11 +63,17 @@ def modules_changed(net1, net2):
 
     # Check to see if there ops changes where the subs did not change
     binding_diffs = sub_diffs.sum(axis=2) != 0
+    # print binding_diffs
 
     ops = arr['op']
     ops_diffs = ops[0] != ops[1]
 
     any_mod_diffs = binding_diffs | ops_diffs
+    # print any_mod_diffs
+
+    # print np.where(any_mod_diffs)
+    # print zip(*np.where(any_mod_diffs))
+    # print '----------'
 
     return zip(*np.where(any_mod_diffs))
 

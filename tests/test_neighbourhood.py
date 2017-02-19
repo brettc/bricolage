@@ -1,7 +1,7 @@
 import pytest
 from bricolage.neighbourhood import NetworkNeighbourhood, Collection, \
     PopulationNeighbourhood
-from bricolage.threshold3 import World, Parameters, Factory, MutateType
+from bricolage import threshold3, logic2
 import numpy as np
 # from bricolage.frames import get_population_neighbourhood_fitness
 from generate import get_database
@@ -24,12 +24,14 @@ def get_binding_values(construct, net):
     return np['binding'].ravel()
 
 
-def test_neighbourhood():
+def test_neighbourhood_thresh():
     # Note we use the PROGRESSIVE mutation as this guarantees a change!
-    params = Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
-                        cue_channels=3, mutate_type=MutateType.PROGRESSIVE)
-    world = World(params)
-    const = Factory(world)
+    params = threshold3.Parameters(
+        seed=4, cis_count=2, reg_channels=5, out_channels=2,
+        cue_channels=3, 
+        mutate_type=threshold3.MutateType.PROGRESSIVE)
+    world = threshold3.World(params)
+    const = threshold3.Factory(world)
     net = const.create_network()
 
     base_bnd = get_binding_values(const, net)
@@ -57,3 +59,24 @@ def test_population(bowtie_database):
 
     f2 = targ.assess_collection(nayb.neighbours)
     print f2.mean(), sum(f2 == 1.0)
+
+def test_logic():
+    # Note we use the PROGRESSIVE mutation as this guarantees a change!
+    params = logic2.Parameters(seed=4, cis_count=2, reg_channels=5, out_channels=2,
+                        cue_channels=3)
+    world = logic2.World(params)
+    const = logic2.Factory(world)
+    net = const.create_network()
+
+    # This should just take 1 step neighbours
+    nayb = NetworkNeighbourhood(net, 1000)
+    # Get all of the bindings out
+    nc = 0
+    for n in nayb.neighbours:
+        # There should be just one difference!
+        ch = logic2.modules_changed(net, n)
+        if len(ch) == 0:
+            nc += 1
+    print nc / float(1000)
+        # assert (base_bnd != b.ravel()).sum() == 1
+
