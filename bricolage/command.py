@@ -267,25 +267,38 @@ def export_network(treatment, replicate, network):
 @bricolage.command()
 @click.argument('treatment', type=int)
 @click.argument('replicate', type=int)
-@click.argument('network', type=int)
-def export_dot(treatment, replicate, network):
+@click.option('--ident', type=int, default=-1)
+@click.option('--best', type=int, default=-1)
+def export_dot(treatment, replicate, ident, best):
     """Export an network."""
     try:
         the_t, the_rep = NS.experiment.find_matching(treatment, replicate)
     except ExperimentError as e:
         raise click.BadParameter(e.message)
 
+    if ident == -1 and best == -1:
+        raise click.BadParameter("network ident or best must provided")
+
+    # print "HERE"
+
     with the_rep.get_lineage() as lin:
-        net = lin.get_network(network)
-        ana = NetworkAnalysis(net)
-        curpath = pathlib.Path('.')
-        name = curpath / "T{}-R{}-network-{}".format(treatment, replicate, net.identifier)
-        g = get_graph_by_type(GraphType.GENE, ana, simple_labels=True)
-        d = DotMaker(g)
-        d.save_dot(name.with_suffix('.dot').as_posix())
-        g = get_graph_by_type(GraphType.GENE, ana)
-        d = DotMaker(g)
-        d.save_picture(name.with_suffix('.png').as_posix())
+        if ident != -1:
+            process_nets = [lin.get_network(ident)]
+        else:
+            process_nets = lin.population.get_best(best)
+
+        for net in process_nets:
+            ana = NetworkAnalysis(net)
+            curpath = pathlib.Path('.')
+            name = curpath / "T{}-R{}-network-{}".format(treatment, replicate, net.identifier)
+            log.info("writing files to {}".format(name))
+            g = get_graph_by_type(GraphType.GENE, ana)
+            d = DotMaker(g, simple=True)
+            d.save_dot(name.with_suffix('.dot').as_posix())
+            g = get_graph_by_type(GraphType.GENE, ana)
+            d = DotMaker(g)
+            d.save_picture(name.with_suffix('.png').as_posix())
+
 
 @bricolage.command()
 @click.argument('treatment', type=int)

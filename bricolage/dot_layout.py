@@ -12,12 +12,13 @@ _dot_default_args = '-Nfontname="Helvetica-8"'
 class DotMaker(object):
     """Convert an NXGraph into an AGraph."""
 
-    def __init__(self, graph):
+    def __init__(self, graph, simple=False):
         """Used to make dot files from network using Graphviz
         """
         assert isinstance(graph, BaseGraph)
         self.graph = graph
         self.labeller = None
+        self.simple = simple
 
     # def get_label(self, graph, node_type, ident):
     #     if self.labeller is not None:
@@ -25,7 +26,7 @@ class DotMaker(object):
     #
     #     return graph.get_label((node_type, ident))
 
-    def get_node_attributes(self, node, use_graph=None, simple=False):
+    def get_node_attributes(self, node, use_graph=None):
         if use_graph is None:
             use_graph = self.graph
 
@@ -35,12 +36,12 @@ class DotMaker(object):
             shape = 'hexagon' if use_graph.is_structural(node) else 'box'
             attrs = {
                 'shape': shape,
-                'label': use_graph.get_label((ntype, ident), simple),
+                'label': use_graph.get_label((ntype, ident), self.simple),
             }
         elif ntype == NodeType.MODULE:
             attrs = {
                 'shape': 'oval',
-                'label': use_graph.get_label((ntype, ident), simple),
+                'label': use_graph.get_label((ntype, ident), self.simple),
             }
 
         elif ntype == NodeType.CHANNEL:
@@ -54,7 +55,7 @@ class DotMaker(object):
 
             attrs = {
                 'shape': shape,
-                'label': use_graph.get_label((ntype, ident), simple),
+                'label': use_graph.get_label((ntype, ident), self.simple),
             }
         else:
             attrs = {}
@@ -70,7 +71,7 @@ class DotMaker(object):
         elif self.graph.is_output(node):
             output_nodes.append(name)
 
-    def get_dot(self, labeller=None, simple=False):
+    def get_dot(self, labeller=None):
         self.labeller = labeller
 
         a_graph = AGraph(directed=True)
@@ -81,7 +82,7 @@ class DotMaker(object):
         input_nodes = []
         # First, add nodes
         for node in nx_graph.nodes():
-            name, attrs = self.get_node_attributes(node, simple=simple)
+            name, attrs = self.get_node_attributes(node)
 
             self.categorize_node(node, name, input_nodes, structural_nodes, output_nodes)
 
@@ -105,8 +106,7 @@ class DotMaker(object):
 
         return a_graph
 
-    def get_dot_diff(self, other, simple=False):
-        self.simple = simple
+    def get_dot_diff(self, other):
 
         a_graph = AGraph(directed=True)
         nx_to_graph = self.graph.nx_graph
@@ -119,7 +119,7 @@ class DotMaker(object):
         # First, Add the nodes from the "to" Graph, marking those that are
         # changed and new.
         for node in nx_to_graph.nodes():
-            name, attrs = self.get_node_attributes(node, simple=simple)
+            name, attrs = self.get_node_attributes(node)
 
             if node in nx_from_graph.nodes():
                 if node_logic_differs(self.graph, other, node):
@@ -134,7 +134,7 @@ class DotMaker(object):
             a_graph.add_node(name, **attrs)
 
         for node in nx_from_graph.nodes():
-            name, attrs = self.get_node_attributes(node, use_graph=other, simple=simple)
+            name, attrs = self.get_node_attributes(node, use_graph=other)
             if node not in nx_to_graph.nodes():
                 attrs['color'] = 'red'
                 self.categorize_node(node, name, 
