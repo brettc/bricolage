@@ -1,7 +1,7 @@
 import pytest
 from bricolage.threshold3 import Parameters
 from bricolage.core import InputType
-from bricolage.dot_layout import save_network_as_fullgraph
+from bricolage.dot_layout import save_graph
 import numpy.random as rand
 import numpy
 
@@ -26,7 +26,7 @@ def target1(a, b):
 
 def test_robustness(bowtie_network):
     net = bowtie_network
-    save_network_as_fullgraph(net)
+    save_graph(net)
     w = net.factory.world
     low, high = w.reg_range
 

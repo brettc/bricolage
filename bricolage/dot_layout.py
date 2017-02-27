@@ -335,30 +335,34 @@ class DotDiagram(Diagram):
         raise NotImplementedError
 
 
-def save_network_as_fullgraph(net, path='.', name=None,
-                              simplify=True,
-                              graph_type=GraphType.GENE_SIGNAL,
-                              target=None,
-                              with_dot=False,
-                              diff=None):
-        if not isinstance(path, pathlib.Path):
-            path = pathlib.Path(path)
-        ana = NetworkAnalysis(net)
-        ana.annotate(target)
-        g = get_graph_by_type(graph_type, ana, knockouts=simplify)
-        d = DotMaker(g)
-        if name is None:
-            name = str(net.identifier)
-        path = path / name
-        if diff is None:
-            d.save_picture(str(path.with_suffix('.png')))
-            if with_dot:
-                d.save_dot(str(path.with_suffix('.dot')))
-        else:
-            other_ana = NetworkAnalysis(diff)
-            other_ana.annotate(target)
-            gdiff = get_graph_by_type(graph_type, other_ana, knockouts=simplify)
-            d.save_diff_picture(str(path.with_suffix('.png')), other=gdiff)
-            if with_dot:
-                d.save_diff_dot(str(path.with_suffix('.dot')), other=gdiff)
-        return path
+def save_graph(net, path='.', name=None,
+                 simplify=True,
+                 graph_type=GraphType.GENE_SIGNAL,
+                 target=None,
+                 with_dot=False,
+                 diff=None,
+                 simple_labels=False):
+    """Put it all together into a simple call
+    """
+    if not isinstance(path, pathlib.Path):
+        path = pathlib.Path(path)
+    ana = NetworkAnalysis(net)
+    ana.annotate(target)
+    g = get_graph_by_type(graph_type, ana, knockouts=simplify)
+    d = DotMaker(g, simple=simple_labels)
+    if name is None:
+        name = str(net.identifier)
+    path = path / name
+    if diff is None:
+        d.save_picture(str(path.with_suffix('.png')))
+        if with_dot:
+            d.save_dot(str(path.with_suffix('.dot')))
+    else:
+        other_ana = NetworkAnalysis(diff)
+        other_ana.annotate(target)
+        gdiff = get_graph_by_type(graph_type, other_ana, knockouts=simplify)
+        d.save_diff_picture(str(path.with_suffix('.png')), other=gdiff)
+        if with_dot:
+            d.save_diff_dot(str(path.with_suffix('.dot')), other=gdiff)
+
+    return path

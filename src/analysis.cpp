@@ -82,7 +82,6 @@ void cNetworkAnalysis::make_active_edges(cEdgeList &edges)
     // It appears we need to run this twice to clean it up. So I'll simply call
     // non-edgemaking one first
     calc_active_bindings();
-    
     edges.clear();
     active_bindings = 0;
     for (size_t i=0; i < modified->gene_count(); ++i)
