@@ -11,24 +11,26 @@ class NetworkNeighbourhood(object):
     that the expected number of single-step walks is proportion of one-step
     neighbourhood.
     """
-    def __init__(self, center, sample_size, one_step_proportion=1.0):
+    def __init__(self, center, sample_size, one_step_proportion=1.0, lamb=0.0):
         # Sample from the neighbourhood
         #
         # @center: our focal network.
         # @one_step_proportion: the proportion of the sample that we want to
         # have only one step mutations
         #
-        self.one_step_proportion = one_step_proportion
+        # self.one_step_proportion = one_step_proportion
         self.sample_size = sample_size
         self.center = center
 
-        if one_step_proportion < 1.0:
-            # Set lambda so we get the right proportion of one-step neighbours
-            lmbda = -mathln(self.one_step_proportion)
+        if one_step_proportion < 1.0 or lamb > 0.0:
+            if lamb > 0.0:
+                self.lamb = lamb
+            else:
+                # Set lambda so we get the right proportion of one-step neighbours
+                self.lamb = -mathln(one_step_proportion)
 
-            # We want at least one mutation, so add one. Note that the proportion
-            # of these that equals 1 should be one_step_proportion.
-            self.mutations = np.random.poisson(lmbda, self.sample_size) + 1
+            # We want at least one mutation, so add one.
+            self.mutations = np.random.poisson(self.lamb, self.sample_size) + 1
         else:
             self.mutations = np.ones(self.sample_size, dtype=int)
 
@@ -38,17 +40,23 @@ class NetworkNeighbourhood(object):
 
 class PopulationNeighbourhood(object):
     """The same thing, for populations"""
-    def __init__(self, population, sample_size, one_step_proportion=1.0):
+    def __init__(self, population, sample_size, one_step_proportion=1.0, lamb=0.0):
         self.one_step_proportion = one_step_proportion
         self.sample_size = sample_size
         self.population = population
         self.neighbours = Collection(population.factory)
-        lmbda = -mathln(self.one_step_proportion)
+
+        if one_step_proportion < 1.0 or lamb > 0.0:
+            if lamb > 0.0:
+                self.lamb = lamb
+            else:
+                # Set lambda so we get the right proportion of one-step neighbours
+                self.lamb = -mathln(one_step_proportion)
 
         # We simple iterate over all networks and add to our neighbourhood
         for n in population:
-            if one_step_proportion < 1.0:
-                mutes = np.random.poisson(lmbda, self.sample_size) + 1
+            if lamb > 0.0:
+                mutes = np.random.poisson(self.lamb, self.sample_size) + 1
             else:
                 mutes = np.ones(self.sample_size, dtype=int)
 
