@@ -6,7 +6,7 @@ from .core_ext import World, Population
 from .targets_ext import DefaultTarget
 from bricolage.core_ext import Collection
 __all__ = ["World", "Factory", "Parameters", "Operand",
-           "Population", "DefaultTarget"] 
+           "Population", "DefaultTarget"]
 
 class Parameters(core.Parameters):
     def __init__(self, **kwargs):

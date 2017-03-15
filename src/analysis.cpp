@@ -1010,7 +1010,7 @@ void cMIAnalyzer::_analyse(
 
 cWCAnalyzer::cWCAnalyzer(cWorld_ptr &w,
                          const cIndexes &ind,
-                         const cRates &t1, 
+                         const cRates &t1,
                          const cRates &t2,
                          double wght)
     : world_ptr(w)

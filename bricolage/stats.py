@@ -19,6 +19,7 @@ log = logtools.get_logger()
 
 
 class StatsVisitor(object):
+
     def __init__(self, experiment, stats_classes):
         assert isinstance(experiment, Experiment)
         self.experiment = experiment
@@ -43,7 +44,8 @@ class StatsVisitor(object):
 
         log.info("Loading all stats groups...")
         for grp in self.session.query(StatsGroupRecord).all():
-            self.done[(grp.treatment_id, grp.replicate_id, grp.generation, grp.tag)] = grp
+            self.done[(grp.treatment_id, grp.replicate_id,
+                       grp.generation, grp.tag)] = grp
         log.info("... finished loading.")
 
     def is_done(self, rep, gen_num, tag):
@@ -65,10 +67,12 @@ class StatsVisitor(object):
         return False
 
     def visit_generation(self, gen_num, pop):
-        log.info("Doing stats for generation {}, {}".format(self.replicate.path, gen_num))
+        log.info("Doing stats for generation {}, {}".format(
+            self.replicate.path, gen_num))
         for stats in self.todo:
             if self.is_done(self.replicate, gen_num, stats.tag):
-                log.info("Skipping already created group for %s, %s", gen_num, stats.tag)
+                log.info("Skipping already created group for %s, %s",
+                         gen_num, stats.tag)
                 continue
 
             self.add_stats_group(self.replicate, gen_num, stats.tag)
@@ -161,6 +165,7 @@ class StatsOutputControl(object):
 
 
 class StatsRelevantControl(object):
+
     def __init__(self, use_natural=True):
         if use_natural:
             self.tag = "AC"
@@ -173,7 +178,8 @@ class StatsRelevantControl(object):
     def init_lineage(self, rep, lin):
         targ = lin.targets[0]
         tset = targ.calc_distinct_outputs()
-        self.analyzer = RelevantControlAnalyzer(lin.world, tset, use_natural=self.use_natural)
+        self.analyzer = RelevantControlAnalyzer(
+            lin.world, tset, use_natural=self.use_natural)
         self.regs = lin.params.reg_channels
 
     def calc_stats(self, pop):
@@ -200,6 +206,7 @@ class StatsRelevantControl(object):
 
 
 class StatsBaseControl(object):
+
     def __init__(self, tag, indexes, target1, target2):
         self.tag = tag
         self.indexes = indexes
@@ -234,7 +241,9 @@ class StatsBaseControl(object):
         ])
         return vals
 
+
 class StatsFastControl(StatsBaseControl):
+
     def __init__(self, tag, indexes, target1, target2):
         super(StatsFastControl, self).__init__(tag, indexes, target1, target2)
 
@@ -243,16 +252,21 @@ class StatsFastControl(StatsBaseControl):
             lin.world, self.indexes, self.target1, self.target2)
         self.regs = lin.params.reg_channels
 
+
 class StatsFastWithBackgroundControl(StatsBaseControl):
+
     def __init__(self, tag, indexes, target1, target2):
-        super(StatsFastWithBackgroundControl, self).__init__(tag, indexes, target1, target2)
+        super(StatsFastWithBackgroundControl, self).__init__(
+            tag, indexes, target1, target2)
 
     def init_lineage(self, rep, lin):
         self.analyzer = FastCandBAnalyzer(
             lin.world, self.indexes, self.target1, self.target2)
         self.regs = lin.params.reg_channels
 
+
 class StatsWeightedControl(object):
+
     def __init__(self, tag, indexes, target1, target2, weighting):
         self.tag = tag
         self.indexes = indexes
@@ -320,7 +334,8 @@ class StatsMutualInformation(object):
         # generations.
         self.target = lin.targets[0]
         self.regs = lin.params.reg_channels
-        self.analyzer = MutualInfoAnalyzer(lin.world, self.target.calc_categories())
+        self.analyzer = MutualInfoAnalyzer(
+            lin.world, self.target.calc_categories())
 
     def calc_stats(self, pop):
         mi = self.analyzer.numpy_info_from_collection(pop)
@@ -410,8 +425,10 @@ class StatsRobustness(object):
         nay_fit = np.asarray(self.target.assess_collection(nay_coll))
         better_than_mean = np.where(nay_fit >= pop_mean)[0].size
         prop_better = float(better_than_mean) / float(nay_coll.size)
-        perfect = float(np.where(pop.fitnesses == 1.0)[0].size) / float(pop.size)
-        mutated_perfect = float(np.where(nay_fit == 1.0)[0].size) / float(nay_coll.size)
+        perfect = float(np.where(pop.fitnesses == 1.0)
+                        [0].size) / float(pop.size)
+        mutated_perfect = float(np.where(nay_fit == 1.0)[
+                                0].size) / float(nay_coll.size)
 
         return [
             ('PROP', prop_better),
@@ -419,6 +436,7 @@ class StatsRobustness(object):
             ('BEST_POP', perfect),
             ('BEST_MUT', mutated_perfect),
         ]
+
 
 class StatsEnvironmental(object):
     tag = "EB"
@@ -444,7 +462,9 @@ class StatsEnvironmental(object):
             ('FIT_MEAN', robs_mean),
         ]
 
+
 class StatsLag(object):
+
     def __init__(self, experiment):
         self.experiment = experiment
         self.session = experiment.database.session
@@ -474,7 +494,8 @@ class StatsLag(object):
         targ = lin.targets[0]
         tset = targ.calc_distinct_outputs()
         self.rc_analyzer = RelevantControlAnalyzer(lin.world, tset)
-        self.mi_analyzer = MutualInfoAnalyzer(lin.world, targ.calc_categories())
+        self.mi_analyzer = MutualInfoAnalyzer(
+            lin.world, targ.calc_categories())
 
         # Analysis
         if not self.is_done(rep, self.first_best):
@@ -483,8 +504,10 @@ class StatsLag(object):
 
         if not self.is_done(rep, self.first_control):
             cgen, mgen = self.find_first_control()
-            self.session.add(StatsReplicateRecord(rep, self.first_control, cgen))
-            self.session.add(StatsReplicateRecord(rep, self.first_master, mgen))
+            self.session.add(StatsReplicateRecord(
+                rep, self.first_control, cgen))
+            self.session.add(StatsReplicateRecord(
+                rep, self.first_master, mgen))
 
         self.session.commit()
 
@@ -555,11 +578,13 @@ class StatsLag(object):
         # Make sure the network has a fitness
         log.debug("First ancestor with master gene is at {}.".format(
             first_master.generation))
-        self.replicate.draw_net('first-control', first_master, target=self.lineage.targets[0])
+        self.replicate.draw_net(
+            'first-control', first_master, target=self.lineage.targets[0])
         return first_control.generation, first_master.generation
 
 
 class StatsGenerations(object):
+
     def __init__(self, experiment):
         self.experiment = experiment
         self.session = experiment.database.session
@@ -587,6 +612,7 @@ class StatsGenerations(object):
 
 
 class StatsTime(object):
+
     def __init__(self, experiment, streak_length):
         self.experiment = experiment
         self.session = experiment.database.session
@@ -616,7 +642,8 @@ class StatsTime(object):
         if not self.is_done(rep, self.last_generation):
             fgen = lin.generation
             log.info("Last generation is {}".format(fgen))
-            self.session.add(StatsReplicateRecord(rep, self.last_generation, fgen))
+            self.session.add(StatsReplicateRecord(
+                rep, self.last_generation, fgen))
 
         if not self.is_done(rep, self.begin_streak):
             l = lin.final_streak_length(self.streak_length + 1)
@@ -629,6 +656,7 @@ class StatsTime(object):
 
 
 class StatsMI(object):
+
     def __init__(self, tag, indexes, target_num=0):
         self.tag = tag
         self.target_num = target_num
@@ -668,6 +696,7 @@ class StatsMI(object):
 
 class StatsMaster(object):
     """Work out how many master genes there are"""
+
     def __init__(self, tag, indexes, target1, target2, target_num=0):
         self.tag = tag
         self.indexes = indexes
@@ -686,12 +715,28 @@ class StatsMaster(object):
         self.m_analyzer = MIAnalyzer(lin.world, categories)
         self.regs = lin.params.reg_channels
 
+    def do_bowties(self, pop):
+        log.info("Calculating Bowties...")
+        bowties = np.zeros(pop.size, np.bool_)
+        fit_bowties = np.zeros(pop.size, np.bool_)
+
+        for i, net in enumerate(pop):
+            ana = NetworkAnalysis(net)
+            fg = SignalFlowGraph(ana)
+            if fg.has_bowtie():
+                bowties[i] = 1
+                if net.fitness == 1.0:
+                    fit_bowties[i] = 1
+
+        return bowties, fit_bowties
+
     def calc_stats(self, pop):
         # Get the fitnesses
         self.target.assess_collection(pop)
         fits = pop.fitnesses
 
         # Analyse
+        log.info("Calculating Information...")
         rc = self.r_analyzer.analyse_collection(pop)
         mi = self.m_analyzer.analyse_collection(pop)
 
@@ -718,6 +763,13 @@ class StatsMaster(object):
         nets_fit_info = (nets_with_info & nets_fit)
         nets_fit_control = (nets_with_control & nets_fit)
 
+        bowties, fit_bowties = self.do_bowties(pop)
+
+        master_no_bow = nets_with_master & ~bowties
+        fit_master_no_bow = nets_fit_master & ~bowties
+        bowtie_no_master = bowties & ~nets_with_master
+        fit_bowtie_no_master = fit_bowties & ~nets_with_master
+
         vals = [
             ('FIT', freq(nets_fit)),
             ('INFO', freq(nets_with_info)),
@@ -729,7 +781,14 @@ class StatsMaster(object):
             ('GENE_INFO', gene_freq(gene_info)),
             ('GENE_CONTROL', gene_freq(gene_control)),
             ('GENE_MASTER', gene_freq(gene_master)),
+            ("BOW_PROB", freq(bowties)),
+            ("BOW_FIT_PROB", freq(fit_bowties)),
+            ("MASTER_NO_BOW", freq(master_no_bow)),
+            ("FIT_MASTER_NO_BOW", freq(fit_master_no_bow)),
+            ("BOW_NO_MASTER", freq(fit_master_no_bow)),
+            ("FIT_BOW_NO_MASTER", freq(fit_bowtie_no_master)),
         ]
+
         return vals
 
 
@@ -835,7 +894,7 @@ class StatsBowtie(object):
                 bowties += 1
                 if net.fitness == 1.0:
                     fit_bowties += 1
-        
+
         log.info("Successful Bowties: {} - fit {}".format(bowties, fit_bowties))
         return [
             ("PROB", bowties / float(pop.size)),
@@ -845,6 +904,7 @@ class StatsBowtie(object):
 
 class StatsFirstMaster(object):
     """Work out how many master genes there are"""
+
     def __init__(self, experiment, tag, indexes, target1, target2, weighting, target_num=0):
         self.session = experiment.database.session
         self.tag = tag
@@ -872,7 +932,8 @@ class StatsFirstMaster(object):
         log.info("{}".format(rep)).push().add()
         if not self.is_done(rep, self.first_master):
             fgen = self.find_first_master(lin)
-            self.session.add(StatsReplicateRecord(rep, self.first_master, fgen))
+            self.session.add(StatsReplicateRecord(
+                rep, self.first_master, fgen))
             self.session.commit()
         log.pop()
 
@@ -912,7 +973,7 @@ class StatsFirstMaster(object):
 
 
 class StatsNetworkDiffs(object):
-    tag = 'MUT' 
+    tag = 'MUT'
 
     def __init__(self, experiment):
         self.experiment = experiment
@@ -984,7 +1045,7 @@ class StatsNetworkChanges(object):
             self.done.add((
                 srep.treatment_id,
                 srep.replicate_id))
-                
+
     def wants_replicate(self, rep):
         wanted = (rep.treatment.seq, rep.seq) not in self.done
         return wanted
@@ -1003,17 +1064,18 @@ class StatsNetworkChanges(object):
             log.info("Total changes = {}".format(len(changes)))
 
             for g, m in changes:
-                rec = NetworkRecord(rep, cur_net, g, m, self.kind, 1.0)  
+                rec = NetworkRecord(rep, cur_net, g, m, self.kind, 1.0)
                 self.session.add(rec)
         else:
             log.info("Didn't find a successful network")
             # Just add a "failure" record
-            rec = NetworkRecord(rep, cur_net, -1, -1, self.kind, 0.0)  
+            rec = NetworkRecord(rep, cur_net, -1, -1, self.kind, 0.0)
 
         self.session.commit()
 
 
 class StatsLastWinner(object):
+
     def __init__(self, experiment):
         self.experiment = experiment
         self.session = experiment.database.session
@@ -1062,7 +1124,6 @@ class StatsSwitchboard(object):
         categories = self.target.calc_categories()
         self.m_analyzer = MutualInfoAnalyzer(lin.world, categories)
         self.regs = lin.params.reg_channels
-        
 
     def calc_stats(self, pop):
         # Do we want to extend it?
@@ -1076,7 +1137,6 @@ class StatsSwitchboard(object):
         rc = self.r_analyzer.numpy_info_from_collection(coll)
         mi = self.m_analyzer.numpy_info_from_collection(coll)
 
-
         # Get upstream info, and downstream information
         # TODO: get rid of ugliness.
         mi.shape = mi.shape[:-1]
@@ -1088,8 +1148,8 @@ class StatsSwitchboard(object):
         upstream = mean_freq_is_1(mi)
         downstream = mean_freq_is_1(rc)
         both = upstream * downstream
-        log.info("Up: {}, Down: {}, Both: {}".format(upstream, downstream, both))
-
+        log.info("Up: {}, Down: {}, Both: {}".format(
+            upstream, downstream, both))
 
         vals = [
             ('UPSTREAM', upstream),
