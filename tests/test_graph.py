@@ -90,18 +90,18 @@ def graph_diff(net1, net2):
     # n2 = set([g2.get_label(n).strip() for n in g2.nx_graph.nodes_iter()])
     # print n1
     # print n1.symmetric_difference(n2)
-    
+
 @pytest.fixture
 def net1(double_bow):
     return double_bow.population.get_best()[0]
-    
+
 def draw_diff(name, net1, net2):
     ana1 = NetworkAnalysis(net1)
     g1 = graph_maker.GeneGraph(ana1)
     ana2 = NetworkAnalysis(net2)
     g2 = graph_maker.GeneGraph(ana2)
     d = DotMaker(g2)
-    a = d.get_dot_diff(g1, simple=True)
+    a = d.get_dot_diff(g1)
     _dot_default_args = '-Nfontname="Helvetica-8"'
     a.draw(name, prog='dot', args=_dot_default_args)
 

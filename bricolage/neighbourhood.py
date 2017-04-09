@@ -11,10 +11,10 @@ class NetworkNeighbourhood(object):
     that the expected number of single-step walks is proportion of one-step
     neighbourhood.
     """
-    def __init__(self, center, sample_size, 
-                 one_step_proportion=1.0, 
+    def __init__(self, center, sample_size,
+                 one_step_proportion=1.0,
                  lamb=0.0,
-                 steps=1.0,
+                 steps=1,
                  ):
         """There three ways to generation a neighbourhood.
             - specify the number of steps
@@ -45,10 +45,10 @@ class NetworkNeighbourhood(object):
 
 class PopulationNeighbourhood(object):
     """The same thing, for populations"""
-    def __init__(self, population, sample_size, 
-                 one_step_proportion=1.0, 
+    def __init__(self, population, sample_size,
+                 one_step_proportion=1.0,
                  lamb=0.0,
-                 steps=1.0,
+                 steps=1,
                  ):
         """See above"""
 

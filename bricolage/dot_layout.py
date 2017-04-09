@@ -62,7 +62,7 @@ class DotMaker(object):
 
         return name, attrs
 
-    def categorize_node(self, node, name, 
+    def categorize_node(self, node, name,
                         input_nodes, structural_nodes, output_nodes):
         if self.graph.is_input(node):
             input_nodes.append(name)
@@ -127,7 +127,7 @@ class DotMaker(object):
             else:
                 attrs['color'] = 'green'
 
-            self.categorize_node(node, name, 
+            self.categorize_node(node, name,
                                  input_nodes, structural_nodes, output_nodes)
 
             # Keep a reference to the original node
@@ -137,7 +137,7 @@ class DotMaker(object):
             name, attrs = self.get_node_attributes(node, use_graph=other)
             if node not in nx_to_graph.nodes():
                 attrs['color'] = 'red'
-                self.categorize_node(node, name, 
+                self.categorize_node(node, name,
                                      input_nodes, structural_nodes, output_nodes)
                 a_graph.add_node(name, **attrs)
 
