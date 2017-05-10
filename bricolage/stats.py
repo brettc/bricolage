@@ -697,7 +697,8 @@ class StatsMI(object):
 class StatsMaster(object):
     """Work out how many master genes there are"""
 
-    def __init__(self, tag, indexes, target1, target2, target_num=0):
+    def __init__(self, tag, indexes, target1, target2, target_num=0, 
+                 bowties_too=True):
         self.tag = tag
         self.indexes = indexes
         self.target1 = target1
@@ -706,9 +707,10 @@ class StatsMaster(object):
         self.target = None
         self.r_analyzer = None
         self.m_analyzer = None
+        self.bowties_too = bowties_too
 
     def init_lineage(self, rep, lin):
-        self.r_analyzer = FastCandBAnalyzer(
+        self.r_analyzer = FastCAnalyzer(
             lin.world, self.indexes, self.target1, self.target2)
         self.target = lin.targets[self.target_num]
         categories = self.target.calc_categories(self.indexes)
@@ -763,12 +765,6 @@ class StatsMaster(object):
         nets_fit_info = (nets_with_info & nets_fit)
         nets_fit_control = (nets_with_control & nets_fit)
 
-        bowties, fit_bowties = self.do_bowties(pop)
-
-        master_no_bow = nets_with_master & ~bowties
-        fit_master_no_bow = nets_fit_master & ~bowties
-        bowtie_no_master = bowties & ~nets_with_master
-        fit_bowtie_no_master = fit_bowties & ~nets_with_master
 
         vals = [
             ('FIT', freq(nets_fit)),
@@ -781,13 +777,24 @@ class StatsMaster(object):
             ('GENE_INFO', gene_freq(gene_info)),
             ('GENE_CONTROL', gene_freq(gene_control)),
             ('GENE_MASTER', gene_freq(gene_master)),
-            ("BOW_PROB", freq(bowties)),
-            ("BOW_FIT_PROB", freq(fit_bowties)),
-            ("MASTER_NO_BOW", freq(master_no_bow)),
-            ("FIT_MASTER_NO_BOW", freq(fit_master_no_bow)),
-            ("BOW_NO_MASTER", freq(fit_master_no_bow)),
-            ("FIT_BOW_NO_MASTER", freq(fit_bowtie_no_master)),
         ]
+
+        if self.bowties_too:
+
+            bowties, fit_bowties = self.do_bowties(pop)
+
+            master_no_bow = nets_with_master & ~bowties
+            fit_master_no_bow = nets_fit_master & ~bowties
+            bowtie_no_master = bowties & ~nets_with_master
+            fit_bowtie_no_master = fit_bowties & ~nets_with_master
+            vals.extend([
+                ("BOW_PROB", freq(bowties)),
+                ("BOW_FIT_PROB", freq(fit_bowties)),
+                ("MASTER_NO_BOW", freq(master_no_bow)),
+                ("FIT_MASTER_NO_BOW", freq(fit_master_no_bow)),
+                ("BOW_NO_MASTER", freq(bowtie_no_master)),
+                ("FIT_BOW_NO_MASTER", freq(fit_bowtie_no_master)),
+            ])
 
         return vals
 
