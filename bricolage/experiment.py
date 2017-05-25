@@ -532,19 +532,20 @@ class Experiment(object):
                             visitor.visit_generation(only, pop)
                     else:
                         # Now iterate through the generations
-                        # Note: index may be negative!
+                        # Note: index may be negative, but gen_num is always
+                        # positive
                         pos_indexing = start >= 0
 
                         gen_index = start
                         gen_num = gen_index if pos_indexing else lin.generation + gen_index + 1
                         last_gen = False
-                        print gen_index, gen_num
+                        # print gen_index, gen_num
                         while gen_num <= lin.generation:
                             # Check if the visitor wants this generation (as loading is
                             # expensive)
-                            if visitor.wants_generation(gen_index):
-                                pop = lin.get_generation(gen_index)
-                                visitor.visit_generation(gen_index, pop)
+                            if visitor.wants_generation(gen_num):
+                                pop = lin.get_generation(gen_num)
+                                visitor.visit_generation(gen_num, pop)
 
                             # Make sure we always do the last generation
                             if gen_num == lin.generation:
