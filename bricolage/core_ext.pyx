@@ -507,6 +507,9 @@ cdef class Network:
     property target:
         def __get__(self):
             return self._this.target
+        def __set__(self, int t):
+            """Unsafe!!!"""
+            self._this.target = t
 
     property attractor_robustness:
         def __get__(self):
