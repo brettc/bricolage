@@ -348,6 +348,7 @@ class FullLineage(BaseLineage):
             w, b = self.population.worst_and_best()
             self._h5.root.generations.cols.best[self.generation] = b
             self._h5.root.generations.cols.target[self.generation] = index
+            self._check_integrity()
 
     def save_generation(self, initial=False):
         # If it is not the initial save, then just save the mutations only
@@ -475,10 +476,11 @@ class FullLineage(BaseLineage):
         else:
             rec = self._generations[-1]
             max_index = max(rec['indexes'])
-            assert max_index == num_networks - 1
+            assert max_index < num_networks
             assert num_networks == self.world.next_network_id
 
     def close(self):
+        self._check_integrity()
         self._h5.flush()
         self._h5.close()
 
