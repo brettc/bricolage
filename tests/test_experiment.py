@@ -50,6 +50,11 @@ class CloningTreatment(Treatment):
     def make_initial_population(self, replicate, factory, size):
         p = Population(factory)
         n = factory.create_network()
+
+        # Note: we need to do this because the identifiers of the networks
+        # must match their index in the database (and we just created one
+        # above).
+        factory.world.next_network_id = 0
         p.fill(n, size)
         return p
 

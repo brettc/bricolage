@@ -186,14 +186,14 @@ cdef class World:
     property next_network_id:
         def __get__(self):
             return self._this.next_network_identifier
-        # def __set__(self, sequence_t i):
-        #     self._this.next_network_identifier = i
+        def __set__(self, sequence_t i):
+            self._this.next_network_identifier = i
 
     property next_target_id:
         def __get__(self):
             return self._this.next_target_identifier
-        # def __set__(self, sequence_t i):
-        #     self._this.next_network_identifier = i
+        def __set__(self, sequence_t i):
+            self._this.next_network_identifier = i
 
     property cue_channels:
         def __get__(self):

@@ -17,8 +17,9 @@ cNetwork_ptr cFactory::clone_and_mutate_network(
     cNetwork_ptr &n, size_t n_sub, size_t n_pub, size_t dups, int_t generation)
 {
     cNetwork_ptr copy(n->clone());
-    copy->identifier = world->get_next_network_ident();
-    copy->parent_identifier = n->identifier;
+    // This is now done in the clone() function.
+    // copy->identifier = world->get_next_network_ident();
+    // copy->parent_identifier = n->identifier;
     copy->generation = generation;
     if (n_sub || n_pub)
         copy->mutate(n_sub, n_pub);
