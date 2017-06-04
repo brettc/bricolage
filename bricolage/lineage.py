@@ -477,6 +477,7 @@ class FullLineage(BaseLineage):
             rec = self._generations[-1]
             max_index = max(rec['indexes'])
             assert max_index < num_networks
+            print num_networks, self.world.next_network_id
             assert num_networks == self.world.next_network_id
 
     def close(self):
