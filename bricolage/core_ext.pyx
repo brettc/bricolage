@@ -320,10 +320,14 @@ cdef class Network:
     property identifier:
         def __get__(self):
             return self._this.identifier
+        def __set__(self, int i):
+            self._this.identifier = i
 
     property parent_identifier:
         def __get__(self):
             return self._this.parent_identifier
+        def __set__(self, int i):
+            self._this.parent_identifier = i
 
     property generation:
         def __get__(self):
