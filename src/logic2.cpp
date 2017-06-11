@@ -94,8 +94,8 @@ bricolage::cNetwork_ptr cNetwork::clone() const
     // This is the only extra things that needs copying.
     // Everything magically works here.
     copy->genes = genes;
-    copy->identifier = world->get_next_network_ident();
-    copy->parent_identifier = identifier;
+    // copy->identifier = world->get_next_network_ident();
+    // copy->parent_identifier = identifier;
 
     // We also don't calculate attractors or anything, as we might be doing
     // some mutating first.

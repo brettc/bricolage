@@ -92,6 +92,8 @@ cdef extern from "<src/core.hpp>" namespace "bricolage":
         cAttractor environments
         InputType input_type
         size_t pulse_for
+        sequence_t get_next_network_ident()
+        sequence_t get_next_target_ident()
         double get_random_double(double low, double high)
         double get_random_int(int low, int high)
         string get_random_state()

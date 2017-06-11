@@ -295,8 +295,6 @@ class Treatment(object):
         cur_len = lineage.final_streak_length(streak_len + 1)
         log.info("Last streak length {}".format(cur_len))
 
-        first_round = True
-
         while True:
             g = lineage.generation
 
@@ -500,7 +498,8 @@ class Experiment(object):
                     if not visitor.wants_replicate(rep):
                         continue
 
-                with rep.get_lineage() as lin:
+                with rep.get_lineage(readonly=True) as lin:
+                    assert lin.readonly
                     # Check for list of visitors
                     try:
                         for v in visitor:
@@ -521,7 +520,7 @@ class Experiment(object):
                 if only_replicate is not None and rep != only_replicate:
                     continue
 
-                with rep.get_lineage() as lin:
+                with rep.get_lineage(readonly=True) as lin:
                     visitor.visit_lineage(rep, lin)
 
                     if only is not None:
@@ -539,7 +538,6 @@ class Experiment(object):
                         gen_index = start
                         gen_num = gen_index if pos_indexing else lin.generation + gen_index + 1
                         last_gen = False
-                        # print gen_index, gen_num
                         while gen_num <= lin.generation:
                             # Check if the visitor wants this generation (as loading is
                             # expensive)

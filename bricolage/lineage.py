@@ -466,7 +466,6 @@ class FullLineage(BaseLineage):
         # Everything after this is 1.0, so the length is...
         return self.generation - last_actual_gen
 
-
     def _check_integrity(self):
         num_networks = len(self._networks)
 
@@ -477,12 +476,13 @@ class FullLineage(BaseLineage):
             rec = self._generations[-1]
             max_index = max(rec['indexes'])
             assert max_index < num_networks
-            print num_networks, self.world.next_network_id
             assert num_networks == self.world.next_network_id
 
     def close(self):
-        self._check_integrity()
-        self._h5.flush()
+        if not self.readonly:
+            self._check_integrity()
+            self._h5.flush()
+
         self._h5.close()
 
 

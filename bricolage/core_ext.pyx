@@ -658,10 +658,18 @@ cdef class CollectionBase:
             self._collection.push_back(deref(other._collection)[i])
 
     def fill(self, Network n, size_t size):
-        cdef size_t i
+        cdef: 
+            size_t i
+            cNetwork *net
+            cNetwork_ptr net_ptr
+
         for i in range(size):
-            self._collection.push_back(n._this.clone())
-            self._collection.back().get().calc_attractors()
+            net_ptr = n._this.clone()
+            net = net_ptr.get()
+
+            self._collection.push_back(net_ptr)
+            net.identifier = self.factory._this.world.get().get_next_network_ident()
+            net.calc_attractors()
 
     def fill_with_mutations(self, Network n, np.int_t[:] mutations):
         cdef:
