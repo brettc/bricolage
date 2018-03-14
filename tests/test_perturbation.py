@@ -50,14 +50,14 @@ def test_caching(bowtie_network):
     #     a, t, r = net.stabilise(e)
     #     assert (r == net.get_rates(e)).all()
     #
-    print len(net.rates_cache)
-    ks = net.rates_cache.keys()
-    ks.sort()
-    for k in ks:
-        print k, net.rates_cache[k]
     
-    # print net.attractors
-    #
+    # TODO: Not working
+    # print len(net.rates_cache)
+    # ks = net.rates_cache.keys()
+    # ks.sort()
+    # for k in ks:
+    #     print k, net.rates_cache[k]
+    
 def get_robustness_attr(net):
     w = net.factory.world
     low, high = w.cue_range[0], w.reg_range[1]

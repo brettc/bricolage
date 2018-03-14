@@ -375,6 +375,7 @@ cdef class Network:
             self._this.calc_attractors()
 
         self._attractors = None
+        self._transients = None
         self._rates = None
 
     def mutate(self, size_t n_cis, size_t n_trans=0):
@@ -495,11 +496,22 @@ cdef class Network:
             self._rates = self._make_python_rates(self._this.rates)
             return self._rates
 
-    property rates_cache:
-        def __get__(self):
-            themap = deref(to_cChannelRatesMapBits(&self._this.cached_mappings))
-            return dict([(Channels(self.factory.world, k), v) 
-                         for k, v in themap.items()])
+    # property rates_cache:
+    #     def __get__(self):
+    #         cdef:
+    #             cChannelsRatesMapBits *themap
+    #             std_map[bits_t, cRates].iterator iter
+    #
+    #         themap = to_cChannelRatesMapBits(&self._this.cached_mappings)
+    #         iter = themap.begin()
+    #         pydict = {}
+    #         while iter != themap.end():
+    #             pydict[Channels(self.factory.world, deref(iter).first)] = deref(iter).second
+    #         
+    #         return pydict
+
+            # return dict([(Channels(self.factory.world, k), v) 
+            #              for k, v in deref(themap).items()])
 
     def clear_rate_cache(self):
         self._this.clear_rate_cache()
