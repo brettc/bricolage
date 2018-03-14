@@ -98,7 +98,7 @@ class DotMaker(object):
         sub.graph_attr['rank'] = 'sink'
 
         # Now add edges
-        for u, v, edgedata in nx_graph.edges_iter(data=True):
+        for u, v, edgedata in nx_graph.edges(data=True):
             attrs = {}
             a_graph.add_edge(self.graph.node_to_name(u),
                              self.graph.node_to_name(v),
@@ -151,7 +151,7 @@ class DotMaker(object):
         sub.graph_attr['rank'] = 'sink'
 
         # Now add edges
-        for u, v, edgedata in nx_to_graph.edges_iter(data=True):
+        for u, v, edgedata in nx_to_graph.edges(data=True):
             attrs = {}
             if (u, v) not in nx_from_graph.edges():
                 attrs['color'] = 'green'
@@ -160,7 +160,7 @@ class DotMaker(object):
                              self.graph.node_to_name(v),
                              **attrs)
 
-        for edge in nx_from_graph.edges_iter():
+        for edge in nx_from_graph.edges():
             if edge not in nx_to_graph.edges():
                 attrs = {'color': 'red'}
                 a_graph.add_edge(self.graph.node_to_name(edge[0]),
@@ -234,7 +234,7 @@ class DotDiagram(Diagram):
         else:
             self.xscaling = self.yscaling
 
-        for anode in dot.nodes_iter():
+        for anode in dot.nodes():
             self.add_shape(anode)
 
         for e in dot.edges():
@@ -252,7 +252,7 @@ class DotDiagram(Diagram):
                 mx = cur
             return mn, mx
 
-        for anode in dot.nodes_iter():
+        for anode in dot.nodes():
             px, py = self.get_pt(anode.attr['pos'])
             minx, maxx = _update(minx, maxx, px)
             miny, maxy = _update(miny, maxy, py)

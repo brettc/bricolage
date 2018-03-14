@@ -118,6 +118,7 @@ class BaseGraph(object):
     def remove_nodes(self, nodetype, internal_only=False, external_only=False):
         assert not (internal_only and external_only)
         gr = self.nx_graph
+        to_remove = []
         for nd in gr.nodes():
             if nd[0] != nodetype:
                 continue
@@ -129,6 +130,9 @@ class BaseGraph(object):
                 if self.is_internal(nd):
                     continue
 
+            to_remove.append(nd)
+
+        for nd in to_remove:
             # Ok -- do the removal
             pred = gr.predecessors(nd)
             succ = gr.successors(nd)
@@ -253,13 +257,13 @@ class SignalFlowGraph(FullGraph):
         FullGraph.__init__(self, analysis, knockouts=True, edges=None, **kw)
         gr = self.nx_graph
 
-        inp_nodes = [n for n in gr.nodes_iter() if self.is_input(n)]
+        inp_nodes = [n for n in gr.nodes() if self.is_input(n)]
         for n in inp_nodes:
             gr.add_edge(self.begin_node, n)
 
         self.n_inp_nodes = len(inp_nodes)
 
-        out_nodes = [n for n in gr.nodes_iter() if self.is_output(n)]
+        out_nodes = [n for n in gr.nodes() if self.is_output(n)]
         for n in out_nodes:
             gr.add_edge(n, self.end_node)
 

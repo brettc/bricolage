@@ -8,8 +8,6 @@ from bricolage.analysis_ext import NetworkAnalysis
 from bricolage.core_ext import Collection
 import numpy
 import cPickle as pickle
-# from bricolage.core import InterventionState
-
 
 def test_graph_creation(tmpdir, bowtie_network):
     output_path = pathlib.Path(str(tmpdir))
@@ -62,11 +60,11 @@ def graph_diff(net1, net2):
     ana2 = NetworkAnalysis(net2)
     g2 = graph_maker.FullGraph(ana2)
 
-    # e1 = set([e for e in g1.nx_graph.edges_iter()])
-    # e2 = set([e for e in g2.nx_graph.edges_iter()])
+    # e1 = set([e for e in g1.nx_graph.edges()])
+    # e2 = set([e for e in g2.nx_graph.edges()])
     # print e1.symmetric_difference(e2)
     #
-    for node in g2.nx_graph.nodes_iter():
+    for node in g2.nx_graph.nodes():
         # Is it there?
         if node in g1.nx_graph.nodes():
             if g1.get_label(node).strip() != g2.get_label(node).strip():
@@ -74,20 +72,20 @@ def graph_diff(net1, net2):
         else:
             print 'added', node
 
-    for node in g1.nx_graph.nodes_iter():
+    for node in g1.nx_graph.nodes():
         if node not in g2.nx_graph.nodes():
             print 'removed', node
 
-    for edge in g2.nx_graph.edges_iter():
+    for edge in g2.nx_graph.edges():
         if edge not in g1.nx_graph.edges():
             print 'added', edge
 
-    for edge in g1.nx_graph.edges_iter():
+    for edge in g1.nx_graph.edges():
         if edge not in g2.nx_graph.edges():
             print 'removed', edge
 
-    # n1 = set([g1.get_label(n).strip() for n in g1.nx_graph.nodes_iter()])
-    # n2 = set([g2.get_label(n).strip() for n in g2.nx_graph.nodes_iter()])
+    # n1 = set([g1.get_label(n).strip() for n in g1.nx_graph.nodes()])
+    # n2 = set([g2.get_label(n).strip() for n in g2.nx_graph.nodes()])
     # print n1
     # print n1.symmetric_difference(n2)
 
