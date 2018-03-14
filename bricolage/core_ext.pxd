@@ -39,7 +39,7 @@ cdef class Network:
         # it makes our life easier. The cost is a tiny bit of space.
         cNetwork_ptr _shared
         cNetwork *_this
-        object _genes, _attractors, _rates
+        object _genes, _attractors, _rates, _transients
 
     cdef bind_to(self, cNetwork_ptr ptr)
 
