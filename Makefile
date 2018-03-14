@@ -10,7 +10,7 @@
 #
 # CURRENT PLATFORM: MacOSX 10.10.1, using Anaconda python 2.7
 
-PYTHONDIR=/Users/Brett/anaconda
+PYTHONDIR=/Users/brett/.pyenv/versions/grn-toolkit
 PYSRC=./bricolage
 CPPSRC=./src
 

@@ -18,3 +18,5 @@ bricolage.egg-info
 *.log
 *.def
 .pytest
+.pytest_cache
+tags
