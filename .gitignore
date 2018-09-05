@@ -20,3 +20,5 @@ bricolage.egg-info
 .pytest
 .pytest_cache
 tags
+*.png
+*.pickle
