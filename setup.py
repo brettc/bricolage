@@ -24,7 +24,7 @@ CLASSIFIERS = [
     "Natural Language :: English",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Operating System :: OS Independent",
-    "Programming Language :: C++", 
+    "Programming Language :: C++",
     "Programming Language :: Python",
     "Programming Language :: Python :: 2.7",
     "Topic :: Scientific/Engineering",
@@ -34,7 +34,7 @@ CLASSIFIERS = [
 INSTALL_REQUIRES = [
     "pathlib",
     "pandas",
-    "networkx"
+    "networkx", 'numpy'
 ]
 
 ###############################################################################

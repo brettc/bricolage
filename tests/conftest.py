@@ -1,5 +1,5 @@
 import pytest
-from generate import get_database
+from .generate import get_database
 from bricolage.experiment import Experiment, Treatment
 from bricolage.threshold3 import Parameters
 from bricolage.core import DefaultTarget

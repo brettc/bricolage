@@ -2,6 +2,7 @@ import analysis_ext
 import core_ext
 import numpy
 
+
 class NetworkAnalysis(analysis_ext.NetworkAnalysis):
     def __init__(self, network):
         super(NetworkAnalysis, self).__init__(network)

@@ -17,6 +17,9 @@ cdef class NetworkAnalysis:
         self.network = net
         self._this = new cNetworkAnalysis(net._shared)
 
+    def __init__(self, Network net):
+        pass
+
     def __dealloc__(self):
         del self._this
 
@@ -184,6 +187,9 @@ cdef class AverageControlAnalyzer:
     def __cinit__(self, World w):
         self.world = w
         self._this = new cAverageControlAnalyzer(w._shared)
+
+    def __init__(self, World w):
+        pass
 
     def __dealloc__(self):
         if self._this != NULL:
