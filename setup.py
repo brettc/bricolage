@@ -31,11 +31,7 @@ CLASSIFIERS = [
 ]
 
 
-INSTALL_REQUIRES = [
-    "pathlib",
-    "pandas",
-    "networkx", 'numpy'
-]
+INSTALL_REQUIRES = ["pathlib", "pandas", "networkx", "numpy"]
 
 ###############################################################################
 
@@ -59,8 +55,7 @@ def find_meta(meta):
     Extract __*meta*__ from META_FILE.
     """
     meta_match = re.search(
-        r"^__{meta}__ = ['\"]([^'\"]*)['\"]".format(meta=meta),
-        META_FILE, re.M
+        r"^__{meta}__ = ['\"]([^'\"]*)['\"]".format(meta=meta), META_FILE, re.M
     )
     if meta_match:
         return meta_match.group(1)

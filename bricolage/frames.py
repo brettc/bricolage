@@ -5,8 +5,12 @@ import numpy as np
 import pandas as pd
 
 from .analysis_ext import (
-    MutualInfoAnalyzer, AverageControlAnalyzer,
-    Information, NetworkAnalysis, OutputControlAnalyzer)
+    MutualInfoAnalyzer,
+    AverageControlAnalyzer,
+    Information,
+    NetworkAnalysis,
+    OutputControlAnalyzer,
+)
 from .graph_maker import SignalFlowGraph
 from neighbourhood import NetworkNeighbourhood
 
@@ -16,7 +20,7 @@ def make_population_frames(pop, target, flow, do_cuts=True):
     # Create the fitnesses
     fits = np.zeros(pop.size)
     pop.get_fitnesses(fits)
-    fits_frame = pd.DataFrame({'fitness': fits})
+    fits_frame = pd.DataFrame({"fitness": fits})
 
     # Control analysis
     af = AverageControlAnalyzer(pop.factory.world, flow)
@@ -47,7 +51,7 @@ def make_population_frames(pop, target, flow, do_cuts=True):
         ana = NetworkAnalysis(n)
         fg = SignalFlowGraph(ana)
         cuts.append(len(fg.minimum_cut()))
-    cuts_frame = pd.DataFrame({'cuts': cuts})
+    cuts_frame = pd.DataFrame({"cuts": cuts})
 
     return fits_frame, cuts_frame, mframe, aframe
 
@@ -64,7 +68,7 @@ def make_ancestry_frames(anc, target):
     gens = np.asarray([n.generation for n in anc], dtype=np.int64)
 
     # Create the fitnesses
-    fits_frame = pd.DataFrame({'fitness': [n.fitness for n in anc]})
+    fits_frame = pd.DataFrame({"fitness": [n.fitness for n in anc]})
     fits_frame.index = gens
 
     # The output analysis
@@ -124,7 +128,7 @@ def make_ancestry_robustness_frame(anc, target, sample_size=1000):
         means[i] = sample_fits.mean()
         top_count[i] = float(how_many_are_1) / sample_size
 
-    df = pd.DataFrame({'fitness': fits, 'n_mean': means, 'max_count': top_count})
+    df = pd.DataFrame({"fitness": fits, "n_mean": means, "max_count": top_count})
     gens = np.asarray([n.generation for n in anc], dtype=np.int64)
     df.index = gens
 
@@ -141,6 +145,6 @@ def make_cut_frame(anc):
         fg = SignalFlowGraph(ana)
         cuts.append(len(fg.minimum_cut()))
 
-    df = pd.DataFrame({'cuts': cuts})
+    df = pd.DataFrame({"cuts": cuts})
     df.index = gens
     return df

@@ -6,8 +6,17 @@ from .targets_ext import DefaultTarget
 from .core_ext import SelectionModel
 from .threshold3_ext import Factory
 
-__all__ = ["World", "Factory", "Parameters", "MutateType",
-           "Population", "DefaultTarget", "NetworkAnalysis", "SelectionModel"]
+__all__ = [
+    "World",
+    "Factory",
+    "Parameters",
+    "MutateType",
+    "Population",
+    "DefaultTarget",
+    "NetworkAnalysis",
+    "SelectionModel",
+]
+
 
 class Parameters(core.Parameters):
     def __init__(self, **kwargs):
@@ -16,4 +25,3 @@ class Parameters(core.Parameters):
         self.target_class = DefaultTarget
         # <---
         core.Parameters.__init__(self, **kwargs)
-

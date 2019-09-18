@@ -2,12 +2,23 @@
 """
 import logtools
 import numpy as np
-from .analysis_ext import (MutualInfoAnalyzer, OutputControlAnalyzer,
-                           RelevantControlAnalyzer, FastCAnalyzer, MIAnalyzer,
-                           WCAnalyzer, FastCandBAnalyzer)
+from .analysis_ext import (
+    MutualInfoAnalyzer,
+    OutputControlAnalyzer,
+    RelevantControlAnalyzer,
+    FastCAnalyzer,
+    MIAnalyzer,
+    WCAnalyzer,
+    FastCandBAnalyzer,
+)
 from .analysis import AverageControlAnalyzer
 from .lineage import FullLineage
-from .experimentdb import StatsGroupRecord, StatsRecord, StatsReplicateRecord, NetworkRecord
+from .experimentdb import (
+    StatsGroupRecord,
+    StatsRecord,
+    StatsReplicateRecord,
+    NetworkRecord,
+)
 from .neighbourhood import PopulationNeighbourhood
 from bricolage.experiment import Experiment
 from bricolage.graph_maker import SignalFlowGraph
@@ -19,7 +30,6 @@ log = logtools.get_logger()
 
 
 class StatsVisitor(object):
-
     def __init__(self, experiment, stats_classes):
         assert isinstance(experiment, Experiment)
         self.experiment = experiment
@@ -35,7 +45,7 @@ class StatsVisitor(object):
             else:
                 k = kls
             # We need a tag attribute.
-            assert hasattr(k, 'tag')
+            assert hasattr(k, "tag")
             self.todo.add(k)
 
         # Load all stats groups already done.
@@ -44,8 +54,9 @@ class StatsVisitor(object):
 
         log.info("Loading all stats groups...")
         for grp in self.session.query(StatsGroupRecord).all():
-            self.done[(grp.treatment_id, grp.replicate_id,
-                       grp.generation, grp.tag)] = grp
+            self.done[
+                (grp.treatment_id, grp.replicate_id, grp.generation, grp.tag)
+            ] = grp
         log.info("... finished loading.")
 
     def is_done(self, rep, gen_num, tag):
@@ -67,23 +78,30 @@ class StatsVisitor(object):
         return False
 
     def visit_generation(self, gen_num, pop):
-        log.info("Doing stats for generation {}, {}".format(
-            self.replicate.path, gen_num))
+        log.info(
+            "Doing stats for generation {}, {}".format(self.replicate.path, gen_num)
+        )
         for stats in self.todo:
             if self.is_done(self.replicate, gen_num, stats.tag):
-                log.info("Skipping already created group for %s, %s",
-                         gen_num, stats.tag)
+                log.info(
+                    "Skipping already created group for %s, %s", gen_num, stats.tag
+                )
                 continue
 
             self.add_stats_group(self.replicate, gen_num, stats.tag)
             named_values = stats.calc_stats(pop)
-            self.session.add_all([
-                StatsRecord(
-                    self.replicate,
-                    gen_num,
-                    "{}_{}".format(stats.tag, n), v, stats.tag)
-                for n, v in named_values
-            ])
+            self.session.add_all(
+                [
+                    StatsRecord(
+                        self.replicate,
+                        gen_num,
+                        "{}_{}".format(stats.tag, n),
+                        v,
+                        stats.tag,
+                    )
+                    for n, v in named_values
+                ]
+            )
 
         self.session.commit()
 
@@ -114,13 +132,10 @@ class StatsAverageControl(object):
         out = self.out
         for i, c in enumerate(range(regs)):
             for j in range(out):
-                vals.append(('C_{}_{}'.format(c + 1, j + 1), control[i, j]))
-                vals.append(('E_{}_{}'.format(c + 1, j + 1), entropy[i, j]))
+                vals.append(("C_{}_{}".format(c + 1, j + 1), control[i, j]))
+                vals.append(("E_{}_{}".format(c + 1, j + 1), entropy[i, j]))
 
-        vals.extend([
-            ('C_MEAN', control.mean()),
-            ('E_MEAN', entropy.mean()),
-        ])
+        vals.extend([("C_MEAN", control.mean()), ("E_MEAN", entropy.mean())])
         return vals
 
 
@@ -148,24 +163,25 @@ class StatsOutputControl(object):
         # Record the mean of all information measures
         regs = self.regs
         for i, c in enumerate(range(regs)):
-            vals.append(('C_{}'.format(c + 1), ameans[i, 0]))
-            vals.append(('E_{}'.format(c + 1), ameans[i, 1]))
-            vals.append(('W_{}'.format(c + 1), ameans[i, 2]))
+            vals.append(("C_{}".format(c + 1), ameans[i, 0]))
+            vals.append(("E_{}".format(c + 1), ameans[i, 1]))
+            vals.append(("W_{}".format(c + 1), ameans[i, 2]))
 
         reg_mean = ameans.mean(axis=0)
-        vals.extend([
-            ('C_MEAN', reg_mean[0]),
-            ('E_MEAN', reg_mean[1]),
-            ('W_MEAN', reg_mean[2]),
-            ('C_MAX', ai[:, :, 0].max()),
-            ('E_MIN', ai[:, :, 1].min()),
-            ('W_MAX', ai[:, :, 2].max()),
-        ])
+        vals.extend(
+            [
+                ("C_MEAN", reg_mean[0]),
+                ("E_MEAN", reg_mean[1]),
+                ("W_MEAN", reg_mean[2]),
+                ("C_MAX", ai[:, :, 0].max()),
+                ("E_MIN", ai[:, :, 1].min()),
+                ("W_MAX", ai[:, :, 2].max()),
+            ]
+        )
         return vals
 
 
 class StatsRelevantControl(object):
-
     def __init__(self, use_natural=True):
         if use_natural:
             self.tag = "AC"
@@ -179,7 +195,8 @@ class StatsRelevantControl(object):
         targ = lin.targets[0]
         tset = targ.calc_distinct_outputs()
         self.analyzer = RelevantControlAnalyzer(
-            lin.world, tset, use_natural=self.use_natural)
+            lin.world, tset, use_natural=self.use_natural
+        )
         self.regs = lin.params.reg_channels
 
     def calc_stats(self, pop):
@@ -194,19 +211,14 @@ class StatsRelevantControl(object):
         # Record the mean of all information measures
         regs = self.regs
         for i, c in enumerate(range(regs)):
-            vals.append(('{}'.format(c + 1), ameans[i]))
+            vals.append(("{}".format(c + 1), ameans[i]))
 
         reg_mean = ameans.mean(axis=0)
-        vals.extend([
-            ('MEAN', reg_mean),
-            ('MAX', rc.max()),
-            ('MNMX', ameans.max()),
-        ])
+        vals.extend([("MEAN", reg_mean), ("MAX", rc.max()), ("MNMX", ameans.max())])
         return vals
 
 
 class StatsBaseControl(object):
-
     def __init__(self, tag, indexes, target1, target2):
         self.tag = tag
         self.indexes = indexes
@@ -216,7 +228,8 @@ class StatsBaseControl(object):
 
     def init_lineage(self, rep, lin):
         self.analyzer = FastCAnalyzer(
-            lin.world, self.indexes, self.target1, self.target2)
+            lin.world, self.indexes, self.target1, self.target2
+        )
         self.regs = lin.params.reg_channels
 
     def calc_stats(self, pop):
@@ -231,42 +244,38 @@ class StatsBaseControl(object):
         # Record the mean of all information measures
         regs = self.regs
         for i, c in enumerate(range(regs)):
-            vals.append(('{}'.format(c + 1), ameans[i]))
+            vals.append(("{}".format(c + 1), ameans[i]))
 
         reg_mean = ameans.mean(axis=0)
-        vals.extend([
-            ('MEAN', reg_mean),
-            ('MAX', rc.max()),
-            ('MNMX', ameans.max()),
-        ])
+        vals.extend([("MEAN", reg_mean), ("MAX", rc.max()), ("MNMX", ameans.max())])
         return vals
 
 
 class StatsFastControl(StatsBaseControl):
-
     def __init__(self, tag, indexes, target1, target2):
         super(StatsFastControl, self).__init__(tag, indexes, target1, target2)
 
     def init_lineage(self, rep, lin):
         self.analyzer = FastCAnalyzer(
-            lin.world, self.indexes, self.target1, self.target2)
+            lin.world, self.indexes, self.target1, self.target2
+        )
         self.regs = lin.params.reg_channels
 
 
 class StatsFastWithBackgroundControl(StatsBaseControl):
-
     def __init__(self, tag, indexes, target1, target2):
         super(StatsFastWithBackgroundControl, self).__init__(
-            tag, indexes, target1, target2)
+            tag, indexes, target1, target2
+        )
 
     def init_lineage(self, rep, lin):
         self.analyzer = FastCandBAnalyzer(
-            lin.world, self.indexes, self.target1, self.target2)
+            lin.world, self.indexes, self.target1, self.target2
+        )
         self.regs = lin.params.reg_channels
 
 
 class StatsWeightedControl(object):
-
     def __init__(self, tag, indexes, target1, target2, weighting):
         self.tag = tag
         self.indexes = indexes
@@ -277,7 +286,8 @@ class StatsWeightedControl(object):
 
     def init_lineage(self, rep, lin):
         self.analyzer = WCAnalyzer(
-            lin.world, self.indexes, self.target1, self.target2, self.weighting)
+            lin.world, self.indexes, self.target1, self.target2, self.weighting
+        )
         self.regs = lin.params.reg_channels
 
     def calc_stats(self, pop):
@@ -292,14 +302,10 @@ class StatsWeightedControl(object):
         # Record the mean of all information measures
         regs = self.regs
         for i, c in enumerate(range(regs)):
-            vals.append(('{}'.format(c + 1), ameans[i]))
+            vals.append(("{}".format(c + 1), ameans[i]))
 
         reg_mean = ameans.mean(axis=0)
-        vals.extend([
-            ('MEAN', reg_mean),
-            ('MAX', rc.max()),
-            ('MNMX', ameans.max()),
-        ])
+        vals.extend([("MEAN", reg_mean), ("MAX", rc.max()), ("MNMX", ameans.max())])
         return vals
 
 
@@ -314,11 +320,7 @@ class StatsFitness(object):
 
     def calc_stats(self, pop):
         fits = np.asarray(pop.fitnesses)
-        return [
-            ('MEAN', fits.mean()),
-            ('VAR', fits.var()),
-            ('MAX', fits.max()),
-        ]
+        return [("MEAN", fits.mean()), ("VAR", fits.var()), ("MAX", fits.max())]
 
 
 class StatsMutualInformation(object):
@@ -334,8 +336,7 @@ class StatsMutualInformation(object):
         # generations.
         self.target = lin.targets[0]
         self.regs = lin.params.reg_channels
-        self.analyzer = MutualInfoAnalyzer(
-            lin.world, self.target.calc_categories())
+        self.analyzer = MutualInfoAnalyzer(lin.world, self.target.calc_categories())
 
     def calc_stats(self, pop):
         mi = self.analyzer.numpy_info_from_collection(pop)
@@ -351,20 +352,18 @@ class StatsMutualInformation(object):
         # Record the mean of all information measures
         regs = self.regs
         for i, c in enumerate(range(regs)):
-            vals.append(('{}'.format(c + 1), ameans[i]))
+            vals.append(("{}".format(c + 1), ameans[i]))
 
-        vals.extend([
-            ('MEAN', ameans.mean()),
-            ('MAX', mi.max()),
-            ('MNMX', ameans.max()),
-        ])
+        vals.extend(
+            [("MEAN", ameans.mean()), ("MAX", mi.max()), ("MNMX", ameans.max())]
+        )
         return vals
 
 
 class StatsNeighbourhood(object):
     tag = "NB"
 
-    def __init__(self, sample_per_net=20, one_step_proportion=.5):
+    def __init__(self, sample_per_net=20, one_step_proportion=0.5):
         self.fits = None
         self.sample_per_net = sample_per_net
         self.one_step_proportion = one_step_proportion
@@ -375,16 +374,17 @@ class StatsNeighbourhood(object):
 
     def calc_stats(self, pop):
         nayb = PopulationNeighbourhood(
-            pop, self.sample_per_net, self.one_step_proportion)
+            pop, self.sample_per_net, self.one_step_proportion
+        )
         self.target.assess_collection(nayb.neighbours)
         fits = nayb.neighbours.fitnesses
         n1 = sum(fits == 1.0)
         perc = float(n1) / float(len(fits))
         return [
-            ('PERC', perc),
-            ('MEAN', fits.mean()),
-            ('VAR', fits.var()),
-            ('MED', np.median(fits)),
+            ("PERC", perc),
+            ("MEAN", fits.mean()),
+            ("VAR", fits.var()),
+            ("MED", np.median(fits)),
         ]
 
 
@@ -400,9 +400,9 @@ class StatsBindings(object):
     def calc_stats(self, pop):
         bindings = pop.active_bindings
         return [
-            ('MEAN', bindings.mean()),
-            ('VAR', bindings.var()),
-            ('MIN', bindings.min()),
+            ("MEAN", bindings.mean()),
+            ("VAR", bindings.var()),
+            ("MIN", bindings.min()),
         ]
 
 
@@ -425,16 +425,14 @@ class StatsRobustness(object):
         nay_fit = np.asarray(self.target.assess_collection(nay_coll))
         better_than_mean = np.where(nay_fit >= pop_mean)[0].size
         prop_better = float(better_than_mean) / float(nay_coll.size)
-        perfect = float(np.where(pop.fitnesses == 1.0)
-                        [0].size) / float(pop.size)
-        mutated_perfect = float(np.where(nay_fit == 1.0)[
-                                0].size) / float(nay_coll.size)
+        perfect = float(np.where(pop.fitnesses == 1.0)[0].size) / float(pop.size)
+        mutated_perfect = float(np.where(nay_fit == 1.0)[0].size) / float(nay_coll.size)
 
         return [
-            ('PROP', prop_better),
-            ('MEAN', pop_mean),
-            ('BEST_POP', perfect),
-            ('BEST_MUT', mutated_perfect),
+            ("PROP", prop_better),
+            ("MEAN", pop_mean),
+            ("BEST_POP", perfect),
+            ("BEST_MUT", mutated_perfect),
         ]
 
 
@@ -457,14 +455,10 @@ class StatsEnvironmental(object):
         rob_scaled = p_fit * robusts
         robs_mean = rob_scaled.mean()
 
-        return [
-            ('MEAN', rob_mean),
-            ('FIT_MEAN', robs_mean),
-        ]
+        return [("MEAN", rob_mean), ("FIT_MEAN", robs_mean)]
 
 
 class StatsLag(object):
-
     def __init__(self, experiment):
         self.experiment = experiment
         self.session = experiment.database.session
@@ -474,9 +468,9 @@ class StatsLag(object):
         self.mi_analyzer = None
         self.done = {}
 
-        self.first_best = 'FIRST_BEST'
-        self.first_control = 'FIRST_CONTROL'
-        self.first_master = 'FIRST_MASTER'
+        self.first_best = "FIRST_BEST"
+        self.first_control = "FIRST_CONTROL"
+        self.first_master = "FIRST_MASTER"
 
         # TODO: should only load relevant ones
         for srep in self.session.query(StatsReplicateRecord).all():
@@ -494,8 +488,7 @@ class StatsLag(object):
         targ = lin.targets[0]
         tset = targ.calc_distinct_outputs()
         self.rc_analyzer = RelevantControlAnalyzer(lin.world, tset)
-        self.mi_analyzer = MutualInfoAnalyzer(
-            lin.world, targ.calc_categories())
+        self.mi_analyzer = MutualInfoAnalyzer(lin.world, targ.calc_categories())
 
         # Analysis
         if not self.is_done(rep, self.first_best):
@@ -504,10 +497,8 @@ class StatsLag(object):
 
         if not self.is_done(rep, self.first_control):
             cgen, mgen = self.find_first_control()
-            self.session.add(StatsReplicateRecord(
-                rep, self.first_control, cgen))
-            self.session.add(StatsReplicateRecord(
-                rep, self.first_master, mgen))
+            self.session.add(StatsReplicateRecord(rep, self.first_control, cgen))
+            self.session.add(StatsReplicateRecord(rep, self.first_master, mgen))
 
         self.session.commit()
 
@@ -516,7 +507,7 @@ class StatsLag(object):
     def find_first_winner(self):
         first_win = None
         for g in self.lineage._generations.where("best == 1.0"):
-            first_win = g['generation']
+            first_win = g["generation"]
             break
 
         log.info("Found first winner at generation {}".format(first_win))
@@ -576,19 +567,20 @@ class StatsLag(object):
         first_master = anc[master]
 
         # Make sure the network has a fitness
-        log.debug("First ancestor with master gene is at {}.".format(
-            first_master.generation))
+        log.debug(
+            "First ancestor with master gene is at {}.".format(first_master.generation)
+        )
         self.replicate.draw_net(
-            'first-control', first_master, target=self.lineage.targets[0])
+            "first-control", first_master, target=self.lineage.targets[0]
+        )
         return first_control.generation, first_master.generation
 
 
 class StatsGenerations(object):
-
     def __init__(self, experiment):
         self.experiment = experiment
         self.session = experiment.database.session
-        self.max_gen = 'MAX_GENERATIONS'
+        self.max_gen = "MAX_GENERATIONS"
         self.done = {}
 
         # TODO: should only load relevant ones
@@ -612,7 +604,6 @@ class StatsGenerations(object):
 
 
 class StatsTime(object):
-
     def __init__(self, experiment, streak_length):
         self.experiment = experiment
         self.session = experiment.database.session
@@ -621,8 +612,8 @@ class StatsTime(object):
         self.done = {}
         self.streak_length = streak_length
 
-        self.last_generation = 'LAST_GENERATION'
-        self.begin_streak = 'BEGIN_STREAK'
+        self.last_generation = "LAST_GENERATION"
+        self.begin_streak = "BEGIN_STREAK"
 
         # TODO: should only load relevant ones
         for srep in self.session.query(StatsReplicateRecord).all():
@@ -642,8 +633,7 @@ class StatsTime(object):
         if not self.is_done(rep, self.last_generation):
             fgen = lin.generation
             log.info("Last generation is {}".format(fgen))
-            self.session.add(StatsReplicateRecord(
-                rep, self.last_generation, fgen))
+            self.session.add(StatsReplicateRecord(rep, self.last_generation, fgen))
 
         if not self.is_done(rep, self.begin_streak):
             l = lin.final_streak_length(self.streak_length + 1)
@@ -656,7 +646,6 @@ class StatsTime(object):
 
 
 class StatsMI(object):
-
     def __init__(self, tag, indexes, target_num=0):
         self.tag = tag
         self.target_num = target_num
@@ -684,21 +673,18 @@ class StatsMI(object):
         # Record the mean of all information measures
         regs = self.regs
         for i, c in enumerate(range(regs)):
-            vals.append(('{}'.format(c + 1), ameans[i]))
+            vals.append(("{}".format(c + 1), ameans[i]))
 
-        vals.extend([
-            ('MEAN', ameans.mean()),
-            ('MAX', mi.max()),
-            ('MNMX', ameans.max()),
-        ])
+        vals.extend(
+            [("MEAN", ameans.mean()), ("MAX", mi.max()), ("MNMX", ameans.max())]
+        )
         return vals
 
 
 class StatsMaster(object):
     """Work out how many master genes there are"""
 
-    def __init__(self, tag, indexes, target1, target2, target_num=0, 
-                 bowties_too=True):
+    def __init__(self, tag, indexes, target1, target2, target_num=0, bowties_too=True):
         self.tag = tag
         self.indexes = indexes
         self.target1 = target1
@@ -711,7 +697,8 @@ class StatsMaster(object):
 
     def init_lineage(self, rep, lin):
         self.r_analyzer = FastCAnalyzer(
-            lin.world, self.indexes, self.target1, self.target2)
+            lin.world, self.indexes, self.target1, self.target2
+        )
         self.target = lin.targets[self.target_num]
         categories = self.target.calc_categories(self.indexes)
         self.m_analyzer = MIAnalyzer(lin.world, categories)
@@ -752,31 +739,30 @@ class StatsMaster(object):
         def gene_freq(bool_arr):
             return bool_arr.sum() / float(rc.size)
 
-        gene_info = (mi == 1.0)
-        gene_control = (rc == 1.0)
+        gene_info = mi == 1.0
+        gene_control = rc == 1.0
         gene_master = gene_info & gene_control
 
         # Look at what is going on in combinations
-        nets_fit = (fits == 1.0)
+        nets_fit = fits == 1.0
         nets_with_info = any_true_for_net(gene_info)
         nets_with_control = any_true_for_net(gene_control)
         nets_with_master = any_true_for_net(gene_info & gene_control)
-        nets_fit_master = (nets_fit & nets_with_master)
-        nets_fit_info = (nets_with_info & nets_fit)
-        nets_fit_control = (nets_with_control & nets_fit)
-
+        nets_fit_master = nets_fit & nets_with_master
+        nets_fit_info = nets_with_info & nets_fit
+        nets_fit_control = nets_with_control & nets_fit
 
         vals = [
-            ('FIT', freq(nets_fit)),
-            ('INFO', freq(nets_with_info)),
-            ('CONTROL', freq(nets_with_control)),
-            ('MASTER', freq(nets_with_master)),
-            ('FIT_MASTER', freq(nets_fit_master)),
-            ('FIT_INFO', freq(nets_fit_info)),
-            ('FIT_CONTROL', freq(nets_fit_control)),
-            ('GENE_INFO', gene_freq(gene_info)),
-            ('GENE_CONTROL', gene_freq(gene_control)),
-            ('GENE_MASTER', gene_freq(gene_master)),
+            ("FIT", freq(nets_fit)),
+            ("INFO", freq(nets_with_info)),
+            ("CONTROL", freq(nets_with_control)),
+            ("MASTER", freq(nets_with_master)),
+            ("FIT_MASTER", freq(nets_fit_master)),
+            ("FIT_INFO", freq(nets_fit_info)),
+            ("FIT_CONTROL", freq(nets_fit_control)),
+            ("GENE_INFO", gene_freq(gene_info)),
+            ("GENE_CONTROL", gene_freq(gene_control)),
+            ("GENE_MASTER", gene_freq(gene_master)),
         ]
 
         if self.bowties_too:
@@ -787,20 +773,23 @@ class StatsMaster(object):
             fit_master_no_bow = nets_fit_master & ~bowties
             bowtie_no_master = bowties & ~nets_with_master
             fit_bowtie_no_master = fit_bowties & ~nets_with_master
-            vals.extend([
-                ("BOW_PROB", freq(bowties)),
-                ("BOW_FIT_PROB", freq(fit_bowties)),
-                ("MASTER_NO_BOW", freq(master_no_bow)),
-                ("FIT_MASTER_NO_BOW", freq(fit_master_no_bow)),
-                ("BOW_NO_MASTER", freq(bowtie_no_master)),
-                ("FIT_BOW_NO_MASTER", freq(fit_bowtie_no_master)),
-            ])
+            vals.extend(
+                [
+                    ("BOW_PROB", freq(bowties)),
+                    ("BOW_FIT_PROB", freq(fit_bowties)),
+                    ("MASTER_NO_BOW", freq(master_no_bow)),
+                    ("FIT_MASTER_NO_BOW", freq(fit_master_no_bow)),
+                    ("BOW_NO_MASTER", freq(bowtie_no_master)),
+                    ("FIT_BOW_NO_MASTER", freq(fit_bowtie_no_master)),
+                ]
+            )
 
         return vals
 
 
 class StatsRCMaster(object):
     """Work out how many master genes there are"""
+
     tag = "RCM"
 
     def __init__(self, target_num=0):
@@ -837,30 +826,30 @@ class StatsRCMaster(object):
         def gene_freq(bool_arr):
             return bool_arr.sum() / float(rc.size)
 
-        gene_info = (mi == 1.0)
-        gene_control = (rc == 1.0)
+        gene_info = mi == 1.0
+        gene_control = rc == 1.0
         gene_master = gene_info & gene_control
 
         # Look at what is going on in combinations
-        nets_fit = (fits == 1.0)
+        nets_fit = fits == 1.0
         nets_with_info = any_true_for_net(gene_info)
         nets_with_control = any_true_for_net(gene_control)
         nets_with_master = any_true_for_net(gene_info & gene_control)
-        nets_fit_master = (nets_fit & nets_with_master)
-        nets_fit_info = (nets_with_info & nets_fit)
-        nets_fit_control = (nets_with_control & nets_fit)
+        nets_fit_master = nets_fit & nets_with_master
+        nets_fit_info = nets_with_info & nets_fit
+        nets_fit_control = nets_with_control & nets_fit
 
         vals = [
-            ('FIT', freq(nets_fit)),
-            ('INFO', freq(nets_with_info)),
-            ('CONTROL', freq(nets_with_control)),
-            ('MASTER', freq(nets_with_master)),
-            ('FIT_MASTER', freq(nets_fit_master)),
-            ('FIT_INFO', freq(nets_fit_info)),
-            ('FIT_CONTROL', freq(nets_fit_control)),
-            ('GENE_INFO', gene_freq(gene_info)),
-            ('GENE_CONTROL', gene_freq(gene_control)),
-            ('GENE_MASTER', gene_freq(gene_master)),
+            ("FIT", freq(nets_fit)),
+            ("INFO", freq(nets_with_info)),
+            ("CONTROL", freq(nets_with_control)),
+            ("MASTER", freq(nets_with_master)),
+            ("FIT_MASTER", freq(nets_fit_master)),
+            ("FIT_INFO", freq(nets_fit_info)),
+            ("FIT_CONTROL", freq(nets_fit_control)),
+            ("GENE_INFO", gene_freq(gene_info)),
+            ("GENE_CONTROL", gene_freq(gene_control)),
+            ("GENE_MASTER", gene_freq(gene_master)),
         ]
         return vals
 
@@ -912,7 +901,9 @@ class StatsBowtie(object):
 class StatsFirstMaster(object):
     """Work out how many master genes there are"""
 
-    def __init__(self, experiment, tag, indexes, target1, target2, weighting, target_num=0):
+    def __init__(
+        self, experiment, tag, indexes, target1, target2, weighting, target_num=0
+    ):
         self.session = experiment.database.session
         self.tag = tag
         self.indexes = indexes
@@ -939,14 +930,14 @@ class StatsFirstMaster(object):
         log.info("{}".format(rep)).push().add()
         if not self.is_done(rep, self.first_master):
             fgen = self.find_first_master(lin)
-            self.session.add(StatsReplicateRecord(
-                rep, self.first_master, fgen))
+            self.session.add(StatsReplicateRecord(rep, self.first_master, fgen))
             self.session.commit()
         log.pop()
 
     def find_first_master(self, lin):
         self.r_analyzer = WCAnalyzer(
-            lin.world, self.indexes, self.target1, self.target2, self.weighting)
+            lin.world, self.indexes, self.target1, self.target2, self.weighting
+        )
         target = lin.targets[self.target_num]
         categories = target.calc_categories(self.indexes)
         self.m_analyzer = MIAnalyzer(lin.world, categories)
@@ -968,7 +959,7 @@ class StatsFirstMaster(object):
         first_master = anc[anc_i[0]]
         log.info("Master at {}".format(first_master.generation))
         target.assess_collection(anc)
-        self.replicate.draw_net('first-control', first_master, target=target)
+        self.replicate.draw_net("first-control", first_master, target=target)
         return first_master.generation
 
     def master_indexes(self, coll):
@@ -980,7 +971,7 @@ class StatsFirstMaster(object):
 
 
 class StatsNetworkDiffs(object):
-    tag = 'MUT'
+    tag = "MUT"
 
     def __init__(self, experiment):
         self.experiment = experiment
@@ -989,8 +980,8 @@ class StatsNetworkDiffs(object):
         self.lineage = None
         self.done = {}
 
-        self.gens = 'GEN_DIFF'
-        self.edges = 'EDGE_DIFF'
+        self.gens = "GEN_DIFF"
+        self.edges = "EDGE_DIFF"
 
         # TODO: should only load relevant ones
         for srep in self.session.query(StatsReplicateRecord).all():
@@ -1046,12 +1037,12 @@ class StatsNetworkChanges(object):
         self.session = experiment.database.session
         self.done = set()
 
-        for srep in self.session.query(NetworkRecord)\
-                .filter(NetworkRecord.kind == self.kind)\
-                .all():
-            self.done.add((
-                srep.treatment_id,
-                srep.replicate_id))
+        for srep in (
+            self.session.query(NetworkRecord)
+            .filter(NetworkRecord.kind == self.kind)
+            .all()
+        ):
+            self.done.add((srep.treatment_id, srep.replicate_id))
 
     def wants_replicate(self, rep):
         wanted = (rep.treatment.seq, rep.seq) not in self.done
@@ -1082,16 +1073,17 @@ class StatsNetworkChanges(object):
 
 
 class StatsLastWinner(object):
-
     def __init__(self, experiment):
         self.experiment = experiment
         self.session = experiment.database.session
         self.done = set()
-        self.kind = 'LAST_WINNER'
+        self.kind = "LAST_WINNER"
 
-        for srep in self.session.query(StatsReplicateRecord)\
-                .filter(StatsReplicateRecord.kind == self.kind)\
-                .all():
+        for srep in (
+            self.session.query(StatsReplicateRecord)
+            .filter(StatsReplicateRecord.kind == self.kind)
+            .all()
+        ):
             self.done.add((srep.treatment_id, srep.replicate_id))
 
     def wants_replicate(self, rep):
@@ -1155,12 +1147,7 @@ class StatsSwitchboard(object):
         upstream = mean_freq_is_1(mi)
         downstream = mean_freq_is_1(rc)
         both = upstream * downstream
-        log.info("Up: {}, Down: {}, Both: {}".format(
-            upstream, downstream, both))
+        log.info("Up: {}, Down: {}, Both: {}".format(upstream, downstream, both))
 
-        vals = [
-            ('UPSTREAM', upstream),
-            ('DOWNSTREAM', downstream),
-            ('BOTH', both),
-        ]
+        vals = [("UPSTREAM", upstream), ("DOWNSTREAM", downstream), ("BOTH", both)]
         return vals

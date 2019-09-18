@@ -8,15 +8,17 @@ import pathlib
 
 @pytest.yield_fixture
 def bowtie_database():
-    db = get_database('bowtie', readonly=True)
+    db = get_database("bowtie", readonly=True)
     yield db
     db.close()
 
+
 @pytest.yield_fixture
 def double_bow():
-    db = get_database('double_bow', readonly=True)
+    db = get_database("double_bow", readonly=True)
     yield db
     db.close()
+
 
 @pytest.fixture
 def bowtie_env_categories(bowtie_database):
@@ -32,7 +34,7 @@ def bowtie_network(bowtie_database):
 
 @pytest.yield_fixture
 def xor_database():
-    db = get_database('xor', readonly=True)
+    db = get_database("xor", readonly=True)
     yield db
     db.close()
 
@@ -44,15 +46,17 @@ def xor_network(xor_database):
 
 @pytest.yield_fixture
 def perturb_database():
-    db = get_database('perturb', readonly=True)
+    db = get_database("perturb", readonly=True)
     yield db
     db.close()
 
+
 @pytest.yield_fixture
 def three_database():
-    db = get_database('three', readonly=True)
+    db = get_database("three", readonly=True)
     yield db
     db.close()
+
 
 class TestTreatment(Treatment):
     def __init__(self, name, params, count, target):
@@ -72,9 +76,9 @@ class Args(object):
         self.__dict__.update(kwargs)
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def simple_experiment(tmpdir_factory):
-    tmpdir = tmpdir_factory.mktemp('experiments').strpath
+    tmpdir = tmpdir_factory.mktemp("experiments").strpath
 
     p = Parameters(
         cis_count=2,
@@ -82,7 +86,7 @@ def simple_experiment(tmpdir_factory):
         out_channels=2,
         cue_channels=2,
         population_size=100,
-        mutation_rate=.001,
+        mutation_rate=0.001,
     )
 
     def target_and_or(a, b):
@@ -94,8 +98,8 @@ def simple_experiment(tmpdir_factory):
     tmp_path = pathlib.Path(tmpdir)
 
     treats = [
-        TestTreatment('and_', p, 3, target_and_or),
-        TestTreatment('or_', p, 3, target_or_not),
+        TestTreatment("and_", p, 3, target_and_or),
+        TestTreatment("or_", p, 3, target_or_not),
     ]
     e = Experiment(tmp_path, treats, seed=1)
     e.run(Args(overwrite=True, dry=False))

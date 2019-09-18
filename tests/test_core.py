@@ -5,20 +5,20 @@ import numpy
 
 
 def make_target1(a, b, c):
-    f1 = .5 if a and b or not c else 1.0
+    f1 = 0.5 if a and b or not c else 1.0
     f2 = 1 if ((a or c) and not (a and b)) and b else 0
     return f1, f2
 
 
 def make_target2(a, b, c):
-    f1 = .25 if (a or b) and (not a and not c) else 1.0
+    f1 = 0.25 if (a or b) and (not a and not c) else 1.0
     f2 = 1 if ((a or b) and not (a and b)) and c else 0
     return f1, f2
 
 
 def bowtie_target(a, b, c):
     if (a and not c) or (b and c):
-        return [1, .5, .25]
+        return [1, 0.5, 0.25]
     return [0, 0, 0]
 
 
@@ -26,11 +26,7 @@ def test_world():
     cue = 3
     reg = 4
     out = 3
-    p = T.Parameters(
-        cue_channels=cue,
-        reg_channels=reg,
-        out_channels=out,
-    )
+    p = T.Parameters(cue_channels=cue, reg_channels=reg, out_channels=out)
     w = T.World(p)
     assert w.cue_channels == cue
     assert w.reg_channels == reg
@@ -39,35 +35,26 @@ def test_world():
 
 
 def test_target():
-    p = T.Parameters(
-        cue_channels=3,
-        reg_channels=3,
-        out_channels=2,
-    )
+    p = T.Parameters(cue_channels=3, reg_channels=3, out_channels=2)
     w = T.World(p)
     t = T.DefaultTarget(w, make_target1)
     assert t.as_array().shape == (pow(2, 3), 2)
 
     # Default
-    assert t.weighting == [.5, .5]
+    assert t.weighting == [0.5, 0.5]
 
     t.weighting = [1, 4]
-    assert t.weighting == [.2, .8]
+    assert t.weighting == [0.2, 0.8]
 
 
 def test_pickling_world(tmpdir):
     tmpdir = pathlib.Path(str(tmpdir))
-    p = T.Parameters(
-        seed=99,
-        cue_channels=3,
-        reg_channels=3,
-        out_channels=2,
-    )
+    p = T.Parameters(seed=99, cue_channels=3, reg_channels=3, out_channels=2)
     w = T.World(p)
-    with open(str(tmpdir / 'world1.pickle'), 'wb') as f:
+    with open(str(tmpdir / "world1.pickle"), "wb") as f:
         pickle.dump(w, f, -1)
 
-    with open(str(tmpdir / 'world1.pickle'), 'rb') as f:
+    with open(str(tmpdir / "world1.pickle"), "rb") as f:
         w2 = pickle.load(f)
 
     assert dir(w2.params) == dir(w.params)
@@ -81,26 +68,27 @@ def test_pickling_world(tmpdir):
 
 def test_pickling_default_target(tmpdir):
     tmpdir = pathlib.Path(str(tmpdir))
-    p = T.Parameters(
-        cue_channels=3,
-        reg_channels=3,
-        out_channels=2,
-    )
+    p = T.Parameters(cue_channels=3, reg_channels=3, out_channels=2)
     w = T.World(p)
 
     # Now ensure that pickling Targets works too
-    t1 = T.DefaultTarget(w, make_target1, name='a')
+    t1 = T.DefaultTarget(w, make_target1, name="a")
     assert t1.scoring_method == T.ScoringMethod.LINEAR
     assert t1.strength == 0.0
 
-    t2 = T.DefaultTarget(w, make_target2, name='b',
-                  scoring_method=T.ScoringMethod.EXPONENTIAL, strength=4.0)
+    t2 = T.DefaultTarget(
+        w,
+        make_target2,
+        name="b",
+        scoring_method=T.ScoringMethod.EXPONENTIAL,
+        strength=4.0,
+    )
     t2.weighting = [1, 2]
 
-    with open(str(tmpdir / 'target1.pickle'), 'wb') as f:
+    with open(str(tmpdir / "target1.pickle"), "wb") as f:
         pickle.dump((t1, t2), f, -1)
 
-    with open(str(tmpdir / 'target1.pickle'), 'rb') as f:
+    with open(str(tmpdir / "target1.pickle"), "rb") as f:
         rt1, rt2 = pickle.load(f)
 
     assert (t1.as_array() == rt1.as_array()).all()
@@ -121,33 +109,31 @@ def test_pickling_default_target(tmpdir):
     assert t1.strength == rt1.strength
     assert t2.strength == rt2.strength
 
+
 def test_pickling_noisy_target(tmpdir):
     tmpdir = pathlib.Path(str(tmpdir))
-    p = T.Parameters(
-        cue_channels=3,
-        reg_channels=3,
-        out_channels=2,
-    )
+    p = T.Parameters(cue_channels=3, reg_channels=3, out_channels=2)
     w = T.World(p)
 
     # Now ensure that pickling Targets works too
-    t1 = T.NoisyTarget(w, make_target1, name='a')
+    t1 = T.NoisyTarget(w, make_target1, name="a")
     assert t1.scoring_method == T.ScoringMethod.LINEAR
     assert t1.strength == 0.0
     assert t1.perturb_count == 1
     assert t1.perturb_prop == 1.0
     assert t1.env_only == True
 
-    t2 = T.NoisyTarget(w, make_target2, name='b', 
-                         perturb_count=3, perturb_prop=.5, env_only=False)
+    t2 = T.NoisyTarget(
+        w, make_target2, name="b", perturb_count=3, perturb_prop=0.5, env_only=False
+    )
     assert t2.perturb_count == 3
-    assert t2.perturb_prop == .5
+    assert t2.perturb_prop == 0.5
     assert t2.env_only == False
 
-    with open(str(tmpdir / 'target1.pickle'), 'wb') as f:
+    with open(str(tmpdir / "target1.pickle"), "wb") as f:
         pickle.dump((t1, t2), f, -1)
 
-    with open(str(tmpdir / 'target1.pickle'), 'rb') as f:
+    with open(str(tmpdir / "target1.pickle"), "rb") as f:
         rt1, rt2 = pickle.load(f)
 
     assert (t1.as_array() == rt1.as_array()).all()
@@ -167,12 +153,20 @@ def test_scoring_methods(bowtie_database):
     pop = bowtie_database.population
     # Use different identifiers to force recalculation
     targ1 = T.DefaultTarget(pop.factory.world, bowtie_target, ident=2)
-    targ2 = T.DefaultTarget(pop.factory.world, bowtie_target, ident=3,
-                     scoring_method=T.ScoringMethod.EXPONENTIAL,
-                     strength=1)
-    targ3 = T.DefaultTarget(pop.factory.world, bowtie_target, ident=4,
-                     scoring_method=T.ScoringMethod.EXPONENTIAL_VEC,
-                     strength=1)
+    targ2 = T.DefaultTarget(
+        pop.factory.world,
+        bowtie_target,
+        ident=3,
+        scoring_method=T.ScoringMethod.EXPONENTIAL,
+        strength=1,
+    )
+    targ3 = T.DefaultTarget(
+        pop.factory.world,
+        bowtie_target,
+        ident=4,
+        scoring_method=T.ScoringMethod.EXPONENTIAL_VEC,
+        strength=1,
+    )
 
     f1 = targ1.assess_collection(pop)
     f2 = targ2.assess_collection(pop)
@@ -185,11 +179,7 @@ def test_scoring_methods(bowtie_database):
 
 
 def test_channelstate():
-    p = T.Parameters(
-        cue_channels=3,
-        reg_channels=4,
-        out_channels=3,
-    )
+    p = T.Parameters(cue_channels=3, reg_channels=4, out_channels=3)
     w = T.World(p)
 
     e2 = w.environments[-1]
@@ -212,11 +202,7 @@ def test_channelstate():
 
 
 def test_random_engine():
-    p = T.Parameters(
-        cue_channels=3,
-        reg_channels=4,
-        out_channels=3,
-    )
+    p = T.Parameters(cue_channels=3, reg_channels=4, out_channels=3)
     w = T.World(p)
     w.seed_random_engine(1)
     first_time = [w.get_random_double(0, 1) for _ in range(20)]

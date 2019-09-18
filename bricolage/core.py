@@ -1,4 +1,5 @@
 import logging
+
 log = logging.getLogger("core")
 
 from enum import IntEnum
@@ -7,8 +8,16 @@ from .analysis_ext import NetworkAnalysis
 from .targets_ext import DefaultTarget, NoisyTarget
 from .core_ext import SelectionModel
 
-__all__ = ["World", "SelectionModel", "Parameters", "DefaultTarget", "NoisyTarget",
-           "Channels", "NetworkAnalysis", "Population"]
+__all__ = [
+    "World",
+    "SelectionModel",
+    "Parameters",
+    "DefaultTarget",
+    "NoisyTarget",
+    "Channels",
+    "NetworkAnalysis",
+    "Population",
+]
 
 
 class InterventionState(IntEnum):
@@ -35,7 +44,6 @@ class InputType(IntEnum):
 
 
 class Parameters(object):
-
     def __init__(self, **kwargs):
         # Defaults are provided here
         self.seed = 1
@@ -64,7 +72,7 @@ class Parameters(object):
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-        if not hasattr(self, 'reg_gene_count'):
+        if not hasattr(self, "reg_gene_count"):
             self.reg_gene_count = self.reg_channels
 
     def same_as(self, other):
@@ -73,32 +81,32 @@ class Parameters(object):
 
         # For now!
         for d in sdict, odict:
-            if 'relative_selection' not in d:
-                d['relative_selection'] = False
-            if 'score_method' not in d:
-                d['score_method'] = ScoringMethod.LINEAR
-            if 'score_strength' not in d:
-                d['score_strength'] = 1.0
-            if 'pulse_for' not in d:
-                d['pulse_for'] = 1
-            if 'score_method' in d:
-                del d['score_method']
-            if 'score_strength' in d:
-                del d['score_strength']
+            if "relative_selection" not in d:
+                d["relative_selection"] = False
+            if "score_method" not in d:
+                d["score_method"] = ScoringMethod.LINEAR
+            if "score_strength" not in d:
+                d["score_strength"] = 1.0
+            if "pulse_for" not in d:
+                d["pulse_for"] = 1
+            if "score_method" in d:
+                del d["score_method"]
+            if "score_strength" in d:
+                del d["score_strength"]
 
-            d['input_type'] = InputType.PULSE
+            d["input_type"] = InputType.PULSE
 
         if set(sdict.keys()) != set(odict.keys()):
             x = set(sdict.keys())
             y = set(odict.keys())
-            log.warning(
-                "Differences in parameters-- {}/{}".format(x - y, y - x))
+            log.warning("Differences in parameters-- {}/{}".format(x - y, y - x))
             return False
 
         for k, v in sdict.items():
             if odict[k] != v:
-                log.warning("parameters {}, has changed: {} -> {}".format(
-                    k, v, odict[k]))
+                log.warning(
+                    "parameters {}, has changed: {} -> {}".format(k, v, odict[k])
+                )
                 return False
 
         return True
