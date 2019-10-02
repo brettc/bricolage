@@ -85,7 +85,7 @@ def compute_cis_mod_function(mod):
 
     # NOTE: We need to append _, as sympy barfs on 'E1' for
     # some bizarre reason...
-    names = ['_' + wrld.name_for_channel(u) for u in unique]
+    names = ["_" + wrld.name_for_channel(u) for u in unique]
     sop = SOPform(names, is_true)
 
     return sop
@@ -123,7 +123,7 @@ def old_boolean_func_from_coop_binding(world, channels, bindings):
     # This should be possible, but sympy barfs on 'E1' for some bizarre reason
     # names = [world.name_for_channel(u) for u in unique]
     # So, we use simple names and the replace at the end...
-    names = list('abcdefghijklmnopqrstuvwxyz')[:len(unique)]
+    names = list("abcdefghijklmnopqrstuvwxyz")[: len(unique)]
     sop = SOPform(names, is_true)
 
     # Now force the 0 and 1 (on and off channels) to be evaluated

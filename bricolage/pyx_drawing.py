@@ -1,8 +1,13 @@
 from math import sin, cos, pi
 from pyx import trafo, deformer, canvas, path, deco, color, style, box
 from pyx import text as pyx_text
-from pyx.metapost.path import (beginknot, endknot, smoothknot, tensioncurve,
-                               path as mpath)
+from pyx.metapost.path import (
+    beginknot,
+    endknot,
+    smoothknot,
+    tensioncurve,
+    path as mpath,
+)
 from pyx import unit
 import logtools
 import re
@@ -13,7 +18,7 @@ log = logtools.get_logger()
 # doesn't right now.
 # TODO: This appears to generate some annoying temp files
 pyx_text.set(mode="latex")
-unit.set(defaultunit='cm')
+unit.set(defaultunit="cm")
 
 # TODO: Make a pallette class here, that synchronises the colors with latex
 # col = color.cmyk.PineGreen
@@ -30,21 +35,25 @@ def make_preamble(runner):
     # runner.preamble(r"\usepackage{cmbright}")
     # We use the Helvetica font as it is everywhere (we can import into
     # Illustrator etc)
-    runner.set(texmessagesend=[
-        pyx_text.texmessagepattern(re.compile(r"Ignoring line .*$", re.MULTILINE))
-    ])
+    runner.set(
+        texmessagesend=[
+            pyx_text.texmessagepattern(re.compile(r"Ignoring line .*$", re.MULTILINE))
+        ]
+    )
     runner.preamble(
         r"\usepackage[T1]{fontenc}\usepackage[scaled]{"
-        r"helvet}\renewcommand*\familydefault{\sfdefault}\usepackage{sfmath}")
+        r"helvet}\renewcommand*\familydefault{\sfdefault}\usepackage{sfmath}"
+    )
     runner.preamble(r"\parindent=0pt")
     runner.preamble(r"\usepackage{color}")
-    runner.preamble(r"""
+    runner.preamble(
+        r"""
     \definecolor{white}{rgb}{1, 1, 1}
     \definecolor{black}{rgb}{0, 0, 0}
     \definecolor{blue}{RGB}{60, 147, 248}
     \definecolor{red}{RGB}{227, 69, 69}
-    """)
-    
+    """
+    )
 
 
 make_preamble(pyx_text)
@@ -57,7 +66,7 @@ _cache = {}
 def get_text(text):
     global _runner, _cache
     if _runner is None:
-        _runner = pyx_text.texrunner(mode='latex')
+        _runner = pyx_text.texrunner(mode="latex")
         make_preamble(_runner)
 
     try:
@@ -68,13 +77,14 @@ def get_text(text):
 
     return result
 
+
 def measure_text(text):
     txt = get_text(text)
     bb = txt.bbox()
     return bb.width(), bb.height()
 
 
-def rounded_rect(px, py, w, h, radius=.1):
+def rounded_rect(px, py, w, h, radius=0.1):
     p = path.rect(px - w / 2.0, py - h / 2.0, w, h)
     s = deformer.cornersmoothed(radius)
     p = s.deform(p)
@@ -89,8 +99,8 @@ def diamond(px, py, w):
 def hexagon(px, py, r):
     n = 6
     p = box.polygon(
-        [(-r * sin(i * 2 * pi / n), r * cos(i * 2 * pi / n))
-         for i in range(n)])
+        [(-r * sin(i * 2 * pi / n), r * cos(i * 2 * pi / n)) for i in range(n)]
+    )
     p.transform(trafo.translate(px, py))
     return p.path()
 
@@ -102,8 +112,7 @@ def make_cut_hexagon(px, py, r):
         pts[n] = x, y
 
     n = 6
-    pts = [(-r * sin(i * 2 * pi / n), r * cos(i * 2 * pi / n))
-           for i in range(n)]
+    pts = [(-r * sin(i * 2 * pi / n), r * cos(i * 2 * pi / n)) for i in range(n)]
     del pts[0:1]
     lift(0)
     lift(-1)
@@ -152,7 +161,7 @@ class Shape(object):
 
 
 class Connector(object):
-    t_width = .12
+    t_width = 0.12
     arrow_arc = t_width * 1.8
     arrow_angle = 18.0
 
@@ -273,7 +282,6 @@ class Diagram(object):
 
 
 def test1():
-
     class RoundedRect(Shape):
         def __init__(self, diag, px, py, w, h, text=None):
             Shape.__init__(self, diag, px, py, text)
@@ -290,9 +298,9 @@ def test1():
             self.outline = path.circle(px, py, r)
 
     d = Diagram()
-    a = Diamond(d, 1, 2, .8, 'A')
-    b = Circle(d, 5, 6, .4, 'B')
-    c = RoundedRect(d, 1, 6, 2, 1, r'$A_i$ $\land{}$ A$_j$')
+    a = Diamond(d, 1, 2, 0.8, "A")
+    b = Circle(d, 5, 6, 0.4, "B")
+    c = RoundedRect(d, 1, 6, 2, 1, r"$A_i$ $\land{}$ A$_j$")
     # d = HalfRoundedRect(d, 10, 8, 2, 1)
 
     pyx_canvas = canvas.canvas()
@@ -308,5 +316,5 @@ def test1():
     pyx_canvas.writePDFfile("testing")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test1()

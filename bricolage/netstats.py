@@ -1,10 +1,15 @@
 """Stats visitors for looking around networks
 """
 import logtools
+
 # import pandas as pd
 import numpy as np
 from .logic2 import modules_changed
-from .analysis_ext import RelevantControlAnalyzer, MutualInfoAnalyzer, AverageControlAnalyzer
+from .analysis_ext import (
+    RelevantControlAnalyzer,
+    MutualInfoAnalyzer,
+    AverageControlAnalyzer,
+)
 from .experimentdb import GeneMeasureRecord
 from .neighbourhood import NetworkNeighbourhood
 import random
@@ -19,6 +24,7 @@ class MutationType(IntEnum):
     NOVEL = 1
     DEAD = 2
 
+
 # def is_novel(net, pats, targ):
 #     env_len, pat_len = targ.shape
 #     if np.allclose(net.rates, targ):
@@ -29,6 +35,7 @@ class MutationType(IntEnum):
 #     if np.alltrue(matches):
 #         return 1
 #     return -1
+
 
 def is_novel(net, pats, targ):
     env_len, pat_len = targ.shape
@@ -58,9 +65,9 @@ def get_pattern_ident(net, pats):
 
 
 def get_novel(center, sample, pats, targ, one_step=1.0):
-    nay = NetworkNeighbourhood(center=center, 
-                               sample_size=sample, 
-                               one_step_proportion=one_step)
+    nay = NetworkNeighbourhood(
+        center=center, sample_size=sample, one_step_proportion=one_step
+    )
     same = []
     nov = []
     dead = []
@@ -100,7 +107,7 @@ def count_all_novel(best, sample, pats, targ):
 def count_genes(nn, nov):
     d = {}
     tot = 0
-    for cur_net in nov:    
+    for cur_net in nov:
         ch = modules_changed(nn, cur_net)
         for gene, mod in ch:
             d.setdefault(gene, 0)
@@ -110,7 +117,7 @@ def count_genes(nn, nov):
 
 
 def append_count_genes(nn, nov, d):
-    for cur_net in nov:    
+    for cur_net in nov:
         ch = modules_changed(nn, cur_net)
         # if len(ch) > 1:
         #     raise RuntimeError
@@ -121,7 +128,9 @@ def append_count_genes(nn, nov, d):
 
 
 class GenePotential(object):
-    def __init__(self, experiment, tag, net_samples, explore_samples, use_natural=False):
+    def __init__(
+        self, experiment, tag, net_samples, explore_samples, use_natural=False
+    ):
         self.experiment = experiment
         self.session = experiment.database.session
         self.tag = tag
@@ -133,7 +142,7 @@ class GenePotential(object):
     #     wanted = (rep.treatment.seq, rep.seq) not in self.done
     #     return wanted
     #
-    
+
     def init(self, lin):
         self.lineage = lin
         self.target = lin.targets[0]
@@ -144,7 +153,7 @@ class GenePotential(object):
 
         self.rz = RelevantControlAnalyzer(lin.world, tset, use_natural=self.use_natural)
         self.rz_full = self.rz.numpy_info_from_collection(lin.population)
-        self.rz_info = self.rz_full.mean(axis=0) 
+        self.rz_info = self.rz_full.mean(axis=0)
 
         # self.rz = AverageControlAnalyzer(lin.world)
         # info = np.asarray(self.rz.analyse_collection(lin.population))
@@ -156,7 +165,7 @@ class GenePotential(object):
         self.mz = MutualInfoAnalyzer(lin.world, categories)
         self.mz_full = self.mz.numpy_info_from_collection(lin.population)
         self.mz_full.shape = self.mz_full.shape[:-1]
-        self.mz_info = self.mz_full.mean(axis=0) 
+        self.mz_info = self.mz_full.mean(axis=0)
 
         self.regs = lin.params.reg_channels
 
@@ -181,15 +190,17 @@ class GenePotential(object):
         self.init(lin)
 
         nets = self.get_networks()
-        log.info("Generating {} mutants for {} networks".format(self.explore_samples,
-                                                                self.net_samples))
+        log.info(
+            "Generating {} mutants for {} networks".format(
+                self.explore_samples, self.net_samples
+            )
+        )
 
         if nets:
             # self.analyse_multiple(rep, nets)
             self.analyse_single(rep, nets)
         # else:
         #     gm = GeneMeasureRecord(rep, cur_net, i + 1, self.tag, mtype.name)
-
 
         self.session.commit()
         log.pop()
@@ -201,8 +212,9 @@ class GenePotential(object):
         # Assemble everything
         for cur_net in nets:
             mutants = get_novel(
-                cur_net, self.explore_samples, self.valid_patterns, self.optimal_rates)
-            for mut, cnt in zip(mutants, counts): 
+                cur_net, self.explore_samples, self.valid_patterns, self.optimal_rates
+            )
+            for mut, cnt in zip(mutants, counts):
                 append_count_genes(cur_net, mut, cnt)
             # for nov_net in mutants[MutationType.NOVEL]:
             #     uniq.add(get_pattern_ident(nov_net, self.valid_patterns))
@@ -219,26 +231,32 @@ class GenePotential(object):
                 gm.found = count
                 self.session.add(gm)
 
-                gmm = GeneMeasureRecord(rep, cur_net, i + 1, self.tag, mtype.name + "_M")
+                gmm = GeneMeasureRecord(
+                    rep, cur_net, i + 1, self.tag, mtype.name + "_M"
+                )
                 gmm.measure = mz
                 gmm.found = count
                 self.session.add(gmm)
 
-                gmb = GeneMeasureRecord(rep, cur_net, i + 1, self.tag, mtype.name + "_B")
+                gmb = GeneMeasureRecord(
+                    rep, cur_net, i + 1, self.tag, mtype.name + "_B"
+                )
                 gmb.measure = mz * rz
                 gmb.found = count
                 self.session.add(gmb)
 
-                gmc = GeneMeasureRecord(rep, cur_net, i + 1, self.tag, mtype.name + "_C")
+                gmc = GeneMeasureRecord(
+                    rep, cur_net, i + 1, self.tag, mtype.name + "_C"
+                )
                 gmc.measure = mz if mz < rz else rz
                 gmc.found = count
                 self.session.add(gmc)
 
-
     def analyse_multiple(self, rep, nets):
         for cur_net in nets:
             same, nov, dead = get_novel(
-                cur_net, self.explore_samples, self.valid_patterns, self.optimal_rates)
+                cur_net, self.explore_samples, self.valid_patterns, self.optimal_rates
+            )
             same_count = count_genes(cur_net, same)
             nov_count = count_genes(cur_net, nov)
             dead_count = count_genes(cur_net, dead)
@@ -247,8 +265,9 @@ class GenePotential(object):
             for i in range(self.regs):
                 rz = self.rz_info[i]
                 # mz = self.mz_info[i]
-                for count, kind in zip((same_count, nov_count, dead_count), 
-                                       "SAME NOVEL DEAD".split()):
+                for count, kind in zip(
+                    (same_count, nov_count, dead_count), "SAME NOVEL DEAD".split()
+                ):
                     gene_counts, total = count
                     if i in gene_counts:
                         gm = GeneMeasureRecord(rep, cur_net, i + 1, self.tag, kind)
@@ -258,7 +277,6 @@ class GenePotential(object):
 
                         # gm.found = gene_counts[i] / float(total)
                         # gm.measure = info[i]
-
 
 
 class CausalDist(object):
@@ -302,22 +320,19 @@ class CausalDist(object):
         # Assemble everything
         for cur_net in nets:
             mutants = get_novel(
-                cur_net, self.explore_samples, self.valid_patterns, self.optimal_rates)
+                cur_net, self.explore_samples, self.valid_patterns, self.optimal_rates
+            )
             for i in range(3):
                 counts[i] += len(mutants[i])
 
-        return [
-            ("SAME", counts[0]), 
-            ("NOVEL", counts[1]), 
-            ("DEAD", counts[2])
-        ]
+        return [("SAME", counts[0]), ("NOVEL", counts[1]), ("DEAD", counts[2])]
 
     def calc_stats(self, pop):
         # Analyse
         rc = self.r_analyzer.numpy_info_from_collection(pop)
 
         # Just collect everything into bins
-        hist, _ = np.histogram(rc.ravel(), bins=np.arange(0, 1.0001, 1.0/self.bins))
+        hist, _ = np.histogram(rc.ravel(), bins=np.arange(0, 1.0001, 1.0 / self.bins))
 
         vals = [("{:02d}".format(i), amt) for i, amt in enumerate(hist)]
         vals.extend(self.mutations(pop))

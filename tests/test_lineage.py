@@ -5,19 +5,19 @@ from bricolage import logic2, threshold3
 from bricolage.core import DefaultTarget
 import bricolage.lineage as L
 
-@pytest.fixture(scope="module", params=['logic2', 'threshold3'])
+
+@pytest.fixture(scope="module", params=["logic2", "threshold3"])
 def module(request):
     # Using strings as params makes the py.test output more information
-    return {
-        'logic2': logic2,
-        'threshold3': threshold3,
-    }[request.param]
+    return {"logic2": logic2, "threshold3": threshold3}[request.param]
+
 
 # An unparameterized version used for internal testing of a single module
 # @pytest.fixture
 # def module():
 #     return threshold3
-    # return logic2
+# return logic2
+
 
 @pytest.fixture
 def p_3x2(module):
@@ -31,19 +31,22 @@ def p_3x2(module):
         out_channels=2,
         cue_channels=3,
         population_size=100,
-        mutation_rate=.001,
+        mutation_rate=0.001,
         replicates=10,
     )
 
+
 def target1(a, b, c):
-    f1 = .5 if a and b or not c else 1.0
+    f1 = 0.5 if a and b or not c else 1.0
     f2 = 1 if ((a or c) and not (a and b)) and b else 0
     return f1, f2
 
+
 def target2(a, b, c):
-    f1 = .5 if (a or b) and not c else 0
+    f1 = 0.5 if (a or b) and not c else 0
     f2 = 1 if ((a or c) and not (a and c)) or b else 0.5
     return f1, f2
+
 
 def test_numpy_export(p_3x2, module):
     world = module.World(p_3x2)
@@ -68,9 +71,10 @@ def test_numpy_export(p_3x2, module):
                 assert m1.same_as(m2)
                 assert m1.channels == m2.channels
 
+
 def test_creation(tmpdir, module):
     base = pathlib.Path(str(tmpdir))
-    path = base / 'create.db'
+    path = base / "create.db"
     params = module.Parameters(population_size=10)
     with L.FullLineage(path, params) as a:
         assert a.population
@@ -90,14 +94,16 @@ def assert_nets_equal(n1, n2):
     assert n1.attractors == n2.attractors
     assert (n1.rates == n2.rates).all()
 
+
 def assert_pops_equal(p1, p2):
     assert p1.size == p2.size
     for n1, n2 in zip(p1, p2):
         assert_nets_equal(n1, n2)
 
+
 def test_snapshot_reload(p_3x2, tmpdir):
     base = pathlib.Path(str(tmpdir))
-    path = base / 'reload.db'
+    path = base / "reload.db"
     with L.SnapshotLineage(path, params=p_3x2) as a:
         a.add_target(DefaultTarget(a.world, target1))
 
@@ -114,8 +120,9 @@ def test_snapshot_reload(p_3x2, tmpdir):
         assert b.world == b.targets[0].world
         assert b.world == b.factory.world
 
+
 def test_snapshot_autosave(tmpdir, p_3x2):
-    path = pathlib.Path(str(tmpdir)) / 'autosave.db'
+    path = pathlib.Path(str(tmpdir)) / "autosave.db"
 
     # Set it all up
     with L.SnapshotLineage(path, p_3x2) as a:
@@ -131,9 +138,10 @@ def test_snapshot_autosave(tmpdir, p_3x2):
     assert_pops_equal(pa, b.population)
     b.close()
 
+
 def test_snapshot_iterate(p_3x2, tmpdir):
     base = pathlib.Path(str(tmpdir))
-    path = base / 'iterate.db'
+    path = base / "iterate.db"
     with L.SnapshotLineage(path, params=p_3x2) as a:
         a.add_target(DefaultTarget(a.world, target1))
         for i in range(100):
@@ -150,7 +158,7 @@ def test_snapshot_iterate(p_3x2, tmpdir):
 
 def test_snapshot_lineage(p_3x2, tmpdir):
     base = pathlib.Path(str(tmpdir))
-    path_1 = base / 'snap1.db'
+    path_1 = base / "snap1.db"
     times = 5
     generations = 20
 
@@ -166,7 +174,7 @@ def test_snapshot_lineage(p_3x2, tmpdir):
     with L.SnapshotLineage(path_1) as a:
 
         # Same seed will generate the same lineage
-        path_2 = base / 'snap2.db'
+        path_2 = base / "snap2.db"
 
         with L.SnapshotLineage(path_2, params=p_3x2) as b:
             b.add_target(DefaultTarget(a.world, target1))
@@ -190,17 +198,18 @@ def test_snapshot_lineage(p_3x2, tmpdir):
             assert_pops_equal(a.population, b.population)
             assert a.world.get_random_state() == b.world.get_random_state()
 
+
 def test_repeatability(tmpdir, p_3x2):
     """Make sure that the same seed produces the same outcome"""
     base = pathlib.Path(str(tmpdir))
-    path = base / 'r1.db'
+    path = base / "r1.db"
 
     with L.SnapshotLineage(path, params=p_3x2) as a:
         a.add_target(DefaultTarget(a.world, target1))
         for i in range(100):
             a.next_generation()
 
-        path = base / 'r2.db'
+        path = base / "r2.db"
 
         with L.SnapshotLineage(path, params=p_3x2) as b:
             b.add_target(DefaultTarget(a.world, target1))
@@ -209,8 +218,9 @@ def test_repeatability(tmpdir, p_3x2):
 
             assert_pops_equal(a.population, b.population)
 
+
 def test_full_lineage(tmpdir, p_3x2):
-    path = pathlib.Path(str(tmpdir)) / 'selection.db'
+    path = pathlib.Path(str(tmpdir)) / "selection.db"
 
     # Set it all up
     with L.FullLineage(path, p_3x2) as a:
@@ -242,7 +252,7 @@ def test_full_lineage(tmpdir, p_3x2):
 
 
 def test_ancestry(tmpdir, p_3x2):
-    path = pathlib.Path(str(tmpdir)) / 'ancestry.db'
+    path = pathlib.Path(str(tmpdir)) / "ancestry.db"
 
     # Set it all up
     with L.FullLineage(path, p_3x2) as a:
@@ -265,7 +275,7 @@ def test_ancestry(tmpdir, p_3x2):
 
 
 def test_network(p_3x2, tmpdir):
-    path = pathlib.Path(str(tmpdir)) / 'network.db'
+    path = pathlib.Path(str(tmpdir)) / "network.db"
 
     # Set it all up
     with L.FullLineage(path, p_3x2) as a:
@@ -282,7 +292,7 @@ def test_network(p_3x2, tmpdir):
 
 def test_targets(p_3x2, tmpdir):
     base = pathlib.Path(str(tmpdir))
-    path = base / 'targets.db'
+    path = base / "targets.db"
     with L.FullLineage(path, params=p_3x2) as a:
         a.add_target(DefaultTarget(a.world, target1))
         for i in range(100):
@@ -309,4 +319,3 @@ def test_targets(p_3x2, tmpdir):
         # appropriate target
         fb1 = [n.fitness for n in b.get_generation(pa1_gen)]
         assert fa1 == fb1
-

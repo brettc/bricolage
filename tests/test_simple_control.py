@@ -7,13 +7,16 @@ from bricolage.analysis_ext import FastCAnalyzer
 from bricolage.core import InterventionState
 import numpy
 
+
 @pytest.fixture
 def net1(double_bow):
     return double_bow.population.get_best()[0]
 
+
 @pytest.fixture
 def net2(double_bow):
     return double_bow.population.get_best()[1]
+
 
 @pytest.fixture
 def small_pop(double_bow):
@@ -22,7 +25,8 @@ def small_pop(double_bow):
     for i in range(25):
         coll.add(double_bow.population[i])
     return coll
-    
+
+
 def w_mutual_info(joint, rowsum):
     """Mutual information"""
     # assert numpy.isclose(joint.sum(), 1.0)
@@ -36,8 +40,9 @@ def w_mutual_info(joint, rowsum):
             p_x = rowsum[row]
             p_y = colsum[col]
             if p_xy != 0:
-                info += p_xy * numpy.log2(p_xy / (p_x * p_y)) 
+                info += p_xy * numpy.log2(p_xy / (p_x * p_y))
     return info
+
 
 def get_joint(net, outputs, target_1, target_2):
     """Return the joint probabilities under intervention"""
@@ -68,7 +73,6 @@ def get_joint(net, outputs, target_1, target_2):
             elif numpy.allclose(rate[outputs], target_2):
                 joint[i, 0, 1] += p_off
 
-
         # ----- GENE IS MANIPULATED ON -------
         gene.intervene = InterventionState.INTERVENE_ON
         for j, rate in enumerate(net.rates):
@@ -83,7 +87,7 @@ def get_joint(net, outputs, target_1, target_2):
     # Now, build the joint probabilities!
     # Pass in the row-sum (our intervention probabilities), so that the mutual
     # info score is weighted
-    rowsum = numpy.asarray([.5, .5])
+    rowsum = numpy.asarray([0.5, 0.5])
     info = numpy.zeros(wrld.reg_channels)
     for i, j in enumerate(joint):
         info[i] = w_mutual_info(j, rowsum)
@@ -92,6 +96,7 @@ def get_joint(net, outputs, target_1, target_2):
 
 
 ARGS = [range(4), [0, 0, 1, 1], [1, 1, 0, 0]]
+
 
 def test_single_joint(net1):
     c_args = [net1.factory.world] + ARGS
@@ -105,7 +110,7 @@ def test_single_joint(net1):
 
 
 def test_pop_info(small_pop):
-    c_args = [small_pop.factory.world] + ARGS 
+    c_args = [small_pop.factory.world] + ARGS
     fc = FastCAnalyzer(*c_args)
 
     # Analyze everything the fast way
@@ -119,5 +124,3 @@ def test_pop_info(small_pop):
 
         numpy.testing.assert_allclose(p_info, c_info)
         numpy.testing.assert_allclose(c_pop_info, p_info)
-
-

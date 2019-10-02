@@ -14,7 +14,7 @@ class Operand(IntEnum):
     FALSE = 0
     AND = 1
     A_AND_NOT_B = 2
-    A = 3 
+    A = 3
     NOT_A_AND_B = 4
     B = 5
     XOR = 6
@@ -28,19 +28,22 @@ class Operand(IntEnum):
     NAND = 14
     TRUE = 15
 
+
 def calculate(op, a, b):
-    return (op & (8 >> ((a << 1) | b)) != 0)
+    return op & (8 >> ((a << 1) | b)) != 0
+
 
 def calc_all(op):
     return [calculate(op, a, b) for a, b in ((0, 0), (0, 1), (1, 0), (1, 1))]
 
+
 # TODO: Sort out short descriptions
-# _short_desc = 
+# _short_desc =
 # {
 #     FALSE = 0
 #     AND = 1
 #     A_AND_NOT_B = 2
-#     A = 3 
+#     A = 3
 #     NOT_A_AND_B = 4
 #     B = 5
 #     XOR = 6
@@ -54,4 +57,3 @@ def calc_all(op):
 #     NAND = 14
 #     TRUE = 15
 # }
-

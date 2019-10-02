@@ -741,7 +741,7 @@ cdef class CollectionBase:
         bindings = numpy.zeros((mod_count), dtype=float)
 
         cdef:
-            size_t i, offset #, gene_id, cis_id, module_id
+            size_t i, offset,  gene_id, cis_id, module_id
             np.npy_double[:] c_bindings = bindings
             Edge_t edge 
             cEdgeList edges

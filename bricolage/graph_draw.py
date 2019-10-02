@@ -4,8 +4,14 @@ log = logging.getLogger("drawing")
 
 from graph_maker import ChannelType, NodeType
 from dot_layout import DotDiagram
-from pyx_drawing import (rounded_rect, CurvePath, Shape, cut_hexagon,
-                         cut_hexagon_rotated, measure_text)
+from pyx_drawing import (
+    rounded_rect,
+    CurvePath,
+    Shape,
+    cut_hexagon,
+    cut_hexagon_rotated,
+    measure_text,
+)
 from pyx import color as pcolor, path as ppath
 from .cis_logic import text_for_gene
 import re
@@ -28,7 +34,7 @@ def latexify(l):
     # l = RE_ENV.sub(r"e$_{\1}$", l)
     # l = RE_TRANS.sub(r"t$_{\1}$", l)
     # l = RE_STRUCT.sub(r"p$_{\1}$", l)
-    return re.sub('[\s+]', ' ', l)
+    return re.sub("[\s+]", " ", l)
 
     # return "$" + l + "$"
 
@@ -78,8 +84,8 @@ class GeneConnector(CurvePath):
 
 
 class SmallGeneShape(Shape):
-    width = .8
-    height = .2
+    width = 0.8
+    height = 0.2
 
     def __init__(self, diag, px, py, gene):
         Shape.__init__(self, diag, px, py)
@@ -97,8 +103,8 @@ class SmallGeneShape(Shape):
 
 
 class SmallChannelShape(Shape):
-    size = .55
-    radius = .35
+    size = 0.55
+    radius = 0.35
 
     def __init__(self, diag, px, py, channel, channel_type):
         Shape.__init__(self, diag, px, py)
@@ -106,16 +112,16 @@ class SmallChannelShape(Shape):
         self.channel_type = channel_type
 
         if channel_type == ChannelType.INPUT:
-            self.outline = cut_hexagon(px, py, self.radius * .8)
+            self.outline = cut_hexagon(px, py, self.radius * 0.8)
             self.color = ColorScheme.cue
 
         elif channel_type == ChannelType.OUTPUT:
             # self.outline = ppath.circle(px, py, self.radius * .8)
-            self.outline = cut_hexagon_rotated(px, py, self.radius * .8)
+            self.outline = cut_hexagon_rotated(px, py, self.radius * 0.8)
             self.color = ColorScheme.act
             # self.color = pcolor.gradient.Jet.getcolor(channel * .05)
         else:
-            self.outline = ppath.circle(px, py, self.radius * .8)
+            self.outline = ppath.circle(px, py, self.radius * 0.8)
             # self.outline = diamond(px, py, self.radius)
             # self.color = pcolor.gradient.WhiteRed.getcolor(
             #     (channel - p.reg_range[0]) * (1.0/p.reg_channels))
@@ -143,8 +149,8 @@ class SmallDiagram(DotDiagram):
 
     def get_label(self, node_type, ident):
         if node_type == NodeType.GENE:
-            return 'XXXX'
-        return 'X'
+            return "XXXX"
+        return "X"
 
     def get_gene_shape(self, px, py, gene):
         return SmallGeneShape(self, px, py, gene)
@@ -157,14 +163,15 @@ class SmallDiagram(DotDiagram):
 
 
 class TextGeneShape(Shape):
-    height = .6
+    height = 0.6
 
     def __init__(self, diag, px, py, gene):
         Shape.__init__(self, diag, px, py)
         self.text = latexify(
-            text_for_gene(gene) + '=>' + diag.world.name_for_channel(gene.pub))
+            text_for_gene(gene) + "=>" + diag.world.name_for_channel(gene.pub)
+        )
         w, h = measure_text(self.text)
-        self.outline = rounded_rect(px, py, w + .2, self.height)
+        self.outline = rounded_rect(px, py, w + 0.2, self.height)
         if gene.sequence >= diag.world.reg_channels:
             self.color = pcolor.cmyk.Green
         else:
@@ -176,7 +183,7 @@ class TextGeneShape(Shape):
 
 
 class TextChannelShape(Shape):
-    radius = .45
+    radius = 0.45
 
     def __init__(self, diag, px, py, channel, channel_type):
         Shape.__init__(self, diag, px, py)
@@ -184,16 +191,16 @@ class TextChannelShape(Shape):
         self.channel_type = channel_type
 
         if channel_type == ChannelType.INPUT:
-            self.outline = cut_hexagon(px, py, self.radius * .8)
+            self.outline = cut_hexagon(px, py, self.radius * 0.8)
             self.color = ColorScheme.cue
 
         elif channel_type == ChannelType.OUTPUT:
             # self.outline = ppath.circle(px, py, self.radius * .8)
-            self.outline = cut_hexagon_rotated(px, py, self.radius * .8)
+            self.outline = cut_hexagon_rotated(px, py, self.radius * 0.8)
             self.color = ColorScheme.act
             # self.color = pcolor.gradient.Jet.getcolor(channel * .05)
         else:
-            self.outline = ppath.circle(px, py, self.radius * .8)
+            self.outline = ppath.circle(px, py, self.radius * 0.8)
             # self.outline = diamond(px, py, self.radius)
             # self.color = pcolor.gradient.WhiteRed.getcolor(
             #     (channel - p.reg_range[0]) * (1.0/p.reg_channels))
@@ -223,9 +230,9 @@ class TextDiagram(DotDiagram):
         # We just keep this as small as possible
         if node_type == NodeType.GENE:
             g = self.graph.network.genes[ident]
-            return text_for_gene(g) + '=>' + self.world.name_for_channel(g.pub)
+            return text_for_gene(g) + "=>" + self.world.name_for_channel(g.pub)
 
-        return 'X'
+        return "X"
 
     def get_gene_shape(self, px, py, gene):
         return TextGeneShape(self, px, py, gene)

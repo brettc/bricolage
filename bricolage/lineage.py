@@ -91,10 +91,12 @@ class BaseLineage(object):
         # next_generation
         self.generation += 1
         self.population.select(self.selection_model)
-        n = self.population.mutate(self.params.mutation_rate, 
-                                   self.params.trans_mutation_rate,
-                                   self.params.duplication_rate,
-                                   self.generation)
+        n = self.population.mutate(
+            self.params.mutation_rate,
+            self.params.trans_mutation_rate,
+            self.params.duplication_rate,
+            self.generation,
+        )
         log.debug("{} Mutations at generation {}".format(n, self.generation))
 
         # Now we re-assess the population to ensure that each of them has
@@ -103,21 +105,23 @@ class BaseLineage(object):
         self.population.assess(self.current_target)
 
     def _generation_dtype(self):
-        return numpy.dtype([
-            ('generation', int),
-            ('target', int),
-            ('best', float),
-            ('indexes', int, self._size),
-        ])
+        return numpy.dtype(
+            [
+                ("generation", int),
+                ("target", int),
+                ("best", float),
+                ("indexes", int, self._size),
+            ]
+        )
 
     def _commit_generation(self, networks, indexes):
         # Add a generations row
         w, b = self.population.worst_and_best()
         row = numpy.zeros(1, self._generation_dtype())
-        row['best'] = b
-        row['generation'] = self.generation
-        row['target'] = self.target_index
-        row['indexes'] = indexes
+        row["best"] = b
+        row["generation"] = self.generation
+        row["target"] = self.target_index
+        row["indexes"] = indexes
 
         # Now commit everything
         try:
@@ -134,8 +138,8 @@ class BaseLineage(object):
 
     def _new_database(self):
         # Create H5 table with high compression using blosc
-        filters = tables.Filters(complib='blosc', complevel=5)
-        h5 = tables.open_file(str(self.path), 'w', filters=filters)
+        filters = tables.Filters(complib="blosc", complevel=5)
+        h5 = tables.open_file(str(self.path), "w", filters=filters)
         try:
             attrs = h5.root._v_attrs
 
@@ -144,10 +148,10 @@ class BaseLineage(object):
 
             # Save the networks
             z = numpy.zeros
-            n = h5.create_table('/', 'networks',
-                                z(0, dtype=self.factory.dtype()))
-            g = h5.create_table('/', 'generations',
-                                z(0, dtype=self._generation_dtype()))
+            n = h5.create_table("/", "networks", z(0, dtype=self.factory.dtype()))
+            g = h5.create_table(
+                "/", "generations", z(0, dtype=self._generation_dtype())
+            )
         except:
             # If things fail, then close the h5 file
             h5.close()
@@ -167,9 +171,9 @@ class BaseLineage(object):
             raise LineageError("File is not a pytables")
 
         if self.readonly:
-            mode = 'r'
+            mode = "r"
         else:
-            mode = 'r+'
+            mode = "r+"
 
         log.debug("Opening {} in mode {}".format(self.path.name, mode))
         h5 = tables.open_file(str(self.path), mode=mode)
@@ -197,34 +201,36 @@ class BaseLineage(object):
             assert self.population.size == self._size
             assert self.factory == self.population.factory
 
-        if not hasattr(self.params, 'relative_selection'):
+        if not hasattr(self.params, "relative_selection"):
             self.params.relative_selection = False
-        self.selection_model = self.params.selection_class(self.world, 
-                                                           self.params.relative_selection)
+        self.selection_model = self.params.selection_class(
+            self.world, self.params.relative_selection
+        )
 
     def _load(self):
         self._load_header()
-        if not hasattr(self.params, 'relative_selection'):
+        if not hasattr(self.params, "relative_selection"):
             self.params.relative_selection = False
 
         # Don't bother creating anything, we're about to fill it out
         self.population = core_ext.Population(self.factory, 0)
-        self.selection_model = self.params.selection_class(self.world,
-                                                           self.params.relative_selection)
+        self.selection_model = self.params.selection_class(
+            self.world, self.params.relative_selection
+        )
 
         # Load the last generation
         rec = self._generations[-1]
-        self.generation = rec['generation']
-        indexes = rec['indexes']
+        self.generation = rec["generation"]
+        indexes = rec["indexes"]
 
         arr = self._networks.read_coordinates(indexes)
         self.factory.from_numpy(arr, self.population)
 
-        target_index = rec['target']
+        target_index = rec["target"]
         if target_index >= 0:
             self.set_target(target_index)
 
-        if hasattr(self._attrs, 'extra'):
+        if hasattr(self._attrs, "extra"):
             self.extra = self._attrs.extra
 
         log.info("---- Current generation is {}".format(self.generation))
@@ -288,9 +294,9 @@ class SnapshotLineage(BaseLineage):
         self._commit_generation(arr, indexes)
 
     def _load_generation(self, rec):
-        gen = rec['generation']
-        t_index = rec['target']
-        indexes = rec['indexes']
+        gen = rec["generation"]
+        t_index = rec["target"]
+        indexes = rec["indexes"]
         arr = self._networks.read_coordinates(indexes)
         gen_pop = core_ext.Population(self.factory, 0)
         self.factory.from_numpy(arr, gen_pop)
@@ -300,8 +306,7 @@ class SnapshotLineage(BaseLineage):
         return gen, gen_pop
 
     def get_generation(self, wanted_g):
-        results = self._generations.read_where(
-            'generation == {}'.format(wanted_g))
+        results = self._generations.read_where("generation == {}".format(wanted_g))
         if not results:
             return None
         rec = results[0]
@@ -320,7 +325,7 @@ class SnapshotLineage(BaseLineage):
             g = -1
             if len(self._generations) != 0:
                 rec = self._generations[-1]
-                g = rec['generation']
+                g = rec["generation"]
             if g < self.generation:
                 self.save_snapshot()
 
@@ -372,10 +377,10 @@ class FullLineage(BaseLineage):
 
         assert actual_g <= self.generation
         rec = self._generations[actual_g]
-        gen = rec['generation']
+        gen = rec["generation"]
         assert gen == actual_g
-        t_index = rec['target']
-        indexes = rec['indexes']
+        t_index = rec["target"]
+        indexes = rec["indexes"]
 
         arr = self._networks.read_coordinates(indexes)
         gen_pop = core_ext.Population(self.factory, 0)
@@ -420,14 +425,16 @@ class FullLineage(BaseLineage):
 
     def first_winning_generation(self):
         for g in self._h5.root.generations.where("best == 1.0"):
-            return g['generation']
+            return g["generation"]
         return None
 
     def first_winning_streak(self, length):
         bests = pd.Series(self._h5.root.generations.cols.best[:])
 
         # The sum of the window where everything is 1.0
-        streaks = np.where((bests.rolling(length, win_type='boxcar').sum()) == length)[0]
+        streaks = np.where((bests.rolling(length, win_type="boxcar").sum()) == length)[
+            0
+        ]
         if len(streaks) == 0:
             return None
 
@@ -474,7 +481,7 @@ class FullLineage(BaseLineage):
             assert self.world.next_target_id == 0
         else:
             rec = self._generations[-1]
-            max_index = max(rec['indexes'])
+            max_index = max(rec["indexes"])
             assert max_index < num_networks
             assert num_networks == self.world.next_network_id
 
@@ -486,9 +493,7 @@ class FullLineage(BaseLineage):
         self._h5.close()
 
 
-def new_lineage_from_old(db_path, old_lineage, copy_targets=False,
-                         kls=SnapshotLineage):
-
+def new_lineage_from_old(db_path, old_lineage, copy_targets=False, kls=SnapshotLineage):
     def init_pop_fun(factory, size):
         pop_old = old_lineage.population
         size_old = pop_old.size
@@ -500,9 +505,9 @@ def new_lineage_from_old(db_path, old_lineage, copy_targets=False,
         arr_old = pop_old.factory.pop_to_numpy(pop_old)
         arr_new = factory.pop_to_numpy(pop_new)
 
-        arr_old['generation'] = arr_new['generation']
-        arr_old['parent'] = arr_new['parent']
-        arr_old['id'] = arr_new['id']
+        arr_old["generation"] = arr_new["generation"]
+        arr_old["parent"] = arr_new["parent"]
+        arr_old["id"] = arr_new["id"]
 
         # Overwrite the current pop
         factory.from_numpy(arr_old, pop_new)

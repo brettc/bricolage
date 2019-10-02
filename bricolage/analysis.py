@@ -2,6 +2,7 @@ import analysis_ext
 import core_ext
 import numpy
 
+
 class NetworkAnalysis(analysis_ext.NetworkAnalysis):
     def __init__(self, network):
         super(NetworkAnalysis, self).__init__(network)
@@ -18,28 +19,28 @@ class NetworkAnalysis(analysis_ext.NetworkAnalysis):
         if len(set(cats)) == 1:
             return
 
-        analyzer = analysis_ext.MutualInfoAnalyzer(
-            self.network.factory.world, cats)
+        analyzer = analysis_ext.MutualInfoAnalyzer(self.network.factory.world, cats)
 
         info = analyzer.numpy_info_from_network(self.network)
-        info.shape = info.shape[1],
+        info.shape = (info.shape[1],)
         self.mutual_info = info
         for i, mi in enumerate(info):
             a = self.annotations.setdefault(i, {})
-            a['M'] = mi
+            a["M"] = mi
 
     def calc_output_control(self, target):
         analyzer = analysis_ext.RelevantControlAnalyzer(
             self.network.factory.world,
             target.calc_distinct_outputs(),
-            use_natural=False)
+            use_natural=False,
+        )
         info = analyzer.numpy_info_from_network(self.network)
         self.relevant_control = info
 
         for i, ri in enumerate(info):
             a = self.annotations.setdefault(i, {})
             # Make it available via the channel too
-            a['R'] = ri
+            a["R"] = ri
 
 
 # WIP
@@ -65,11 +66,11 @@ class AverageControlCollection(object):
 
     @property
     def control(self):
-        return self._array[:, :, :self._output_size]
+        return self._array[:, :, : self._output_size]
 
     @property
     def entropy(self):
-        return self._array[:, :, self._output_size:]
+        return self._array[:, :, self._output_size :]
 
     @property
     def with_control(self):

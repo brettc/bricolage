@@ -3,9 +3,17 @@ import click
 import cPickle as pickle
 from logtools import set_logging, get_logger
 from bricolage.stats import (
-    StatsFitness, StatsVisitor, StatsMutualInformation, StatsRelevantControl,
-    StatsLag, StatsRobustness, StatsGenerations, StatsBindings,
-    StatsEnvironmental, StatsNetworkChanges)
+    StatsFitness,
+    StatsVisitor,
+    StatsMutualInformation,
+    StatsRelevantControl,
+    StatsLag,
+    StatsRobustness,
+    StatsGenerations,
+    StatsBindings,
+    StatsEnvironmental,
+    StatsNetworkChanges,
+)
 from experiment import ExperimentError
 from bricolage.dot_layout import DotMaker
 from bricolage.graph_maker import get_graph_by_type, GraphType
@@ -17,6 +25,7 @@ log = get_logger()
 
 class NS(object):
     """Just a namespace"""
+
     experiment = None
 
 
@@ -31,17 +40,21 @@ def bricolage():
     pass
 
 
-verbose_ = click.option('--verbose', is_flag=True, default=False,
-                        help="Show debug output.")
-every_ = click.option('--every', default=1000,
-                      help="Only do every N generations")
-start_ = click.option('--start', default=0,
-                      help="Start at this generation (could be negative)")
-only_ = click.option('--only', help="Only do this generation")
-treatment_ = click.option('--treatment', '-t', default=-1,
-                          help="Filter treatments by name.")
-replicate_ = click.option('--replicate', '-r', default=-1,
-                          help="Filter replicates by number.")
+verbose_ = click.option(
+    "--verbose", is_flag=True, default=False, help="Show debug output."
+)
+every_ = click.option("--every", default=1000, help="Only do every N generations")
+start_ = click.option(
+    "--start", default=0, help="Start at this generation (could be negative)"
+)
+only_ = click.option("--only", help="Only do this generation")
+treatment_ = click.option(
+    "--treatment", "-t", default=-1, help="Filter treatments by name."
+)
+replicate_ = click.option(
+    "--replicate", "-r", default=-1, help="Filter replicates by number."
+)
+
 
 def composed(*decs):
     def deco(f):
@@ -49,14 +62,20 @@ def composed(*decs):
             f = dec(f)
         return f
 
+
 stats_ = composed(verbose_, treatment_, replicate_, every_, only_)
+
 
 @bricolage.command()
 @verbose_
 @treatment_
 @replicate_
-@click.option('--overwrite', is_flag=True, default=False,
-              help="Trash the experiment and start again.")
+@click.option(
+    "--overwrite",
+    is_flag=True,
+    default=False,
+    help="Trash the experiment and start again.",
+)
 def run(overwrite, verbose, treatment, replicate):
     """Run the simulation.
 
@@ -69,9 +88,7 @@ def run(overwrite, verbose, treatment, replicate):
     except ExperimentError as e:
         raise click.BadParameter(e.message)
 
-    NS.experiment.run(overwrite=overwrite,
-                      only_treatment=the_t,
-                      only_replicate=the_rep)
+    NS.experiment.run(overwrite=overwrite, only_treatment=the_t, only_replicate=the_rep)
 
 
 @bricolage.command()
@@ -81,10 +98,8 @@ def list():
 
     for t in NS.experiment.treatments:
         info = "{:02d} : Seed {}, {} replicates, name {}".format(
-            t.seq,
-            t.seed,
-            len(t.replicates),
-            t.name)
+            t.seq, t.seed, len(t.replicates), t.name
+        )
         click.echo(info)
 
 
@@ -122,7 +137,6 @@ def trash():
 
 
 class DrawVisitor(object):
-
     def __init__(self):
         super(DrawVisitor, self).__init__()
 
@@ -139,9 +153,9 @@ class DrawVisitor(object):
         for i, (fit, ident, net) in enumerate(winners):
             if i == 1:
                 break
-            self.replicate.draw_net('g_best', net,
-                                    target=self.lineage.targets[0],
-                                    graph_type=GraphType.GENE)
+            self.replicate.draw_net(
+                "g_best", net, target=self.lineage.targets[0], graph_type=GraphType.GENE
+            )
 
 
 @bricolage.command()
@@ -157,11 +171,13 @@ def draw(every, treatment, replicate, verbose, only):
     except ExperimentError as e:
         raise click.BadParameter(e.message)
 
-    NS.experiment.visit_generations(DrawVisitor(),
-                                    only_treatment=the_t,
-                                    only_replicate=the_rep,
-                                    every=every,
-                                    only=only)
+    NS.experiment.visit_generations(
+        DrawVisitor(),
+        only_treatment=the_t,
+        only_replicate=the_rep,
+        every=every,
+        only=only,
+    )
 
 
 @bricolage.command()
@@ -177,9 +193,10 @@ def calc_lag(verbose, treatment, replicate):
         raise click.BadParameter(e.message)
 
     # First, let's find the best fitness
-    NS.experiment.visit_lineages(StatsLag(NS.experiment),
-                                 only_treatment=the_t,
-                                 only_replicate=the_rep)
+    NS.experiment.visit_lineages(
+        StatsLag(NS.experiment), only_treatment=the_t, only_replicate=the_rep
+    )
+
 
 @bricolage.command()
 @verbose_
@@ -194,9 +211,9 @@ def calc_gens(verbose, treatment, replicate):
         raise click.BadParameter(e.message)
 
     # First, let's find the best fitness
-    NS.experiment.visit_lineages(StatsGenerations(NS.experiment),
-                                 only_treatment=the_t,
-                                 only_replicate=the_rep)
+    NS.experiment.visit_lineages(
+        StatsGenerations(NS.experiment), only_treatment=the_t, only_replicate=the_rep
+    )
 
 
 @bricolage.command()
@@ -214,13 +231,11 @@ def pop_robustness(verbose, treatment, replicate, every, only):
         raise click.BadParameter(e.message)
 
     # First, let's find the best fitness
-    visitor = StatsVisitor(NS.experiment,
-                           [StatsRobustness])
-    NS.experiment.visit_generations(visitor,
-                                    only_treatment=the_t,
-                                    only_replicate=the_rep,
-                                    every=every,
-                                    only=only)
+    visitor = StatsVisitor(NS.experiment, [StatsRobustness])
+    NS.experiment.visit_generations(
+        visitor, only_treatment=the_t, only_replicate=the_rep, every=every, only=only
+    )
+
 
 @bricolage.command()
 @verbose_
@@ -237,19 +252,16 @@ def env_robustness(verbose, treatment, replicate, every, only):
         raise click.BadParameter(e.message)
 
     # First, let's find the best fitness
-    visitor = StatsVisitor(NS.experiment,
-                           [StatsEnvironmental])
-    NS.experiment.visit_generations(visitor,
-                                    only_treatment=the_t,
-                                    only_replicate=the_rep,
-                                    every=every,
-                                    only=only)
+    visitor = StatsVisitor(NS.experiment, [StatsEnvironmental])
+    NS.experiment.visit_generations(
+        visitor, only_treatment=the_t, only_replicate=the_rep, every=every, only=only
+    )
 
 
 @bricolage.command()
-@click.argument('treatment', type=int)
-@click.argument('replicate', type=int)
-@click.argument('network', type=int)
+@click.argument("treatment", type=int)
+@click.argument("replicate", type=int)
+@click.argument("network", type=int)
 def export_network(treatment, replicate, network):
     """Export an network."""
     try:
@@ -260,15 +272,15 @@ def export_network(treatment, replicate, network):
     with the_rep.get_lineage() as lin:
         net = lin.get_network(network)
         name = "network-{}".format(net.identifier)
-        with open('{}.pickle'.format(name), 'wb') as f:
+        with open("{}.pickle".format(name), "wb") as f:
             pickle.dump(net, f, -1)
 
 
 @bricolage.command()
-@click.argument('treatment', type=int)
-@click.argument('replicate', type=int)
-@click.option('--ident', type=int, default=-1)
-@click.option('--best', type=int, default=-1)
+@click.argument("treatment", type=int)
+@click.argument("replicate", type=int)
+@click.option("--ident", type=int, default=-1)
+@click.option("--best", type=int, default=-1)
 def export_dot(treatment, replicate, ident, best):
     """Export an network."""
     try:
@@ -289,20 +301,22 @@ def export_dot(treatment, replicate, ident, best):
 
         for net in process_nets:
             ana = NetworkAnalysis(net)
-            curpath = pathlib.Path('.')
-            name = curpath / "T{}-R{}-network-{}".format(treatment, replicate, net.identifier)
+            curpath = pathlib.Path(".")
+            name = curpath / "T{}-R{}-network-{}".format(
+                treatment, replicate, net.identifier
+            )
             log.info("writing files to {}".format(name))
             g = get_graph_by_type(GraphType.GENE, ana)
             d = DotMaker(g, simple=True)
-            d.save_dot(name.with_suffix('.dot').as_posix())
+            d.save_dot(name.with_suffix(".dot").as_posix())
             g = get_graph_by_type(GraphType.GENE, ana)
             d = DotMaker(g)
-            d.save_picture(name.with_suffix('.png').as_posix())
+            d.save_picture(name.with_suffix(".png").as_posix())
 
 
 @bricolage.command()
-@click.argument('treatment', type=int)
-@click.argument('replicate', type=int)
+@click.argument("treatment", type=int)
+@click.argument("replicate", type=int)
 def best_diff(treatment, replicate):
     """Export an network."""
     try:
@@ -325,16 +339,19 @@ def best_diff(treatment, replicate):
         cur_graph = get_graph_by_type(GraphType.GENE, cur_ana)
         first_graph = get_graph_by_type(GraphType.GENE, first_ana)
 
-        curpath = pathlib.Path('.')
-        name = curpath / "T{}-R{}-network-{}".format(treatment, replicate, cur_net.identifier)
+        curpath = pathlib.Path(".")
+        name = curpath / "T{}-R{}-network-{}".format(
+            treatment, replicate, cur_net.identifier
+        )
         log.info("Name is {}".format(name.as_posix()))
         d = DotMaker(cur_graph)
-        d.save_diff_dot(name.with_suffix('.dot').as_posix(), first_graph)
-        d.save_diff_picture(name.with_suffix('.png').as_posix(), first_graph)
+        d.save_diff_dot(name.with_suffix(".dot").as_posix(), first_graph)
+        d.save_diff_picture(name.with_suffix(".png").as_posix(), first_graph)
         # g = get_graph_by_type(GraphType.GENE, ana)
         # d = DotMaker(g)
         # d.save_picture(name.with_suffix('.png').as_posix())
-        
+
+
 @bricolage.command()
 @verbose_
 @treatment_
@@ -347,9 +364,10 @@ def mods_changed(verbose, treatment, replicate):
     except ExperimentError as e:
         raise click.BadParameter(e.message)
 
-    NS.experiment.visit_lineages(StatsNetworkChanges(NS.experiment),
-                                 only_treatment=the_t,
-                                 only_replicate=the_rep)
+    NS.experiment.visit_lineages(
+        StatsNetworkChanges(NS.experiment), only_treatment=the_t, only_replicate=the_rep
+    )
+
 
 # def status(verbose):
 #     """Show status of experiment"""

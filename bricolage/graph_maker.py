@@ -28,7 +28,7 @@ class ChannelType(IntEnum):
 
 # NOTE: Should mirror "encode_module_id" in pubsub2_c.h
 def decode_module_id(module_id):
-    return (0xff00 & module_id) >> 8, 0xff & module_id
+    return (0xFF00 & module_id) >> 8, 0xFF & module_id
 
 
 def encode_module_id(gene_id, module_id):
@@ -46,8 +46,7 @@ class BaseGraph(object):
 
     @property
     def network(self):
-        return self.knockout_network if self.knockouts else \
-            self.original_network
+        return self.knockout_network if self.knockouts else self.original_network
 
     def is_inert(self, node):
         return False
@@ -101,9 +100,7 @@ class BaseGraph(object):
             return "end-{}".format(nindex)
         raise RuntimeError("Unknown node type {}".format(ntype))
 
-    _ntype_lookup = {
-        "G": NodeType.GENE, "M": NodeType.MODULE, "C": NodeType.CHANNEL
-    }
+    _ntype_lookup = {"G": NodeType.GENE, "M": NodeType.MODULE, "C": NodeType.CHANNEL}
 
     def name_to_node(self, name):
         """Convert the name back into a node descriptor"""
@@ -117,9 +114,8 @@ class BaseGraph(object):
 
     def remove_nodes(self, nodetype, internal_only=False, external_only=False):
         assert not (internal_only and external_only)
-        gr = self.nx_graph
         to_remove = []
-        for nd in gr.nodes():
+        for nd in self.nx_graph.nodes():
             if nd[0] != nodetype:
                 continue
 
@@ -133,13 +129,13 @@ class BaseGraph(object):
             to_remove.append(nd)
 
         for nd in to_remove:
-            # Ok -- do the removal
-            pred = gr.predecessors(nd)
-            succ = gr.successors(nd)
-            for p in pred:
-                for s in succ:
-                    gr.add_edge(p, s)
-            gr.remove_node(nd)
+            # Join them up
+            for p in self.nx_graph.predecessors(nd):
+                for s in self.nx_graph.successors(nd):
+                    self.nx_graph.add_edge(p, s)
+
+        # Then remove those nodes
+        self.nx_graph.remove_nodes_from(to_remove)
 
     def format_annotations(self, obj):
         try:
@@ -152,8 +148,8 @@ class BaseGraph(object):
             keys = a.keys()
             keys.sort()
             return "[{}]".format(
-                ", ".join(["{}:{}".format(k, round(a[k], 2))
-                 for k in keys]))
+                ", ".join(["{}:{}".format(k, round(a[k], 2)) for k in keys])
+            )
 
 
 class FullGraph(BaseGraph):
@@ -224,8 +220,8 @@ def node_logic_differs(g1, g2, node):
 
 
 class GeneSignalGraph(FullGraph):
-    def __init__(self, analysis, knockouts=True, edges=None, **kw):
-        FullGraph.__init__(self, analysis, knockouts, **kw)
+    def __init__(self, analysis, knockouts=True, edges=None):
+        FullGraph.__init__(self, analysis, knockouts, edges)
         self.remove_nodes(NodeType.MODULE)
 
     def get_gene_label(self, i):
@@ -238,7 +234,7 @@ class GeneSignalGraph(FullGraph):
 
 class GeneGraph(GeneSignalGraph):
     def __init__(self, analysis, knockouts=True, edges=None, **kw):
-        GeneSignalGraph.__init__(self, analysis, knockouts, **kw)
+        GeneSignalGraph.__init__(self, analysis, knockouts, edges, **kw)
         self.remove_nodes(NodeType.CHANNEL, internal_only=True)
 
     def get_gene_label(self, i):
@@ -292,15 +288,11 @@ class SignalFlowGraph(FullGraph):
 
         return True
 
-
     def minimum_cut(self):
         # Sometimes begin nodes may not even be in the graph!
         if self.begin_node not in self.nx_graph.nodes():
             return None
-        return nx.minimum_node_cut(
-            self.nx_graph, self.begin_node, self.end_node)
-
-
+        return nx.minimum_node_cut(self.nx_graph, self.begin_node, self.end_node)
 
 
 _type_map = {

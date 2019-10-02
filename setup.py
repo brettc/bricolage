@@ -24,18 +24,14 @@ CLASSIFIERS = [
     "Natural Language :: English",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Operating System :: OS Independent",
-    "Programming Language :: C++", 
+    "Programming Language :: C++",
     "Programming Language :: Python",
     "Programming Language :: Python :: 2.7",
     "Topic :: Scientific/Engineering",
 ]
 
 
-INSTALL_REQUIRES = [
-    "pathlib",
-    "pandas",
-    "networkx"
-]
+INSTALL_REQUIRES = ["pathlib", "pandas", "networkx", "numpy"]
 
 ###############################################################################
 
@@ -59,8 +55,7 @@ def find_meta(meta):
     Extract __*meta*__ from META_FILE.
     """
     meta_match = re.search(
-        r"^__{meta}__ = ['\"]([^'\"]*)['\"]".format(meta=meta),
-        META_FILE, re.M
+        r"^__{meta}__ = ['\"]([^'\"]*)['\"]".format(meta=meta), META_FILE, re.M
     )
     if meta_match:
         return meta_match.group(1)

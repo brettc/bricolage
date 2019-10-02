@@ -74,7 +74,7 @@ $(GRN_DYLIB): $(CPP_OBJS)
 # ---- Automatic rules
 # Make objects for dynamic library
 
-$(CPPSRC)/%.o : $(CPPSRC)/%.cpp 
+$(CPPSRC)/%.o : $(CPPSRC)/%.cpp
 	$(CC) $(CCFLAGS) $(INCLUDES) -c $< -o $@
 
 # Make python extensions from cython objects
@@ -82,11 +82,11 @@ $(PYSRC)/%.so: $(PYSRC)/%.o $(GRN_DYLIB)
 	$(CC) $(PYEXT_FLAGS) $(LIBINC) $< -o $@ -l$(CPP_LIBNAME)
 
 # Make objects for all cython output
-$(PYSRC)/%.o : $(PYSRC)/%.cpp 
+$(PYSRC)/%.o : $(PYSRC)/%.cpp
 	$(CC) $(CCFLAGS) $(INCLUDES) -c $< -o $@
 
 # Make cpp files from cython
-# Overkill -- but better to make sure everything rebuilds on pxd change. 
+# Overkill -- but better to make sure everything rebuilds on pxd change.
 $(PYSRC)/%.cpp : $(PYSRC)/%.pyx $(CY_PXDS)
 	$(CYTHON) --include-dir $(CPPSRC) --cplus $< -o $@
 
@@ -95,9 +95,9 @@ $(PYSRC)/%.cpp : $(PYSRC)/%.pyx $(CY_PXDS)
 -include $(wildcard $(PYSRC)/*.d)
 
 # Manually add dependencies for your pyx
-# $(PYSRC)/threshold3.pyx : 
+# $(PYSRC)/threshold3.pyx :
 
-clean: 
+clean:
 	rm -f $(CY_EXTS) $(GRN_DYLIB) $(MOVED_GRN_DYLIB)
 	rm -f $(CPPSRC)/*.d $(PYSRC)/*.d
 	rm -f $(CPPSRC)/*.o $(PYSRC)/*.o
@@ -112,4 +112,4 @@ cleanall:
 	rm -f **/*.pyc
 	rm -f $(PYSRC)/*.cpp
 
-.PHONY: all clean cleanall 
+.PHONY: all clean cleanall
