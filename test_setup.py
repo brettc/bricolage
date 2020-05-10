@@ -38,12 +38,19 @@ ext_libraries = [
 
 extensions = [
     Extension(
-        "core_ext",
-        sources=["bricolage/core_ext.pyx"],
+        "test",
+        sources=["bricolage/test.pyx"],
         language="c++",
         include_dirs=['./src'],
         libraries=["grn"],
     ),
+    # Extension(
+    #     "core_ext",
+    #     sources=["bricolage/core_ext.pyx"],
+    #     language="c++",
+    #     include_dirs=['./src'],
+    #     libraries=["grn"],
+    # ),
     # Extension(
     #     "analysis_ext",
     #     sources=["bricolage/analysis_ext.pyx"],

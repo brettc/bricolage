@@ -2,10 +2,17 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: cdivision=True
+# cython: language_level=2
+# cython: language=c++
 # distutils: define_macros=NPY_NO_DEPRECATED_API
 
-from analysis cimport *
-from targets_ext cimport *
+# from bricolage.analysis cimport *
+# from bricolage.targets_ext cimport *
+
+from bricolage.core cimport *
+from bricolage.analysis cimport *
+from bricolage.targets_ext cimport *
+from bricolage.core_ext cimport *
 
 import cython
 import numpy

@@ -1,8 +1,9 @@
-from utility cimport *
-from core cimport *
-from targets cimport *
-from analysis cimport *
-from core_ext cimport *
+from bricolage.utility cimport *
+from bricolage.core cimport *
+from bricolage.targets cimport *
+from bricolage.analysis cimport *
+from bricolage.core_ext cimport *
+from bricolage.analysis_ext cimport *
 
 
 cdef class NetworkAnalysis:

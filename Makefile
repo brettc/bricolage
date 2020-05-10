@@ -11,20 +11,23 @@
 # CURRENT PLATFORM: MacOSX 10.10.1, using Anaconda python 2.7
 
 PYTHONDIR=$(HOME)/anaconda3/envs/bricolage
+PYTHONDIR=$(HOME)/miniconda3/envs/bricolage
 PYSRC=./bricolage
 CPPSRC=./src
+CC = g++
 
 LIBINC=-L$(PYTHONDIR)/lib -L$(PYSRC)
 CYTHON=$(PYTHONDIR)/bin/cython
 
 CCFLAGS = \
-	-fno-strict-aliasing -arch x86_64 -fPIC -DNDEBUG -g -fwrapv -O3 \
+	-fno-strict-aliasing -fPIC -DNDEBUG -g -fwrapv -O3 \
 	-Wall \
-	-Wstrict-prototypes \
 	-Wno-unused-function \
 	-Wno-unused-local-typedefs \
-	-stdlib=libc++ -std=c++11 -mmacosx-version-min=10.8 \
+	-std=c++11 \
 	-MMD
+
+	# -Wstrict-prototypes \
 
 INCLUDES = \
 		-I. \
@@ -34,10 +37,13 @@ INCLUDES = \
 		-I$(PYTHONDIR)/include/python2.7
 
 # NOT the same thing
-PYEXT_FLAGS=-bundle -undefined dynamic_lookup -arch x86_64
-DYLIB_FLAGS=-dynamiclib -undefined dynamic_lookup -arch x86_64
+# PYEXT_FLAGS=-bundle -undefined dynamic_lookup -arch x86_64
+PYEXT_FLAGS=-shared
+# DYLIB_FLAGS=-dynamiclib -undefined dynamic_lookup -arch x86_64
+DYLIB_FLAGS=-shared
 
-LIBS=-lpython2.7 -lstdc++
+LIBS=-lpython2.7 
+# LIBS=-lpython2.7 -lstdc++
 
 CPP_SRCS = $(wildcard $(CPPSRC)/*.cpp)
 CPP_OBJS = $(CPP_SRCS:.cpp=.o)
@@ -47,7 +53,8 @@ CY_PXDS = $(wildcard $(PYSRC)/*.pxd) $(wildcard $(CPPSRC)/*.pxd)
 
 # We need to give our library a name
 CPP_LIBNAME = grn
-GRN_DYLIB_NAME = lib$(CPP_LIBNAME).dylib
+# GRN_DYLIB_NAME = lib$(CPP_LIBNAME).dylib
+GRN_DYLIB_NAME = lib$(CPP_LIBNAME).so
 GRN_DYLIB = $(PYSRC)/$(GRN_DYLIB_NAME)
 
 all: $(CY_EXTS)
@@ -65,9 +72,11 @@ shared: $(GRN_DYLIB)
 # NOTE: need to change the "install-name" of the dylib so that it loads
 # relative to the binaries that will be using it (the python extensions)
 $(GRN_DYLIB): $(CPP_OBJS)
-	$(CC) $(DYLIB_FLAGS) $(LIBINC) $(CPP_OBJS) -o $(GRN_DYLIB)
-	install_name_tool -id "@loader_path/$(GRN_DYLIB_NAME)" $(GRN_DYLIB)
+	$(CC) $(DYLIB_FLAGS) $(LIBINC) $(CPP_OBJS) $(LIBS) -o $(GRN_DYLIB)
 
+# $(GRN_DYLIB): $(CPP_OBJS)
+# 	$(CC) $(DYLIB_FLAGS) $(LIBINC) $(CPP_OBJS) -o $(GRN_DYLIB)
+# 	install_name_tool -id "@loader_path/$(GRN_DYLIB_NAME)" $(GRN_DYLIB)
 # otool shit?
 # $(CC) $(DYLIB_FLAGS) $(LIBINC) $(CPP_OBJS) -o libgrn.dylib
 
