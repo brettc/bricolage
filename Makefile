@@ -41,6 +41,7 @@ INCLUDES = \
 PYEXT_FLAGS=-shared
 # DYLIB_FLAGS=-dynamiclib -undefined dynamic_lookup -arch x86_64
 DYLIB_FLAGS=-shared
+RPATH_FLAGS=-Wl,-rpath,/home/ubuntu/code/bricolage/bricolage
 
 LIBS=-lpython2.7 
 # LIBS=-lpython2.7 -lstdc++
@@ -88,7 +89,7 @@ $(CPPSRC)/%.o : $(CPPSRC)/%.cpp
 
 # Make python extensions from cython objects
 $(PYSRC)/%.so: $(PYSRC)/%.o $(GRN_DYLIB)
-	$(CC) $(PYEXT_FLAGS) $(LIBINC) $< -o $@ -l$(CPP_LIBNAME)
+	$(CC) $(PYEXT_FLAGS) $(LIBINC) $(RPATH_FLAGS) $< -o $@ -l$(CPP_LIBNAME)
 
 # Make objects for all cython output
 $(PYSRC)/%.o : $(PYSRC)/%.cpp
