@@ -24,6 +24,7 @@ CCFLAGS = \
 	-Wall \
 	-Wno-unused-function \
 	-Wno-unused-local-typedefs \
+	-Wno-sign-compare \
 	-std=c++11 \
 	-MMD
 
@@ -41,7 +42,8 @@ INCLUDES = \
 PYEXT_FLAGS=-shared
 # DYLIB_FLAGS=-dynamiclib -undefined dynamic_lookup -arch x86_64
 DYLIB_FLAGS=-shared
-RPATH_FLAGS=-Wl,-rpath,/home/ubuntu/code/bricolage/bricolage
+# RPATH_FLAGS=-Wl,-rpath,/home/ubuntu/code/bricolage/bricolage
+RPATH_FLAGS=-Wl,-rpath,\$$ORIGIN
 
 LIBS=-lpython2.7 
 # LIBS=-lpython2.7 -lstdc++
