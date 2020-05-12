@@ -38,21 +38,22 @@ INCLUDES = \
 		-I$(PYTHONDIR)/lib/python2.7/site-packages/numpy/core/include \
 		-I$(PYTHONDIR)/include/python2.7
 
-
 # We need to give our library a name
 CPP_LIBNAME = grn
-PYEXT_FLAGS=-shared
 
 ifeq ($(OS), Darwin)
 	GRN_DYLIB_NAME = lib$(CPP_LIBNAME).dylib
 	DYLIB_FLAGS=-dynamiclib -undefined dynamic_lookup -arch x86_64
 	RPATH_FLAGS=
   LIBS=-lpython2.7 -lstdc++
+	CCFLAGS += -stdlib=libc++ -mmacosx-version-min=10.8
+	PYEXT_FLAGS=-bundle -undefined dynamic_lookup -arch x86_64
 else
 	GRN_DYLIB_NAME = lib$(CPP_LIBNAME).so
 	DYLIB_FLAGS=-shared
 	RPATH_FLAGS=-Wl,-rpath,\$$ORIGIN
 	LIBS=-lpython2.7
+	PYEXT_FLAGS=-shared
 endif
 
 GRN_DYLIB = $(PYSRC)/$(GRN_DYLIB_NAME)
@@ -66,7 +67,6 @@ CY_PXDS = $(wildcard $(PYSRC)/*.pxd) $(wildcard $(CPPSRC)/*.pxd)
 
 all: $(CY_EXTS)
 
-# all: $(CPP_OBJS)
 
 # This is useful for invoking via vim
 cython: $(CY_SRCS:.pyx=.cpp)
@@ -76,8 +76,9 @@ shared: $(GRN_DYLIB)
 
 
 # Build the shared libary of all c++ code
-# NOTE: need to change the "install-name" of the dylib so that it loads
+# Need to change the "install-name" of the dylib so that it loads
 # relative to the binaries that will be using it (the python extensions)
+# The equivalent is done by the RPATH_FLAGS in linux.
 ifeq ($(OS), Darwin)
 $(GRN_DYLIB): $(CPP_OBJS)
 	$(CC) $(DYLIB_FLAGS) $(LIBINC) $(CPP_OBJS) $(LIBS) -o $(GRN_DYLIB)
@@ -110,11 +111,8 @@ $(PYSRC)/%.cpp : $(PYSRC)/%.pyx $(CY_PXDS)
 -include $(wildcard $(CPPSRC)/*.d)
 -include $(wildcard $(PYSRC)/*.d)
 
-# Manually add dependencies for your pyx
-# $(PYSRC)/threshold3.pyx :
-
 clean:
-	rm -f $(CY_EXTS) $(GRN_DYLIB) $(MOVED_GRN_DYLIB)
+	rm -f $(CY_EXTS) $(GRN_DYLIB)
 	rm -f $(CPPSRC)/*.d $(PYSRC)/*.d
 	rm -f $(CPPSRC)/*.o $(PYSRC)/*.o
 	rm -f $(PYSRC)/*.cpp
@@ -122,10 +120,4 @@ clean:
 	rm -f $(PYSRC)/*.dylib
 	rm -f $(PYSRC)/*.so
 
-cleanall:
-	rm -f **/*.o
-	rm -f **/*.d
-	rm -f **/*.pyc
-	rm -f $(PYSRC)/*.cpp
-
-.PHONY: all clean cleanall
+.PHONY: all clean
