@@ -26,6 +26,8 @@ CCFLAGS = \
 	-Wno-unused-function \
 	-Wno-unused-local-typedefs \
 	-Wno-sign-compare \
+	-Wno-deprecated-register \
+	-Wno-\#warnings \
 	-std=c++11 \
 	-MMD
 
