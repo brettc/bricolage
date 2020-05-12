@@ -9,9 +9,10 @@
 # what is going on that way (though it clearly won't scale well).
 #
 # CURRENT PLATFORM: MacOSX 10.10.1, using Anaconda python 2.7
+#
+PYTHONDIR=$(shell echo `which python` | rev | cut -d'/' -f3- | rev)
+OS=$(shell uname)
 
-PYTHONDIR=$(HOME)/anaconda3/envs/bricolage
-PYTHONDIR=$(HOME)/miniconda3/envs/bricolage
 PYSRC=./bricolage
 CPPSRC=./src
 CC = g++
@@ -37,16 +38,24 @@ INCLUDES = \
 		-I$(PYTHONDIR)/lib/python2.7/site-packages/numpy/core/include \
 		-I$(PYTHONDIR)/include/python2.7
 
-# NOT the same thing
-# PYEXT_FLAGS=-bundle -undefined dynamic_lookup -arch x86_64
-PYEXT_FLAGS=-shared
-# DYLIB_FLAGS=-dynamiclib -undefined dynamic_lookup -arch x86_64
-DYLIB_FLAGS=-shared
-# RPATH_FLAGS=-Wl,-rpath,/home/ubuntu/code/bricolage/bricolage
-RPATH_FLAGS=-Wl,-rpath,\$$ORIGIN
 
-LIBS=-lpython2.7 
-# LIBS=-lpython2.7 -lstdc++
+# We need to give our library a name
+CPP_LIBNAME = grn
+PYEXT_FLAGS=-shared
+
+ifeq ($(OS), Darwin)
+	GRN_DYLIB_NAME = lib$(CPP_LIBNAME).dylib
+	DYLIB_FLAGS=-dynamiclib -undefined dynamic_lookup -arch x86_64
+	RPATH_FLAGS=
+  LIBS=-lpython2.7 -lstdc++
+else
+	GRN_DYLIB_NAME = lib$(CPP_LIBNAME).so
+	DYLIB_FLAGS=-shared
+	RPATH_FLAGS=-Wl,-rpath,\$$ORIGIN
+	LIBS=-lpython2.7
+endif
+
+GRN_DYLIB = $(PYSRC)/$(GRN_DYLIB_NAME)
 
 CPP_SRCS = $(wildcard $(CPPSRC)/*.cpp)
 CPP_OBJS = $(CPP_SRCS:.cpp=.o)
@@ -54,11 +63,6 @@ CY_SRCS = $(wildcard $(PYSRC)/*.pyx)
 CY_EXTS = $(CY_SRCS:.pyx=.so)
 CY_PXDS = $(wildcard $(PYSRC)/*.pxd) $(wildcard $(CPPSRC)/*.pxd)
 
-# We need to give our library a name
-CPP_LIBNAME = grn
-# GRN_DYLIB_NAME = lib$(CPP_LIBNAME).dylib
-GRN_DYLIB_NAME = lib$(CPP_LIBNAME).so
-GRN_DYLIB = $(PYSRC)/$(GRN_DYLIB_NAME)
 
 all: $(CY_EXTS)
 
@@ -74,14 +78,14 @@ shared: $(GRN_DYLIB)
 # Build the shared libary of all c++ code
 # NOTE: need to change the "install-name" of the dylib so that it loads
 # relative to the binaries that will be using it (the python extensions)
+ifeq ($(OS), Darwin)
 $(GRN_DYLIB): $(CPP_OBJS)
 	$(CC) $(DYLIB_FLAGS) $(LIBINC) $(CPP_OBJS) $(LIBS) -o $(GRN_DYLIB)
-
-# $(GRN_DYLIB): $(CPP_OBJS)
-# 	$(CC) $(DYLIB_FLAGS) $(LIBINC) $(CPP_OBJS) -o $(GRN_DYLIB)
-# 	install_name_tool -id "@loader_path/$(GRN_DYLIB_NAME)" $(GRN_DYLIB)
-# otool shit?
-# $(CC) $(DYLIB_FLAGS) $(LIBINC) $(CPP_OBJS) -o libgrn.dylib
+	install_name_tool -id "@loader_path/$(GRN_DYLIB_NAME)" $(GRN_DYLIB)
+else
+$(GRN_DYLIB): $(CPP_OBJS)
+	$(CC) $(DYLIB_FLAGS) $(LIBINC) $(CPP_OBJS) $(LIBS) -o $(GRN_DYLIB)
+endif
 
 # ---- Automatic rules
 # Make objects for dynamic library
